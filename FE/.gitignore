@@ -27,3 +27,6 @@ dist-ssr
 .vscode
 .idea
 .agent
+
+.env
+*.tsbuildinfo

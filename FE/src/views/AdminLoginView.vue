@@ -1,7 +1,9 @@
-<script setup>
+﻿<script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { message } from "ant-design-vue";
+import axios from "axios";
+import { loginAdmin } from "../services/api";
 import {
   LockOutlined,
   SafetyCertificateOutlined,
@@ -13,20 +15,26 @@ const router = useRouter();
 const passcode = ref("");
 const loading = ref(false);
 
-const handleAdminLogin = () => {
+const handleAdminLogin = async () => {
   if (!passcode.value.trim()) {
     message.warning("Vui lòng nhập Passcode Quản trị!");
     return;
   }
 
   loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
-    // Set admin auth token in localStorage
-    localStorage.setItem("admin_token", "true");
+  try {
+    await loginAdmin(passcode.value);
     message.success("Đăng nhập Quản trị thành công!");
-    router.push("/admin/shopee-config");
-  }, 600);
+    await router.push("/admin/shopee-config");
+  } catch (error) {
+    const errorMessage = axios.isAxiosError<{ message?: string }>(error)
+      ? error.response?.data?.message ||
+        "Đăng nhập thất bại. Vui lòng thử lại!"
+      : "Đăng nhập thất bại. Vui lòng thử lại!";
+    message.error(errorMessage);
+  } finally {
+    loading.value = false;
+  }
 };
 </script>
 

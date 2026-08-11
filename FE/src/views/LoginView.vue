@@ -1,7 +1,9 @@
-<script setup>
+﻿<script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { message } from "ant-design-vue";
+import axios from "axios";
+import { loginUser } from "../services/api";
 import {
   LoginOutlined,
   InfoCircleOutlined,
@@ -13,18 +15,25 @@ const router = useRouter();
 const trackingCode = ref("");
 const loading = ref(false);
 
-const handleLogin = () => {
+const handleLogin = async () => {
   if (!trackingCode.value.trim()) {
     message.warning("Vui lòng nhập mã theo dõi!");
     return;
   }
 
   loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
+  try {
+    await loginUser(trackingCode.value.trim());
     message.success("Đăng nhập thành công!");
-    router.push("/admin");
-  }, 700);
+    await router.push("/");
+  } catch (error) {
+    const errorMessage = axios.isAxiosError<{ message?: string }>(error)
+      ? error.response?.data?.message || "Mã theo dõi không chính xác!"
+      : "Đăng nhập thất bại. Vui lòng thử lại!";
+    message.error(errorMessage);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const copyCommand = () => {

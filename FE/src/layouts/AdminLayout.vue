@@ -1,7 +1,8 @@
-<script setup>
+﻿<script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "ant-design-vue";
+import { clearAuthTokens } from "../services/api";
 import {
   DashboardOutlined,
   ShoppingCartOutlined,
@@ -25,7 +26,7 @@ const router = useRouter();
 const isCollapsed = ref(false);
 
 const handleLogout = () => {
-  localStorage.removeItem("admin_token");
+  clearAuthTokens();
   message.info("Đã đăng xuất tài khoản Quản trị");
   router.push("/admin/login");
 };
@@ -75,7 +76,7 @@ const menuItems = [
 
 const currentRouteKey = computed(() => route.path);
 
-const navigate = (path) => {
+const navigate = (path: string) => {
   router.push(path);
 };
 </script>

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup lang="ts">
 import Navbar from '../components/Navbar.vue'
 import HeroSection from '../components/HeroSection.vue'
 import LinkConverterCard from '../components/LinkConverterCard.vue'

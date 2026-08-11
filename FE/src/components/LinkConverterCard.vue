@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup lang="ts">
 import { ref } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -9,11 +9,20 @@ import {
 } from "@ant-design/icons-vue";
 import { Rocket } from "lucide-vue-next";
 
+interface ConvertedLink {
+  id: number;
+  original: string;
+  platform: string;
+  affiliateUrl: string;
+  cashbackRate: string;
+  copied: boolean;
+}
+
 const inputLink = ref("");
 const errorMessage = ref("");
 const isConverting = ref(false);
-const convertedLinks = ref([]);
-const inputRef = ref(null);
+const convertedLinks = ref<ConvertedLink[]>([]);
+const inputRef = ref<HTMLInputElement | null>(null);
 
 // Helper Regex matching all Shopee link formats (shopee.vn/..., s.shopee.vn/..., vn.shp.ee/...)
 const SHOPEE_LINK_REGEX =
@@ -37,7 +46,7 @@ const handleInput = () => {
   errorMessage.value = "";
 };
 
-const validateLink = (trimmed) => {
+const validateLink = (trimmed: string): RegExpMatchArray | null => {
   if (!trimmed) {
     errorMessage.value = "Vui lòng dán link sản phẩm Shopee!";
     return null;
@@ -88,19 +97,7 @@ const handleConvert = () => {
   }, 600);
 };
 
-const handleStartFree = () => {
-  if (inputRef.value) {
-    inputRef.value.focus();
-  }
-  if (!inputLink.value.trim()) {
-    errorMessage.value =
-      "Vui lòng dán link Shopee sản phẩm để bắt đầu hoàn tiền!";
-  } else {
-    handleConvert();
-  }
-};
-
-const copyLink = (item) => {
+const copyLink = (item: ConvertedLink) => {
   navigator.clipboard.writeText(item.affiliateUrl);
   item.copied = true;
   message.success("Đã sao chép link hoàn tiền!");
@@ -170,7 +167,9 @@ const copyLink = (item) => {
             type="button"
             class="bg-[#ff5733] hover:bg-[#e04725] active:scale-95 text-white font-bold text-base px-6 py-3.5 rounded-xl shadow-md shadow-orange-500/20 inline-flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 flex-shrink-0 disabled:opacity-70 leading-none"
           >
-            <span class="text-white font-bold leading-none">Chuyển đổi link</span>
+            <span class="text-white font-bold leading-none"
+              >Chuyển đổi link</span
+            >
             <ArrowRightOutlined
               :spin="isConverting"
               class="!text-white text-base leading-none inline-flex items-center justify-center transform group-hover:translate-x-1 transition-transform"
@@ -243,18 +242,6 @@ const copyLink = (item) => {
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- Floating Dark CTA Button Underneath Card -->
-    <div class="-mt-5 relative z-30 flex justify-center">
-      <button
-        @click="handleStartFree"
-        type="button"
-        class="bg-[#1c2434] hover:bg-[#0f172a] active:scale-95 text-white font-bold text-sm sm:text-base px-6 py-2.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer border-2 border-white leading-none"
-      >
-        <Rocket class="w-4 h-4 text-orange-400 flex-shrink-0" />
-        <span class="text-white font-bold leading-none">Bắt đầu miễn phí</span>
-      </button>
     </div>
   </div>
 </template>

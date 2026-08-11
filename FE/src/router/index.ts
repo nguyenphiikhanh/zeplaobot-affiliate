@@ -5,6 +5,7 @@ import AdminLoginView from '../views/AdminLoginView.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import ShopeeConfigView from '../views/ShopeeConfigView.vue'
 import ZaloConfigView from '../views/ZaloConfigView.vue'
+import { hasValidAdminSession } from '../services/api'
 
 const routes = [
   {
@@ -54,18 +55,14 @@ const router = createRouter({
 })
 
 // Navigation Guard for Admin Routes
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to) => {
   const isAdminRoute = to.path.startsWith('/admin') && to.path !== '/admin/login'
-  const isAdminLoggedIn = localStorage.getItem('admin_token') === 'true'
+  const isAdminLoggedIn = await hasValidAdminSession()
 
   if (isAdminRoute && !isAdminLoggedIn) {
-    // If accessing any admin route without being logged in, redirect to /admin/login
-    next('/admin/login')
+    return '/admin/login'
   } else if (to.path === '/admin/login' && isAdminLoggedIn) {
-    // If already logged in, skip login page
-    next('/admin/shopee-config')
-  } else {
-    next()
+    return '/admin/shopee-config'
   }
 })
 

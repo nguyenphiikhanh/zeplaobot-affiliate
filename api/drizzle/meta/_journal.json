@@ -15,6 +15,13 @@
       "when": 1786467558388,
       "tag": "0001_clean_mentallo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786473579185,
+      "tag": "0002_users_name",
+      "breakpoints": true
     }
   ]
 }

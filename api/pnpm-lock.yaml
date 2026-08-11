@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  drizzle-kit@0.31.10:
+    hash: 3d0c3ebbdebc563ac4b2bc4b849f93294bc406dd13b7fa28790e30f3faf39c3b
+    path: patches/drizzle-kit@0.31.10.patch
+
 importers:
 
   .:
@@ -11,6 +16,9 @@ importers:
       '@hono/node-server':
         specifier: ^2.1.0
         version: 2.1.0(hono@4.13.0)
+      bcryptjs:
+        specifier: ^3.0.3
+        version: 3.0.3
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -32,7 +40,7 @@ importers:
         version: 26.1.2
       drizzle-kit:
         specifier: ^0.31.10
-        version: 0.31.10
+        version: 0.31.10(patch_hash=3d0c3ebbdebc563ac4b2bc4b849f93294bc406dd13b7fa28790e30f3faf39c3b)
       tsx:
         specifier: ^4.23.0
         version: 4.23.9
@@ -632,6 +640,10 @@ packages:
   aws-ssl-profiles@1.1.2:
     resolution: {integrity: sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==}
     engines: {node: '>= 6.0.0'}
+
+  bcryptjs@3.0.3:
+    resolution: {integrity: sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==}
+    hasBin: true
 
   bignumber.js@9.3.1:
     resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
@@ -1251,6 +1263,8 @@ snapshots:
 
   aws-ssl-profiles@1.1.2: {}
 
+  bcryptjs@3.0.3: {}
+
   bignumber.js@9.3.1: {}
 
   buffer-from@1.1.2: {}
@@ -1270,7 +1284,7 @@ snapshots:
 
   dotenv@17.4.2: {}
 
-  drizzle-kit@0.31.10:
+  drizzle-kit@0.31.10(patch_hash=3d0c3ebbdebc563ac4b2bc4b849f93294bc406dd13b7fa28790e30f3faf39c3b):
     dependencies:
       '@drizzle-team/brocli': 0.10.2
       '@esbuild-kit/esm-loader': 2.6.5

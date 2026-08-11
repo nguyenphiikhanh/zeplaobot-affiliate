@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup lang="ts">
 import { Sparkles } from "lucide-vue-next";
 </script>
 

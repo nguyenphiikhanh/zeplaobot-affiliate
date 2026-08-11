@@ -5,12 +5,14 @@ export type TargetThreadType = 'user' | 'group'
 export const config = {
     appUrl: (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, ''),
     port: Number(process.env.PORT || 3000),
+    adminPassCode: process.env.ADMIN_PASS_CODE || '',
+    authTokenSecret: process.env.AUTH_TOKEN_SECRET || process.env.ADMIN_PASS_CODE || '',
     db: {
         host: process.env.DB_HOST || '127.0.0.1',
-        port: Number(process.env.DB_PORT || 3309),
+        port: Number(process.env.DB_PORT || 3306),
         database: process.env.DB_DATABASE || 'zeplaobot',
-        username: process.env.DB_USERNAME || 'saffi_user',
-        password: process.env.DB_PASSWORD || 'saffi12345',
+        username: process.env.DB_USERNAME || 'root',
+        password: process.env.DB_PASSWORD || '',
     },
     shopee: {
         fetchProductApi: process.env.SHOPEE_FETCH_PRODUCT_API || 'https://data.addlivetag.com/product-data/product-data.php',

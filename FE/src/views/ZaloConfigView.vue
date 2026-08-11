@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup lang="ts">
 import { ref } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -35,7 +35,7 @@ const addGroupInput = () => {
   groupIds.value.push("");
 };
 
-const removeGroupInput = (index) => {
+const removeGroupInput = (index: number) => {
   groupIds.value.splice(index, 1);
 };
 
@@ -48,7 +48,7 @@ const saveGroupIds = () => {
 };
 
 // Variable copy helper
-const copyVariable = (varName) => {
+const copyVariable = (varName: string) => {
   navigator.clipboard.writeText(varName);
   message.success(`Đã sao chép biến ${varName}!`);
 };
