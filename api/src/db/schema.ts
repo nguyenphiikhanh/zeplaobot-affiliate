@@ -1,4 +1,5 @@
 import { mysqlTable, bigint, varchar, text, int, json, timestamp } from 'drizzle-orm/mysql-core';
+import { ROLE } from '../utils/role.js';
 
 export const linkGenerations = mysqlTable('link_generations', {
   id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
@@ -14,3 +15,15 @@ export const linkGenerations = mysqlTable('link_generations', {
 
 export type LinkGeneration = typeof linkGenerations.$inferSelect;
 export type NewLinkGeneration = typeof linkGenerations.$inferInsert;
+
+export const users = mysqlTable('users', {
+  id: varchar('id', { length: 64 }).primaryKey(),
+  role: varchar('role', { length: 32 }).default(ROLE.USER).notNull(),
+  trackingCode: varchar('tracking_code', { length: 64 }).notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
+});
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+
