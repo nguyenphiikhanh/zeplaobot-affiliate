@@ -1,9 +1,9 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   DashboardOutlined,
-  LineChartOutlined,
   ShoppingCartOutlined,
   WalletOutlined,
   TeamOutlined,
@@ -17,27 +17,24 @@ import {
   HomeOutlined,
   ShoppingOutlined,
   CheckCircleOutlined,
+  LogoutOutlined,
 } from "@ant-design/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
 const isCollapsed = ref(false);
 
+const handleLogout = () => {
+  localStorage.removeItem("admin_token");
+  message.info("Đã đăng xuất tài khoản Quản trị");
+  router.push("/admin/login");
+};
+
 const menuItems = [
   {
     key: "/admin",
     title: "Tổng quan",
     icon: DashboardOutlined,
-  },
-  {
-    key: "/admin/shopee-config",
-    title: "Cấu hình Shopee",
-    icon: ShoppingOutlined,
-  },
-  {
-    key: "/admin/analytics",
-    title: "Thống kê",
-    icon: LineChartOutlined,
   },
   {
     key: "/admin/orders",
@@ -65,8 +62,13 @@ const menuItems = [
     icon: LinkOutlined,
   },
   {
+    key: "/admin/shopee-config",
+    title: "Cấu hình Shopee",
+    icon: ShoppingOutlined,
+  },
+  {
     key: "/admin/settings",
-    title: "Cấu hình hệ thống",
+    title: "Cấu hình Bot Zalo",
     icon: SettingOutlined,
   },
 ];
@@ -175,8 +177,8 @@ const navigate = (path) => {
         </nav>
       </div>
 
-      <!-- Sidebar Bottom Profile / Home Link -->
-      <div class="p-3 border-t border-slate-200 space-y-2 bg-slate-50/50">
+      <!-- Sidebar Bottom Profile / Home Link / Logout -->
+      <div class="p-3 border-t border-slate-200 space-y-1 bg-slate-50/50">
         <router-link
           to="/"
           :class="[
@@ -187,6 +189,19 @@ const navigate = (path) => {
           <HomeOutlined class="text-base text-[#ee4d2d] shrink-0" />
           <span v-show="!isCollapsed" class="truncate">Về trang chủ</span>
         </router-link>
+
+        <button
+          @click="handleLogout"
+          type="button"
+          :class="[
+            'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all cursor-pointer',
+            isCollapsed ? 'justify-center' : '',
+          ]"
+          title="Đăng xuất Admin"
+        >
+          <LogoutOutlined class="text-base text-rose-600 shrink-0" />
+          <span v-show="!isCollapsed" class="truncate">Đăng xuất</span>
+        </button>
       </div>
     </aside>
 
