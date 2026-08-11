@@ -82,6 +82,13 @@ export class ShopeeService {
   }
 
   /**
+   * Generates local short link using APP_URL.
+   */
+  public getAppShortLink(subId: string): string {
+    return `${config.appUrl}/s/${subId}`;
+  }
+
+  /**
    * Generates a fallback affiliate redirect link (an_redir).
    */
   public getShopeeAffiliateFallbackLink(
@@ -216,34 +223,34 @@ export class ShopeeService {
     }
 
     // 3. Attempt GraphQL short link generation first
-    let affiliateLink = '';
+    let targetAffiliateLink = '';
     try {
       const batchResult = await this.getShopeeBatchLinkConvert(originalLink, subId);
       if (batchResult?.shortLink) {
-        affiliateLink = batchResult.shortLink;
+        targetAffiliateLink = batchResult.shortLink;
       }
     } catch (error) {
       console.warn('[ShopeeService] GraphQL batch convert failed, switching to fallback link.');
     }
 
     // 4. Fallback link if GraphQL convert was not successful
-    if (!affiliateLink) {
+    if (!targetAffiliateLink) {
       if (shopId && productId) {
-        affiliateLink = this.getShopeeAffiliateFallbackLink(shopId, productId, subId);
+        targetAffiliateLink = this.getShopeeAffiliateFallbackLink(shopId, productId, subId);
       } else {
         const affiliateId = config.shopee.affiliateId;
-        affiliateLink = `https://s.shopee.vn/an_redir?origin_link=${encodeURIComponent(
+        targetAffiliateLink = `https://s.shopee.vn/an_redir?origin_link=${encodeURIComponent(
           originalLink
         )}&affiliate_id=${affiliateId}&sub_id=${subId}`;
       }
     }
 
-    // 5. Save convert record to Database via Drizzle ORM
+    // 5. Save convert record to Database via Drizzle ORM (affiliateLink is the target Shopee link)
     try {
       await db.insert(linkGenerations).values({
         userId,
         originLink: originalLink,
-        affiliateLink,
+        affiliateLink: targetAffiliateLink,
         subId,
         type: 1, // Shopee
         productInfo: productData ?? null,
@@ -252,9 +259,12 @@ export class ShopeeService {
       console.error('[ShopeeService] Failed saving link generation record to DB:', dbErr);
     }
 
+    // 6. Generate shortened APP_URL link for user facing output
+    const shortLink = this.getAppShortLink(subId);
+
     return {
       originalLink,
-      affiliateLink,
+      affiliateLink: shortLink,
       productInfo: productData,
       subId,
       userId,

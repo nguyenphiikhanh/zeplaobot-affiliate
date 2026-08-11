@@ -3,6 +3,7 @@ import 'dotenv/config'
 export type TargetThreadType = 'user' | 'group'
 
 export const config = {
+    appUrl: (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, ''),
     port: Number(process.env.PORT || 3000),
     db: {
         host: process.env.DB_HOST || '127.0.0.1',
