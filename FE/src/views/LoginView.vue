@@ -1,6 +1,6 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { message } from "ant-design-vue";
 import axios from "axios";
 import { loginUser } from "../services/api";
@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons-vue";
 
 const router = useRouter();
+const route = useRoute();
 const trackingCode = ref("");
 const loading = ref(false);
 
@@ -25,7 +26,8 @@ const handleLogin = async () => {
   try {
     await loginUser(trackingCode.value.trim());
     message.success("Đăng nhập thành công!");
-    await router.push("/");
+    const targetPath = (route.query.redirect as string) || "/";
+    await router.push(targetPath);
   } catch (error) {
     const errorMessage = axios.isAxiosError<{ message?: string }>(error)
       ? error.response?.data?.message || "Mã theo dõi không chính xác!"

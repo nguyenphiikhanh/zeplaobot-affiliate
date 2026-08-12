@@ -5,18 +5,20 @@ import AdminLoginView from '../views/AdminLoginView.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import ShopeeConfigView from '../views/ShopeeConfigView.vue'
 import ZaloConfigView from '../views/ZaloConfigView.vue'
-import { hasValidAdminSession } from '../services/api'
+import { getSessionUser } from '../services/api'
 
 const routes = [
   {
     path: '/',
     name: 'home',
     component: HomeView,
+    meta: { requiresAuth: true },
   },
   {
     path: '/login',
     name: 'login',
     component: LoginView,
+    meta: { guestOnly: true },
   },
   {
     path: '/admin/login',
@@ -54,16 +56,34 @@ const router = createRouter({
   routes,
 })
 
-// Navigation Guard for Admin Routes
+// Navigation Guard for Admin & User Routes with Strict Role Isolation
 router.beforeEach(async (to) => {
   const isAdminRoute = to.path.startsWith('/admin') && to.path !== '/admin/login'
-  const isAdminLoggedIn = await hasValidAdminSession()
+  const user = await getSessionUser()
 
-  if (isAdminRoute && !isAdminLoggedIn) {
-    return '/admin/login'
-  } else if (to.path === '/admin/login' && isAdminLoggedIn) {
-    return '/admin/shopee-config'
+  // 1. Admin Routes Guard
+  if (isAdminRoute) {
+    if (!user) return '/admin/login'
+    if (user.role !== 'admin') return '/'
+  } else if (to.path === '/admin/login') {
+    if (user?.role === 'admin') return '/admin/shopee-config'
+    if (user?.role === 'user') return '/'
+  }
+
+  // 2. User Routes Guard
+  if (to.meta.requiresAuth) {
+    if (!user) {
+      return { path: '/login', query: { redirect: to.fullPath !== '/' ? to.fullPath : undefined } }
+    }
+    if (user.role === 'admin') return '/admin/shopee-config'
+  } else if (to.meta.guestOnly) {
+    if (user) {
+      return user.role === 'admin' ? '/admin/shopee-config' : '/'
+    }
   }
 })
+
+
+
 
 export default router

@@ -43,6 +43,10 @@ export const clearAuthTokens = (): void => {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 };
 
+export const hasUserSession = (): boolean =>
+  Boolean(getAccessToken() || getRefreshToken());
+
+
 const saveAuthTokens = ({
   access_token,
   refresh_token,
@@ -60,7 +64,7 @@ const requireResponseData = <T>(response: ApiResponse<T>): T => {
 };
 
 export const api = axios.create({
-  baseURL: import.meta.env.BASE_API_URL,
+  baseURL: import.meta.env.BASE_API_URL || "",
   headers: { "Content-Type": "application/json" },
 });
 
@@ -76,14 +80,16 @@ const refreshAccessToken = async (): Promise<string> => {
   const refreshToken = getRefreshToken();
   if (!refreshToken) throw new Error("Missing refresh token");
 
+  const baseUrl = import.meta.env.BASE_API_URL || "";
   const response = await axios.post<ApiResponse<AuthTokens>>(
-    `${import.meta.env.BASE_API_URL}/api/refresh`,
+    `${baseUrl}/api/refresh`,
     { refresh_token: refreshToken },
   );
   const tokens = requireResponseData(response.data);
   saveAuthTokens(tokens);
   return tokens.access_token;
 };
+
 
 api.interceptors.response.use(
   (response) => response,
@@ -135,14 +141,33 @@ export const loginAdmin = async (passcode: string): Promise<void> => {
   saveAuthTokens(requireResponseData(response.data));
 };
 
-export const hasValidAdminSession = async (): Promise<boolean> => {
-  if (!getAccessToken() && !getRefreshToken()) return false;
+export interface SessionUser {
+  id: string;
+  role: "admin" | "user";
+  name?: string | null;
+  tracking_code?: string | null;
+}
+
+
+export const getSessionUser = async (): Promise<SessionUser | null> => {
+  if (!getAccessToken() && !getRefreshToken()) return null;
 
   try {
-    const response = await api.get<ApiResponse>("/api/admin/session");
-    return response.data.success;
+    const response = await api.get<ApiResponse<{ user: SessionUser }>>("/api/session");
+    return response.data.data?.user || null;
   } catch {
     clearAuthTokens();
-    return false;
+    return null;
   }
 };
+
+export const hasValidAdminSession = async (): Promise<boolean> => {
+  const user = await getSessionUser();
+  return user?.role === "admin";
+};
+
+export const hasValidUserSession = async (): Promise<boolean> => {
+  const user = await getSessionUser();
+  return user !== null;
+};
+

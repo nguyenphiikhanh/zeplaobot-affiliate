@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "ant-design-vue";
@@ -178,19 +178,8 @@ const navigate = (path: string) => {
         </nav>
       </div>
 
-      <!-- Sidebar Bottom Profile / Home Link / Logout -->
+      <!-- Sidebar Bottom Profile / Logout -->
       <div class="p-3 border-t border-slate-200 space-y-1 bg-slate-50/50">
-        <router-link
-          to="/"
-          :class="[
-            'flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all',
-            isCollapsed ? 'justify-center' : '',
-          ]"
-        >
-          <HomeOutlined class="text-base text-[#ee4d2d] shrink-0" />
-          <span v-show="!isCollapsed" class="truncate">Về trang chủ</span>
-        </router-link>
-
         <button
           @click="handleLogout"
           type="button"
@@ -204,6 +193,7 @@ const navigate = (path: string) => {
           <span v-show="!isCollapsed" class="truncate">Đăng xuất</span>
         </button>
       </div>
+
     </aside>
 
     <!-- Main Content Layout Area -->
