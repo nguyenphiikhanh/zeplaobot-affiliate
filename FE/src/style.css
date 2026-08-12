@@ -30,6 +30,31 @@ button.text-white *,
   background-color: #d63d1e !important;
 }
 
+/* System primary action */
+.ant-btn-primary {
+  min-height: 42px;
+  padding-inline: 20px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #ff6542 0%, #ee4d2d 100%) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 18px rgb(238 77 45 / 20%) !important;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease !important;
+}
+
+.ant-btn-primary:not(:disabled):hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #f75b38 0%, #d94123 100%) !important;
+  box-shadow: 0 10px 22px rgb(238 77 45 / 28%) !important;
+}
+
+.ant-btn-primary:disabled {
+  background: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+}
+
 /* Custom smooth animations */
 @keyframes float {
   0%, 100% {

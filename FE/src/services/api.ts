@@ -32,6 +32,7 @@ interface RetryRequestConfig extends InternalAxiosRequestConfig {
 
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
+let sessionCache: SessionUser | null | undefined;
 
 export const getAccessToken = (): string | null =>
   localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -41,6 +42,7 @@ export const getRefreshToken = (): string | null =>
 export const clearAuthTokens = (): void => {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  sessionCache = undefined;
 };
 
 export const hasUserSession = (): boolean =>
@@ -147,6 +149,7 @@ export const loginUser = async (trackingCode: string): Promise<AuthUser> => {
   });
   const loginData = requireResponseData(response.data);
   saveAuthTokens(loginData);
+  sessionCache = loginData.user;
   return loginData.user;
 };
 
@@ -167,10 +170,12 @@ export interface SessionUser {
 
 export const getSessionUser = async (): Promise<SessionUser | null> => {
   if (!getAccessToken() && !getRefreshToken()) return null;
+  if (sessionCache !== undefined) return sessionCache;
 
   try {
     const response = await api.get<ApiResponse<{ user: SessionUser }>>("/api/session");
-    return response.data.data?.user || null;
+    sessionCache = response.data.data?.user || null;
+    return sessionCache;
   } catch {
     clearAuthTokens();
     return null;

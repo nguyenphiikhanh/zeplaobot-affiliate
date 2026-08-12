@@ -1,16 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '../layouts/AdminLayout.vue'
+import UserPageLayout from '../components/UserPageLayout.vue'
 import { getSessionUser } from '../services/api'
 
 const routes = [
   {
     path: '/',
-    name: 'home',
-    component: () => import('../views/HomeView.vue'),
+    component: UserPageLayout,
     meta: { requiresAuth: true },
+    children: [
+      { path: '', name: 'home', component: () => import('../views/HomeView.vue') },
+      { path: 'orders', name: 'user-orders', component: () => import('../views/UserOrdersView.vue') },
+      { path: 'wallet', name: 'user-wallet', component: () => import('../views/UserWalletView.vue') },
+    ],
   },
-  { path: '/orders', name: 'user-orders', component: () => import('../views/UserOrdersView.vue'), meta: { requiresAuth: true } },
-  { path: '/wallet', name: 'user-wallet', component: () => import('../views/UserWalletView.vue'), meta: { requiresAuth: true } },
   {
     path: '/login',
     name: 'login',
