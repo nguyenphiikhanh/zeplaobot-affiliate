@@ -9,6 +9,7 @@ import { shopeeConfigRoutes } from './routes/shopee-config.routes.js'
 import { zaloConfigRoutes } from './routes/zalo-config.routes.js'
 import { linkHistoryRoutes } from './routes/link-history.routes.js'
 import { transactionRoutes } from './routes/transaction.routes.js'
+import { userPortalRoutes } from './routes/user-portal.routes.js'
 import { sendError, sendResponse } from './utils/response.js'
 import { getZaloStatus } from './zalo.js'
 
@@ -49,6 +50,7 @@ app.route('/api', shopeeConfigRoutes)
 app.route('/api', zaloConfigRoutes)
 app.route('/api', linkHistoryRoutes)
 app.route('/api', transactionRoutes)
+app.route('/api', userPortalRoutes)
 app.route('/', redirectRoutes)
 
 // Global Error Handler

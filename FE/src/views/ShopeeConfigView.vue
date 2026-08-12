@@ -17,6 +17,7 @@ import {
 const savingStatus = ref(false);
 const savingCookie = ref(false);
 const savingZaloConfig = ref(false);
+const loadingConfig = ref(true);
 
 // Platforms status
 const platformShopee = ref(true);
@@ -78,6 +79,7 @@ const applySettings = (settings: ShopeeSettings) => {
 };
 
 const loadConfig = async () => {
+  loadingConfig.value = true;
   try {
     const response = await api.get<
       ApiResponse<{ settings: ShopeeSettings; cookie_status: string }>
@@ -89,6 +91,8 @@ const loadConfig = async () => {
   } catch (error) {
     cookieStatus.value = "Không thể tải trạng thái Cookie.";
     message.error(errorMessage(error, "Không thể tải cấu hình Shopee."));
+  } finally {
+    loadingConfig.value = false;
   }
 };
 
@@ -129,6 +133,29 @@ const saveZaloNotifyConfig = async () => {
   } catch (error) {
     message.error(
       errorMessage(error, "Không thể lưu cấu hình thông báo Zalo.")
+    );
+  } finally {
+    savingZaloConfig.value = false;
+  }
+};
+
+const handleZaloNotifyToggle = async (enabled: boolean) => {
+  // Enabling still requires the phone/content form below to be completed and
+  // saved explicitly. Disabling is persisted immediately because that form is hidden.
+  if (enabled) return;
+
+  savingZaloConfig.value = true;
+  try {
+    const response = await api.put<ApiResponse<ShopeeSettings>>(
+      "/api/admin/shopee-config/settings",
+      settingsPayload()
+    );
+    if (response.data.data) applySettings(response.data.data);
+    message.success("Đã tắt thông báo Cookie hết hạn.");
+  } catch (error) {
+    zaloNotifyOnExpired.value = true;
+    message.error(
+      errorMessage(error, "Không thể tắt thông báo Cookie hết hạn.")
     );
   } finally {
     savingZaloConfig.value = false;
@@ -179,7 +206,8 @@ const saveCookie = async () => {
       </p>
     </div>
 
-    <div class="flex flex-col gap-5">
+    <a-spin :spinning="loadingConfig" tip="Đang tải cấu hình Shopee...">
+    <div class="flex flex-col gap-5" :class="{ 'min-h-[360px]': loadingConfig }">
       <!-- Commission Settings Card -->
       <div
         class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs"
@@ -296,6 +324,7 @@ const saveCookie = async () => {
           <a-switch
             v-model:checked="zaloNotifyOnExpired"
             :loading="savingZaloConfig"
+            @change="handleZaloNotifyToggle"
           />
         </div>
 
@@ -456,5 +485,6 @@ const saveCookie = async () => {
         </div>
       </div>
     </div>
+    </a-spin>
   </section>
 </template>

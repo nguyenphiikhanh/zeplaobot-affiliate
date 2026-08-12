@@ -68,7 +68,17 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+export const API_ACTIVITY_EVENT = "admin-api-activity";
+let activeApiRequests = 0;
+const notifyApiActivity = () => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(API_ACTIVITY_EVENT, { detail: activeApiRequests }));
+  }
+};
+
 api.interceptors.request.use((config) => {
+  activeApiRequests += 1;
+  notifyApiActivity();
   const accessToken = getAccessToken();
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
@@ -92,8 +102,14 @@ const refreshAccessToken = async (): Promise<string> => {
 
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    activeApiRequests = Math.max(0, activeApiRequests - 1);
+    notifyApiActivity();
+    return response;
+  },
   async (error: AxiosError<ApiResponse>) => {
+    activeApiRequests = Math.max(0, activeApiRequests - 1);
+    notifyApiActivity();
     const request = error.config as RetryRequestConfig | undefined;
     const isAuthRequest =
       request?.url?.includes("/api/admin/login") ||

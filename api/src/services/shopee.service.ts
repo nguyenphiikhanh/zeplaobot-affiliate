@@ -88,7 +88,7 @@ export class ShopeeService {
    * Generates local short link using APP_URL.
    */
   public getAppShortLink(subId: string): string {
-    return `${config.appUrl}/s/${subId}`;
+    return `${config.shortLinkBaseUrl}/s/${subId}`;
   }
 
   /**
@@ -247,6 +247,7 @@ export class ShopeeService {
 
     // 3. Attempt GraphQL short link generation first
     let targetAffiliateLink = '';
+    let usedFallback = false;
     try {
       const batchResult = await this.getShopeeBatchLinkConvert(originalLink, subId);
       if (batchResult?.shortLink) {
@@ -258,6 +259,7 @@ export class ShopeeService {
 
     // 4. Fallback link if GraphQL convert was not successful
     if (!targetAffiliateLink) {
+      usedFallback = true;
       if (shopId && productId) {
         targetAffiliateLink = this.getShopeeAffiliateFallbackLink(shopId, productId, subId);
       } else {
@@ -268,19 +270,19 @@ export class ShopeeService {
       }
     }
 
-    // 5. Save convert record to Database via Drizzle ORM (affiliateLink is the target Shopee link)
-    try {
-      await db.insert(linkGenerations).values({
-        userId,
-        originLink: originalLink,
-        affiliateLink: targetAffiliateLink,
-        subId,
-        type: 1, // Shopee
-        productInfo: productData ?? null,
-      });
-    } catch (dbErr) {
-      console.error('[ShopeeService] Failed saving link generation record to DB:', dbErr);
+    if (usedFallback && productData) {
+      console.log(`[ShopeeService] Cookie conversion unavailable; using local short-link fallback for ${subId}.`);
     }
+
+    // 5. Save convert record to Database via Drizzle ORM (affiliateLink is the target Shopee link)
+    await db.insert(linkGenerations).values({
+      userId,
+      originLink: originalLink,
+      affiliateLink: targetAffiliateLink,
+      subId,
+      type: 1, // Shopee
+      productInfo: productData ?? null,
+    });
 
     // 6. Generate shortened APP_URL link for user facing output
     const shortLink = this.getAppShortLink(subId);
@@ -301,7 +303,7 @@ export class ShopeeService {
    * @param userId Zalo sender ID in the group
    */
   public async replaceShopeeLinksInText(text: string, userId: string): Promise<string> {
-    const shopeeRegex = /https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|s\.shopee\.vn)\/[^\s]+/gi;
+    const shopeeRegex = /https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|shp\.ee)\/[^\s]+/gi;
     const matches = text.match(shopeeRegex);
 
     if (!matches || matches.length === 0) {

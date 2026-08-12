@@ -9,6 +9,8 @@ const routes = [
     component: () => import('../views/HomeView.vue'),
     meta: { requiresAuth: true },
   },
+  { path: '/orders', name: 'user-orders', component: () => import('../views/UserOrdersView.vue'), meta: { requiresAuth: true } },
+  { path: '/wallet', name: 'user-wallet', component: () => import('../views/UserWalletView.vue'), meta: { requiresAuth: true } },
   {
     path: '/login',
     name: 'login',

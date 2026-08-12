@@ -4,6 +4,11 @@ import { message } from "ant-design-vue";
 import axios from "axios";
 import { api, type ApiResponse } from "../services/api";
 import {
+  defaultZaloBotStatus,
+  saveZaloBotStatus,
+  type ZaloBotStatus,
+} from "../services/zalo-bot-status";
+import {
   TeamOutlined,
   LinkOutlined,
   SmileOutlined,
@@ -38,38 +43,11 @@ const welcomeMessageTemplate = ref(
 const savingWelcomeTemplate = ref(false);
 const checkingBotStatus = ref(false);
 const startingQrLogin = ref(false);
+const loadingConfig = ref(true);
 const showQrModal = ref(false);
 let statusTimer: number | undefined;
 
-interface ZaloBotStatus {
-  connected: boolean;
-  connecting: boolean;
-  listenerStartedAt: string | null;
-  botId: string | null;
-  qrImage: string | null;
-  qrState:
-    | "idle"
-    | "generating"
-    | "waiting_scan"
-    | "scanned"
-    | "expired"
-    | "declined"
-    | "connected"
-    | "error";
-  scannedAccount: { displayName: string; avatar: string } | null;
-  error: string | null;
-}
-
-const botStatus = ref<ZaloBotStatus>({
-  connected: false,
-  connecting: false,
-  listenerStartedAt: null,
-  botId: null,
-  qrImage: null,
-  qrState: "idle",
-  scannedAccount: null,
-  error: null,
-});
+const botStatus = ref<ZaloBotStatus>(defaultZaloBotStatus());
 
 interface ZaloBotSettings {
   group_ids: string[];
@@ -101,6 +79,7 @@ const getErrorMessage = (error: unknown, fallback: string) =>
     : fallback;
 
 const loadConfig = async () => {
+  loadingConfig.value = true;
   try {
     const response = await api.get<ApiResponse<ZaloBotSettings>>(
       "/api/admin/zalo-config"
@@ -108,6 +87,8 @@ const loadConfig = async () => {
     if (response.data.data) applyConfig(response.data.data);
   } catch (error) {
     message.error(getErrorMessage(error, "Không thể tải cấu hình Bot Zalo."));
+  } finally {
+    loadingConfig.value = false;
   }
 };
 
@@ -122,7 +103,10 @@ const checkBotStatus = async (silent = false) => {
     const response = await api.get<ApiResponse<ZaloBotStatus>>(
       "/api/admin/zalo-config/status"
     );
-    if (response.data.data) botStatus.value = response.data.data;
+    if (response.data.data) {
+      botStatus.value = response.data.data;
+      saveZaloBotStatus(response.data.data);
+    }
     if (botStatus.value.connected) {
       showQrModal.value = false;
       stopStatusPolling();
@@ -144,7 +128,10 @@ const startQrLogin = async () => {
     const response = await api.post<ApiResponse<ZaloBotStatus>>(
       "/api/admin/zalo-config/login-qr"
     );
-    if (response.data.data) botStatus.value = response.data.data;
+    if (response.data.data) {
+      botStatus.value = response.data.data;
+      saveZaloBotStatus(response.data.data);
+    }
     stopStatusPolling();
     statusTimer = window.setInterval(() => checkBotStatus(true), 1500);
     await checkBotStatus(true);
@@ -162,6 +149,7 @@ const persistConfig = async () => {
     configPayload()
   );
   if (response.data.data) applyConfig(response.data.data);
+  await checkBotStatus(true);
 };
 
 onMounted(() => Promise.all([loadConfig(), checkBotStatus()]));
@@ -251,7 +239,8 @@ const saveWelcomeTemplate = async () => {
       </p>
     </div>
 
-    <div class="flex flex-col gap-6">
+    <a-spin :spinning="loadingConfig" tip="Đang tải cấu hình Bot Zalo...">
+    <div class="flex flex-col gap-6" :class="{ 'min-h-[360px]': loadingConfig }">
       <!-- Bot Status Card -->
       <div
         class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-2xs"
@@ -625,6 +614,7 @@ const saveWelcomeTemplate = async () => {
         </div>
       </div>
     </div>
+    </a-spin>
 
     <a-modal
       v-model:open="showQrModal"

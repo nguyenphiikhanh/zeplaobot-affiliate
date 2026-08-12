@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { 
   HomeOutlined, 
@@ -17,16 +17,17 @@ import {
 import { getSessionUser, clearAuthTokens, type SessionUser } from '../services/api'
 
 const router = useRouter()
-const activeTab = ref('home')
+const route = useRoute()
 const user = ref<SessionUser | null>(null)
 const isMobileMenuOpen = ref(false)
 
 const navItems = [
-  { id: 'home', label: 'Trang chủ', icon: HomeOutlined },
-  { id: 'search', label: 'Tra cứu đơn hàng', icon: SearchOutlined },
-  { id: 'wallet', label: 'Ví của bạn', icon: WalletOutlined },
-  { id: 'guide', label: 'Hướng dẫn', icon: ClockCircleOutlined },
+  { id: 'home', label: 'Trang chủ', icon: HomeOutlined, path: '/' },
+  { id: 'search', label: 'Tra cứu đơn hàng', icon: SearchOutlined, path: '/orders' },
+  { id: 'wallet', label: 'Ví của bạn', icon: WalletOutlined, path: '/wallet' },
 ]
+const activeTab = computed(()=>route.path==='/orders'?'search':route.path==='/wallet'?'wallet':'home')
+const navigate=(item:typeof navItems[number])=>{router.push(item.path);isMobileMenuOpen.value=false}
 
 onMounted(async () => {
   user.value = await getSessionUser()
@@ -85,7 +86,7 @@ const handleLogout = () => {
         <button
           v-for="item in navItems"
           :key="item.id"
-          @click="activeTab = item.id"
+          @click="navigate(item)"
           :class="[
             'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer',
             activeTab === item.id 
@@ -226,7 +227,7 @@ const handleLogout = () => {
         <button
           v-for="item in navItems"
           :key="item.id"
-          @click="activeTab = item.id; isMobileMenuOpen = false"
+          @click="navigate(item)"
           :class="[
             'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left',
             activeTab === item.id 

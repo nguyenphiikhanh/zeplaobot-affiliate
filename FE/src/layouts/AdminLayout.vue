@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "ant-design-vue";
-import { clearAuthTokens } from "../services/api";
+import { API_ACTIVITY_EVENT, api, clearAuthTokens, type ApiResponse } from "../services/api";
+import {
+  ZALO_BOT_STATUS_EVENT,
+  readZaloBotStatus,
+  saveZaloBotStatus,
+  type ZaloBotStatus,
+} from "../services/zalo-bot-status";
 import {
   ShoppingCartOutlined,
   WalletOutlined,
@@ -20,6 +26,55 @@ import {
 const route = useRoute();
 const router = useRouter();
 const isCollapsed = ref(false);
+const botStatus = ref(readZaloBotStatus());
+const apiLoading = ref(false);
+
+const botStatusLabel = computed(() =>
+  botStatus.value.connected
+    ? "Bot đang hoạt động"
+    : botStatus.value.connecting
+      ? "Bot đang kết nối"
+      : "Bot chưa hoạt động"
+);
+const botStatusClasses = computed(() =>
+  botStatus.value.connected
+    ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+    : botStatus.value.connecting
+      ? "bg-amber-50 text-amber-600 border-amber-200"
+      : "bg-slate-100 text-slate-500 border-slate-200"
+);
+const botStatusDotClass = computed(() =>
+  botStatus.value.connected
+    ? "bg-emerald-500 animate-pulse"
+    : botStatus.value.connecting
+      ? "bg-amber-500 animate-pulse"
+      : "bg-slate-400"
+);
+
+const handleBotStatusEvent = (event: Event) => {
+  botStatus.value = (event as CustomEvent<ZaloBotStatus>).detail;
+};
+const handleApiActivity = (event: Event) => {
+  apiLoading.value = Number((event as CustomEvent<number>).detail || 0) > 0;
+};
+
+onMounted(async () => {
+  window.addEventListener(ZALO_BOT_STATUS_EVENT, handleBotStatusEvent);
+  window.addEventListener(API_ACTIVITY_EVENT, handleApiActivity);
+  try {
+    const response = await api.get<ApiResponse<ZaloBotStatus>>("/api/admin/zalo-config/status");
+    if (response.data.data) {
+      botStatus.value = response.data.data;
+      saveZaloBotStatus(response.data.data);
+    }
+  } catch {
+    // Keep the last cached status when the API is temporarily unavailable.
+  }
+});
+onUnmounted(() => {
+  window.removeEventListener(ZALO_BOT_STATUS_EVENT, handleBotStatusEvent);
+  window.removeEventListener(API_ACTIVITY_EVENT, handleApiActivity);
+});
 
 const handleLogout = () => {
   clearAuthTokens();
@@ -206,6 +261,9 @@ const navigate = (path: string) => {
 
     <!-- Main Content Layout Area -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div class="absolute left-0 right-0 top-0 z-50 h-[3px] overflow-hidden" aria-hidden="true">
+        <div v-if="apiLoading" class="admin-loading-bar h-full bg-[#ee4d2d]"></div>
+      </div>
       <!-- Top Header Bar -->
       <header
         class="h-[72px] bg-white/95 backdrop-blur border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20"
@@ -218,12 +276,12 @@ const navigate = (path: string) => {
 
         <div class="flex items-center gap-4">
           <div
-            class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200"
+            :class="['flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border', botStatusClasses]"
           >
             <span
-              class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
+              :class="['w-2 h-2 rounded-full', botStatusDotClass]"
             ></span>
-            <span>Shopee Live API</span>
+            <span>{{ botStatusLabel }}</span>
           </div>
 
           <button
@@ -242,3 +300,15 @@ const navigate = (path: string) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.admin-loading-bar {
+  width: 42%;
+  animation: admin-loading 1.05s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(238, 77, 45, 0.55);
+}
+@keyframes admin-loading {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(340%); }
+}
+</style>

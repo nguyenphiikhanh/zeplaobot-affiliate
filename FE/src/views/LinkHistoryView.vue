@@ -13,7 +13,7 @@ interface LinkHistoryItem {
   type: number
   product_info: Record<string, unknown> | null
   created_at: string
-  user: { id: string | null; name: string | null; tracking_code: string | null } | null
+  user: { id: string | null; name: string | null; image: string | null; tracking_code: string | null } | null
 }
 
 const links = ref<LinkHistoryItem[]>([])
@@ -129,7 +129,7 @@ const copyText = async (value: string, label = 'Nội dung') => {
       <a-table :columns="columns" :data-source="links" :row-key="(record: LinkHistoryItem) => record.id" :pagination="false" :loading="loading" :scroll="{x:'max-content'}" :custom-row="(record: LinkHistoryItem) => ({onClick:()=>selectedItem=record,class:'cursor-pointer'})">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'created_at'"><div class="text-xs font-bold text-slate-700">{{ new Date(record.created_at).toLocaleDateString('vi-VN') }}</div><div class="text-[10px] text-slate-400 mt-0.5">{{ new Date(record.created_at).toLocaleTimeString('vi-VN') }}</div></template>
-          <template v-else-if="column.key === 'user'"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-[#ee4d2d] text-xs font-black">{{ record.user?.name?.charAt(0)?.toUpperCase() || 'U' }}</div><div class="flex flex-col"><span class="text-xs font-bold text-slate-800">{{ record.user?.name || 'Người dùng hệ thống' }}</span><span class="text-[10px] font-mono text-slate-500">{{ record.user_id }}</span></div></div></template>
+          <template v-else-if="column.key === 'user'"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full overflow-hidden bg-orange-50 border border-orange-100 flex items-center justify-center text-[#ee4d2d] text-xs font-black shrink-0"><img v-if="record.user?.image" :src="record.user.image" :alt="record.user.name || 'Người dùng Zalo'" referrerpolicy="no-referrer" loading="lazy" class="w-full h-full object-cover" /><span v-else>{{ record.user?.name?.charAt(0)?.toUpperCase() || 'U' }}</span></div><div class="flex flex-col"><span class="text-xs font-bold text-slate-800">{{ record.user?.name || 'Người dùng hệ thống' }}</span><span class="text-[10px] font-mono text-slate-500">{{ record.user_id }}</span></div></div></template>
           <template v-else-if="column.key === 'sub_id'"><span class="px-2 py-1 rounded-md bg-orange-50 text-[#ee4d2d] border border-orange-100 text-[11px] font-mono font-bold">{{ record.sub_id }}</span></template>
           <template v-else-if="column.key === 'affiliate_link'"><div class="flex items-center gap-2 max-w-[250px]"><LinkOutlined class="text-[#ee4d2d] shrink-0" /><span class="text-xs text-slate-600 truncate" :title="record.affiliate_link">{{ truncate(record.affiliate_link) }}</span></div></template>
           <template v-else-if="column.key === 'product'"><div class="max-w-[280px] px-2.5 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-mono text-emerald-600 truncate" :title="productName(record.product_info)">{{ productName(record.product_info) }}</div></template>

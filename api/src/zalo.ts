@@ -8,6 +8,7 @@ import { ensureZaloUser, getZaloUser } from './services/user.service.js'
 type ZaloApi = Awaited<ReturnType<Zalo['loginQR']>>
 
 let api: ZaloApi | null = null
+let listenerConnected = false
 let connecting = false
 let startedAt: Date | null = null
 let qrImage: string | null = null
@@ -21,8 +22,8 @@ function toThreadType(type: TargetThreadType): ThreadType {
 
 export function getZaloStatus() {
     return {
-        connected: api !== null,
-        connecting,
+        connected: api !== null && listenerConnected,
+        connecting: connecting || (api !== null && !listenerConnected),
         listenerStartedAt: startedAt?.toISOString() ?? null,
         botId: api?.getOwnId() ?? null,
         qrImage,
@@ -59,6 +60,7 @@ export async function initZalo(): Promise<void> {
             }
         })
         api = loggedInApi
+        listenerConnected = false
         registerZaloNotificationApi(loggedInApi)
         qrState = 'connected'
         qrImage = null
@@ -84,10 +86,31 @@ export async function initZalo(): Promise<void> {
             }
         })
 
-        api.listener.start()
-        startedAt = new Date()
-        console.log('[ZALO] Listener started')
+        api.listener.on('connected', () => {
+            listenerConnected = true
+            startedAt = new Date()
+            lastError = null
+            console.log('[ZALO] Listener connected')
+        })
+        api.listener.on('disconnected', (code, reason) => {
+            listenerConnected = false
+            console.warn(`[ZALO] Listener disconnected (${code}): ${reason || 'Unknown reason'}`)
+        })
+        api.listener.on('closed', (code, reason) => {
+            listenerConnected = false
+            api = null
+            unregisterZaloNotificationApi()
+            lastError = `Zalo listener đã đóng (${code})${reason ? `: ${reason}` : ''}`
+        })
+        api.listener.on('error', (error) => {
+            lastError = error instanceof Error ? error.message : 'Zalo listener gặp lỗi'
+            console.error('[ZALO] Listener connection error:', error)
+        })
+
+        api.listener.start({ retryOnClose: true })
+        console.log('[ZALO] Listener starting')
     } catch (error) {
+        listenerConnected = false
         unregisterZaloNotificationApi()
         const callbackState: string = qrState
         if (callbackState !== 'expired' && callbackState !== 'declined') qrState = 'error'
@@ -109,11 +132,7 @@ async function handleIncomingMessage(
     console.log(
         `[ZALO] Incoming: ${message.threadId}`
     )
-    const content = message.data.content
-    let text = ''
-    if (typeof content === 'string') {
-        text = content.trim()
-    }
+    const text = extractMessageText(message.data.content)
 
     if (!text) {
         return
@@ -123,21 +142,8 @@ async function handleIncomingMessage(
     const botConfig = await getZaloBotSettings()
     if (!botConfig.group_ids.includes(message.threadId)) return
 
-    const match = text.match(/https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|s\.shopee\.vn)\/[^\s]+/i)
-    if (!match) return
-
-    const existingUser = await getZaloUser(message.data.uidFrom)
-    const senderProfile = !existingUser || !existingUser.image
-        ? await getZaloSenderProfile(loggedInApi, message)
-        : {
-            name: message.data.dName?.trim() || existingUser.name || 'Người dùng Zalo',
-            image: existingUser.image,
-        }
-    await ensureZaloUser({
-        id: message.data.uidFrom,
-        name: senderProfile.name,
-        image: senderProfile.image,
-    })
+    const shopeeUrl = extractShopeeUrl(text)
+    if (!shopeeUrl) return
 
     try {
         await loggedInApi.addReaction(Reactions.HEART, {
@@ -153,10 +159,38 @@ async function handleIncomingMessage(
         console.error('[ZALO] Failed to react to Shopee link message:', error)
     }
 
-    const result = await shopeeService.generateShopeeLink(match[0], message.data.uidFrom)
+    try {
+        const existingUser = await getZaloUser(message.data.uidFrom)
+        const senderProfile = !existingUser || !existingUser.image
+            ? await getZaloSenderProfile(loggedInApi, message)
+            : {
+                name: message.data.dName?.trim() || existingUser.name || 'Người dùng Zalo',
+                image: existingUser.image,
+            }
+        await ensureZaloUser({
+            id: message.data.uidFrom,
+            name: senderProfile.name,
+            image: senderProfile.image,
+        })
+    } catch (error) {
+        // User synchronization must not block heart reaction or link conversion.
+        console.error(`[ZALO] Failed to synchronize sender ${message.data.uidFrom}:`, error)
+    }
+
+    let result
+    try {
+        result = await shopeeService.generateShopeeLink(shopeeUrl, message.data.uidFrom)
+    } catch (error) {
+        console.error(`[ZALO] Failed converting Shopee link from ${message.data.uidFrom}:`, error)
+        const errorResponse = renderZaloTemplate(botConfig.link_convert_error_template, {
+            original_link: shopeeUrl,
+        })
+        await sendTaggedGroupMessage(loggedInApi, message, errorResponse)
+        return
+    }
     if (!result.productInfo) {
         const errorResponse = renderZaloTemplate(botConfig.link_convert_error_template, {
-            original_link: match[0],
+            original_link: shopeeUrl,
         })
         await sendTaggedGroupMessage(loggedInApi, message, errorResponse)
         return
@@ -181,6 +215,36 @@ async function handleIncomingMessage(
         commission_rate: commissionRate,
     })
     await sendTaggedGroupMessage(loggedInApi, message, response)
+}
+
+function extractMessageText(content: Message['data']['content']): string {
+    if (typeof content === 'string') return content.trim()
+    if (!content || typeof content !== 'object') return ''
+    const values: string[] = []
+    const visit = (value: unknown, depth = 0) => {
+        if (depth > 5 || value === null || value === undefined) return
+        if (typeof value === 'string') {
+            values.push(value)
+            try { visit(JSON.parse(value), depth + 1) } catch { /* not JSON */ }
+            return
+        }
+        if (Array.isArray(value)) {
+            value.forEach(item => visit(item, depth + 1))
+            return
+        }
+        if (typeof value === 'object') {
+            Object.values(value as Record<string, unknown>).forEach(item => visit(item, depth + 1))
+        }
+    }
+    visit(content)
+    return values.join(' ').replace(/\\\//g, '/').replace(/&amp;/gi, '&').trim()
+}
+
+const SHOPEE_URL_PATTERN = /https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|shp\.ee)\/[^\s"'<>]+/i
+
+function extractShopeeUrl(text: string): string | null {
+    const match = text.match(SHOPEE_URL_PATTERN)
+    return match?.[0]?.replace(/[),.;!?]+$/, '') || null
 }
 
 async function getZaloSenderProfile(
@@ -239,16 +303,32 @@ async function sendTaggedGroupMessage(
 }
 
 async function handleGroupEvent(loggedInApi: ZaloApi, event: GroupEvent): Promise<void> {
-    if (event.isSelf || event.type !== GroupEventType.JOIN) return
+    if (event.type !== GroupEventType.JOIN) return
     const botConfig = await getZaloBotSettings()
     if (!botConfig.welcome_enabled || !botConfig.group_ids.includes(event.threadId)) return
     if (!('updateMembers' in event.data)) return
 
     for (const member of event.data.updateMembers || []) {
-        const response = renderZaloTemplate(botConfig.welcome_template, {
-            user_name: member.dName || 'thành viên mới',
+        // Ignore only the bot account joining, not JOIN events performed by it.
+        if (member.id === loggedInApi.getOwnId()) continue
+        const displayName = member.dName?.trim() || 'thành viên mới'
+        const mentionText = `@${displayName}`
+        let response = renderZaloTemplate(botConfig.welcome_template, {
+            user_name: mentionText,
             group_name: event.data.groupName || 'nhóm',
         })
-        await loggedInApi.sendMessage(response, event.threadId, ThreadType.Group)
+        let mentionPosition = response.indexOf(mentionText)
+        if (mentionPosition < 0) {
+            response = `${mentionText}\n${response}`
+            mentionPosition = 0
+        }
+        await loggedInApi.sendMessage({
+            msg: response,
+            mentions: [{
+                pos: mentionPosition,
+                uid: member.id,
+                len: mentionText.length,
+            }],
+        }, event.threadId, ThreadType.Group)
     }
 }

@@ -19,6 +19,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '^/s/[^/]+$': {
+          target: backendTarget,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
   }

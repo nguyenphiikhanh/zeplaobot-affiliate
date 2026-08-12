@@ -19,7 +19,7 @@ export interface ShopeeSettings {
   zalo_notify_repeat_hours: number
 }
 
-const defaultSettings: ShopeeSettings = {
+export const defaultShopeeSettings: ShopeeSettings = {
   platform_enabled: true,
   service_fee_rate: 1,
   tax_rate: 10,
@@ -51,7 +51,7 @@ const percent = (value: unknown, name: string) => {
 
 export const getShopeeSettings = async (): Promise<ShopeeSettings> => {
   const stored = await readJson<Partial<ShopeeSettings>>(SETTINGS_KEY)
-  const settings = { ...defaultSettings, ...(stored || {}) }
+  const settings = { ...defaultShopeeSettings, ...(stored || {}) }
   if (!settings.zalo_phone_number?.trim()) settings.zalo_notify_on_expired = false
   return settings
 }

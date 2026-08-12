@@ -96,3 +96,16 @@ export const walletTransactions = mysqlTable('wallet_transactions', {
 
 export type Wallet = typeof wallets.$inferSelect;
 export type WalletTransaction = typeof walletTransactions.$inferSelect;
+
+export const bankAccounts = mysqlTable('bank_accounts', {
+  id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
+  userId: varchar('user_id', { length: 64 }).notNull().unique(),
+  bankId: varchar('bank_id', { length: 32 }).notNull(),
+  bankName: varchar('bank_name', { length: 255 }).notNull(),
+  accountNo: varchar('account_no', { length: 20 }).notNull(),
+  accountName: varchar('account_name', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
+});
+
+export type BankAccount = typeof bankAccounts.$inferSelect;

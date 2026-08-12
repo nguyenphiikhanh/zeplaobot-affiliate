@@ -192,8 +192,8 @@ const confirmUpload = async () => {
     </div>
 
     <a-row :gutter="[16, 16]">
-      <a-col :xs="12"><a-card size="small" :bordered="false"><a-statistic title="Tổng đơn hàng" :value="totalOrders" /></a-card></a-col>
-      <a-col :xs="12"><a-card size="small" :bordered="false"><a-statistic title="Chờ duyệt trên trang" :value="pendingCount" :value-style="{ color: '#f59e0b' }" /></a-card></a-col>
+      <a-col :xs="12"><a-card size="small" :bordered="false"><a-skeleton-button v-if="loading && !orders.length" active block/><a-statistic v-else title="Tổng đơn hàng" :value="totalOrders" /></a-card></a-col>
+      <a-col :xs="12"><a-card size="small" :bordered="false"><a-skeleton-button v-if="loading && !orders.length" active block/><a-statistic v-else title="Chờ duyệt trên trang" :value="pendingCount" :value-style="{ color: '#f59e0b' }" /></a-card></a-col>
     </a-row>
 
     <a-card :bordered="false" :body-style="{ padding: 0 }">

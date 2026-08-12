@@ -9,9 +9,9 @@ const day = (value?: string, end = false) => value && /^\d{4}-\d{2}-\d{2}$/.test
 
 export async function getAdminUsers(search = '') {
   const keyword = search.trim()
-  return db.select({ id: users.id, name: users.name, tracking_code: users.trackingCode })
+  return db.select({ id: users.id, name: users.name, image: users.image })
     .from(users)
-    .where(keyword ? or(like(users.name, `%${keyword}%`), like(users.id, `%${keyword}%`), like(users.trackingCode, `%${keyword}%`)) : undefined)
+    .where(keyword ? or(like(users.name, `%${keyword}%`), like(users.id, `%${keyword}%`)) : undefined)
     .orderBy(users.name).limit(100)
 }
 

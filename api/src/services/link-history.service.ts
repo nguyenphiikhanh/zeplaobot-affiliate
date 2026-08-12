@@ -41,6 +41,7 @@ export const getLinkHistory = async (params: LinkHistoryParams) => {
     user: {
       id: users.id,
       name: users.name,
+      image: users.image,
       tracking_code: users.trackingCode,
     },
   }).from(linkGenerations)
