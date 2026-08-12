@@ -27,11 +27,12 @@ const taxRate = ref(10.0);
 const userSharePercentage = ref(80.0);
 
 // Zalo Notification Config & Fields
-const zaloNotifyOnExpired = ref(true);
-const zaloPhoneNumber = ref("0987654321");
+const zaloNotifyOnExpired = ref(false);
+const zaloPhoneNumber = ref("");
 const zaloNotifyContent = ref(
   "⚠️ Cảnh báo: Shopee Cookie đã hết hạn. Vui lòng truy cập trang Admin để cập nhật Cookie mới!"
 );
+const zaloNotifyRepeatHours = ref(3);
 
 // Cookie Config & Status (matching php CookieCard.vue)
 const isEditingCookie = ref(false);
@@ -46,6 +47,7 @@ interface ShopeeSettings {
   zalo_notify_on_expired: boolean;
   zalo_phone_number: string;
   zalo_notify_content: string;
+  zalo_notify_repeat_hours: number;
 }
 
 const errorMessage = (error: unknown, fallback: string) =>
@@ -61,6 +63,7 @@ const settingsPayload = (): ShopeeSettings => ({
   zalo_notify_on_expired: zaloNotifyOnExpired.value,
   zalo_phone_number: zaloPhoneNumber.value.trim(),
   zalo_notify_content: zaloNotifyContent.value.trim(),
+  zalo_notify_repeat_hours: Number(zaloNotifyRepeatHours.value),
 });
 
 const applySettings = (settings: ShopeeSettings) => {
@@ -71,11 +74,14 @@ const applySettings = (settings: ShopeeSettings) => {
   zaloNotifyOnExpired.value = settings.zalo_notify_on_expired;
   zaloPhoneNumber.value = settings.zalo_phone_number;
   zaloNotifyContent.value = settings.zalo_notify_content;
+  zaloNotifyRepeatHours.value = settings.zalo_notify_repeat_hours;
 };
 
 const loadConfig = async () => {
   try {
-    const response = await api.get<ApiResponse<{ settings: ShopeeSettings; cookie_status: string }>>("/api/admin/shopee-config");
+    const response = await api.get<
+      ApiResponse<{ settings: ShopeeSettings; cookie_status: string }>
+    >("/api/admin/shopee-config");
     if (response.data.data) {
       applySettings(response.data.data.settings);
       cookieStatus.value = response.data.data.cookie_status;
@@ -91,7 +97,10 @@ onMounted(loadConfig);
 const saveStatus = async () => {
   savingStatus.value = true;
   try {
-    const response = await api.put<ApiResponse<ShopeeSettings>>("/api/admin/shopee-config/settings", settingsPayload());
+    const response = await api.put<ApiResponse<ShopeeSettings>>(
+      "/api/admin/shopee-config/settings",
+      settingsPayload()
+    );
     if (response.data.data) applySettings(response.data.data);
     message.success("Lưu cấu hình hoàn tiền Shopee thành công!");
   } catch (error) {
@@ -102,17 +111,25 @@ const saveStatus = async () => {
 };
 
 const saveZaloNotifyConfig = async () => {
-  if (zaloNotifyOnExpired.value && (!zaloPhoneNumber.value.trim() || !zaloNotifyContent.value.trim())) {
+  if (
+    zaloNotifyOnExpired.value &&
+    (!zaloPhoneNumber.value.trim() || !zaloNotifyContent.value.trim())
+  ) {
     message.warning("Vui lòng nhập số điện thoại và nội dung thông báo Zalo!");
     return;
   }
   savingZaloConfig.value = true;
   try {
-    const response = await api.put<ApiResponse<ShopeeSettings>>("/api/admin/shopee-config/settings", settingsPayload());
+    const response = await api.put<ApiResponse<ShopeeSettings>>(
+      "/api/admin/shopee-config/settings",
+      settingsPayload()
+    );
     if (response.data.data) applySettings(response.data.data);
     message.success("Cập nhật cấu hình thông báo Zalo thành công!");
   } catch (error) {
-    message.error(errorMessage(error, "Không thể lưu cấu hình thông báo Zalo."));
+    message.error(
+      errorMessage(error, "Không thể lưu cấu hình thông báo Zalo.")
+    );
   } finally {
     savingZaloConfig.value = false;
   }
@@ -131,10 +148,14 @@ const saveCookie = async () => {
 
   savingCookie.value = true;
   try {
-    const response = await api.put<ApiResponse<{ cookie_status: string }>>("/api/admin/shopee-config/cookie", {
-      cookie: shopeeCookieInput.value.trim(),
-    });
-    cookieStatus.value = response.data.data?.cookie_status || "Cookie đã được cập nhật.";
+    const response = await api.put<ApiResponse<{ cookie_status: string }>>(
+      "/api/admin/shopee-config/cookie",
+      {
+        cookie: shopeeCookieInput.value.trim(),
+      }
+    );
+    cookieStatus.value =
+      response.data.data?.cookie_status || "Cookie đã được cập nhật.";
     isEditingCookie.value = false;
     shopeeCookieInput.value = "";
     message.success("Cập nhật Cookie Shopee thành công!");
@@ -149,9 +170,7 @@ const saveCookie = async () => {
 <template>
   <section class="max-w-4xl mx-auto space-y-6 text-left">
     <!-- Page Header -->
-    <div
-      class="border-b border-slate-200 dark:border-slate-800 pb-5 text-left"
-    >
+    <div class="border-b border-slate-200 dark:border-slate-800 pb-5 text-left">
       <h3 class="m-0 text-lg font-black text-slate-900 dark:text-white">
         Cấu hình hoàn tiền Shopee
       </h3>
@@ -277,7 +296,6 @@ const saveCookie = async () => {
           <a-switch
             v-model:checked="zaloNotifyOnExpired"
             :loading="savingZaloConfig"
-            @change="saveZaloNotifyConfig"
           />
         </div>
 
@@ -299,7 +317,7 @@ const saveCookie = async () => {
               placeholder="Nhập số điện thoại Zalo..."
               class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold text-slate-800 dark:text-slate-100"
             />
-            <p class="text-[11px] text-slate-400 font-medium">
+            <p class="mt-2 text-[11px] leading-5 text-slate-400 font-medium">
               💡 Số điện thoại của tài khoản Zalo để bot gửi tin nhắn khi Cookie
               hết hạn
             </p>
@@ -320,6 +338,28 @@ const saveCookie = async () => {
             ></textarea>
           </div>
 
+          <div class="space-y-1.5">
+            <label
+              class="block text-xs font-bold text-slate-800 dark:text-slate-200"
+            >
+              Gửi lại cảnh báo sau:
+            </label>
+            <a-select
+              v-model:value="zaloNotifyRepeatHours"
+              :options="[
+                { label: '1 giờ', value: 1 },
+                { label: '3 giờ', value: 3 },
+                { label: '6 giờ', value: 6 },
+                { label: '24 giờ', value: 24 },
+              ]"
+              class="w-full max-w-[220px]"
+            />
+            <p class="mt-2 text-[11px] leading-5 text-slate-400 font-medium">
+              Nếu Cookie vẫn lỗi, hệ thống sẽ gửi lại cảnh báo sau thời gian đã
+              chọn.
+            </p>
+          </div>
+
           <!-- Save Zalo Config Button -->
           <div class="flex justify-end pt-1">
             <button
@@ -334,7 +374,7 @@ const saveCookie = async () => {
                 class="!text-white"
               />
               <SaveOutlined v-else class="!text-white" />
-              <span class="!text-white">Lưu cấu hình Zalo</span>
+              <span class="!text-white">Lưu cấu hình Cảnh báo</span>
             </button>
           </div>
         </div>
@@ -344,7 +384,9 @@ const saveCookie = async () => {
       <div
         class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs text-left"
       >
-        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div
+          class="flex flex-col sm:flex-row sm:items-start justify-between gap-3"
+        >
           <div>
             <h4
               class="m-0 text-sm font-black text-slate-900 dark:text-white flex items-center gap-2"

@@ -1,13 +1,15 @@
 import { config } from '../config.js';
 import { db } from '../db/index.js';
 import { linkGenerations } from '../db/schema.js';
-import { getShopeeSettings, getStoredShopeeCookie } from './shopee-config.service.js';
+import { getShopeeSettings, getStoredShopeeCookieData } from './shopee-config.service.js';
+import { notifyShopeeCookieError } from './zalo-notification.service.js';
 
 export interface ProductInfo {
   productLink?: string;
   productName?: string;
   imageUrl?: string;
   commission?: number;
+  rating?: number | string;
   [key: string]: any;
 }
 
@@ -118,11 +120,23 @@ export class ShopeeService {
     cookie?: string
   ): Promise<ShopeeBatchCustomLinkItem | null> {
     const shopeeBaseApi = config.shopee.baseApi;
-    const activeCookie = cookie || await getStoredShopeeCookie() || config.shopee.cookie;
+    const storedCookie = await getStoredShopeeCookieData();
+    const activeCookie = cookie || storedCookie?.cookie;
 
     if (!activeCookie) {
       console.warn('[ShopeeService] Shopee Cookie is not set.');
+      await notifyShopeeCookieError('Convert link Shopee');
       return null;
+    }
+
+    if (!cookie) {
+      const updatedAt = storedCookie?.updated_at ? new Date(storedCookie.updated_at) : null;
+      const expiresAt = updatedAt ? updatedAt.getTime() + 7 * 24 * 60 * 60 * 1000 : 0;
+      if (!updatedAt || Number.isNaN(updatedAt.getTime()) || expiresAt <= Date.now()) {
+        console.warn('[ShopeeService] Shopee Cookie is expired.');
+        await notifyShopeeCookieError('Convert link Shopee');
+        return null;
+      }
     }
 
     const endpoint = `${shopeeBaseApi}/gql?q=batchCustomLink`;
@@ -168,22 +182,26 @@ export class ShopeeService {
 
       if (!response.ok) {
         console.warn(`[ShopeeService] BatchCustomLink HTTP error: ${response.status}`);
+        await notifyShopeeCookieError('Convert link Shopee');
         return null;
       }
 
       const json = (await response.json()) as {
         data?: { batchCustomLink?: ShopeeBatchCustomLinkItem[] };
+        errors?: Array<{ message?: string }>;
       };
 
       const item = json.data?.batchCustomLink?.[0];
       if (!item || item.failCode !== 0 || !item.shortLink) {
         console.warn('[ShopeeService] BatchCustomLink failed or empty shortLink:', item);
+        await notifyShopeeCookieError('Convert link Shopee');
         return null;
       }
 
       return item;
     } catch (error) {
       console.error('[ShopeeService] Error converting link via GraphQL:', error);
+      await notifyShopeeCookieError('Convert link Shopee');
       return null;
     }
   }

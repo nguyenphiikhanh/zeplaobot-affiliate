@@ -1,8 +1,8 @@
-import { type GroupEvent, GroupEventType, LoginQRCallbackEventType, type Message, ThreadType, Zalo } from 'zca-js'
+import { type GroupEvent, GroupEventType, LoginQRCallbackEventType, type Message, Reactions, ThreadType, Zalo } from 'zca-js'
 import { config, type TargetThreadType } from './config.js'
 import { shopeeService } from './services/shopee.service.js'
-import { getShopeeSettings } from './services/shopee-config.service.js'
 import { getZaloBotSettings, renderZaloTemplate } from './services/zalo-config.service.js'
+import { registerZaloNotificationApi, unregisterZaloNotificationApi } from './services/zalo-notification.service.js'
 
 type ZaloApi = Awaited<ReturnType<Zalo['loginQR']>>
 
@@ -58,6 +58,7 @@ export async function initZalo(): Promise<void> {
             }
         })
         api = loggedInApi
+        registerZaloNotificationApi(loggedInApi)
         qrState = 'connected'
         qrImage = null
 
@@ -86,6 +87,7 @@ export async function initZalo(): Promise<void> {
         startedAt = new Date()
         console.log('[ZALO] Listener started')
     } catch (error) {
+        unregisterZaloNotificationApi()
         const callbackState: string = qrState
         if (callbackState !== 'expired' && callbackState !== 'declined') qrState = 'error'
         lastError = error instanceof Error ? error.message : 'Đăng nhập Zalo thất bại'
@@ -123,17 +125,65 @@ async function handleIncomingMessage(
     const match = text.match(/https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|s\.shopee\.vn)\/[^\s]+/i)
     if (!match) return
 
+    try {
+        await loggedInApi.addReaction(Reactions.HEART, {
+            data: {
+                msgId: message.data.msgId,
+                cliMsgId: message.data.cliMsgId,
+            },
+            threadId: message.threadId,
+            type: ThreadType.Group,
+        })
+    } catch (error) {
+        // Reaction failure must not prevent the affiliate-link response.
+        console.error('[ZALO] Failed to react to Shopee link message:', error)
+    }
+
     const result = await shopeeService.generateShopeeLink(match[0], message.data.uidFrom)
-    const shopeeSettings = await getShopeeSettings()
+    if (!result.productInfo) {
+        const errorResponse = renderZaloTemplate(botConfig.link_convert_error_template, {
+            original_link: match[0],
+        })
+        await sendTaggedGroupMessage(loggedInApi, message, errorResponse)
+        return
+    }
     const rawCommission = result.productInfo?.commission
-    const commission = typeof rawCommission === 'number' ? rawCommission.toLocaleString('vi-VN') : 'Đang cập nhật'
-    const response = renderZaloTemplate(botConfig.link_convert_template, {
+    const commission = typeof rawCommission === 'number' && Number.isFinite(rawCommission)
+        ? `${rawCommission.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}đ`
+        : 'Chưa xác định'
+    const rawCommissionRate = result.productInfo?.rating
+    const normalizedRate = rawCommissionRate === undefined || rawCommissionRate === null
+        ? ''
+        : String(rawCommissionRate).trim().replace(/%$/, '')
+    const commissionRate = normalizedRate ? `${normalizedRate}%` : '3-10%'
+    // Keep templates saved with the old explicit suffixes compatible with unit-aware variables.
+    const template = botConfig.link_convert_template
+        .replace(/\{commission\}đ/g, '{commission}')
+        .replace(/\{commission_rate\}%/g, '{commission_rate}')
+    const response = renderZaloTemplate(template, {
         affiliate_link: result.affiliateLink,
         product_name: result.productInfo?.productName || 'Sản phẩm Shopee',
         commission,
-        commission_rate: shopeeSettings.user_share_percentage,
+        commission_rate: commissionRate,
     })
-    await loggedInApi.sendMessage(response, message.threadId, ThreadType.Group)
+    await sendTaggedGroupMessage(loggedInApi, message, response)
+}
+
+async function sendTaggedGroupMessage(
+    loggedInApi: ZaloApi,
+    originalMessage: Message,
+    content: string,
+): Promise<void> {
+    const displayName = originalMessage.data.dName?.trim() || 'Bạn'
+    const mentionText = `@${displayName}`
+    await loggedInApi.sendMessage({
+        msg: `${mentionText}\n${content}`,
+        mentions: [{
+            pos: 0,
+            uid: originalMessage.data.uidFrom,
+            len: mentionText.length,
+        }],
+    }, originalMessage.threadId, ThreadType.Group)
 }
 
 async function handleGroupEvent(loggedInApi: ZaloApi, event: GroupEvent): Promise<void> {

@@ -68,3 +68,30 @@ export const orders = mysqlTable('orders', {
 
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
+
+export const wallets = mysqlTable('wallets', {
+  id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
+  userId: varchar('user_id', { length: 64 }).notNull().unique(),
+  availableBalance: bigint('available_balance', { mode: 'number' }).default(0).notNull(),
+  pendingBalance: bigint('pending_balance', { mode: 'number' }).default(0).notNull(),
+  totalPaid: bigint('total_paid', { mode: 'number' }).default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
+});
+
+export const walletTransactions = mysqlTable('wallet_transactions', {
+  id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
+  walletId: bigint('wallet_id', { mode: 'number' }).notNull(),
+  amount: bigint('amount', { mode: 'number' }).notNull(),
+  type: varchar('type', { length: 32 }).notNull(),
+  status: varchar('status', { length: 32 }).default('pending').notNull(),
+  referenceId: varchar('reference_id', { length: 255 }),
+  description: text('description'),
+  qrCodeUrl: text('qr_code_url'),
+  rejectReason: text('reject_reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
+});
+
+export type Wallet = typeof wallets.$inferSelect;
+export type WalletTransaction = typeof walletTransactions.$inferSelect;

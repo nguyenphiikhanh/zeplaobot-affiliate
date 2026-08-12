@@ -34,6 +34,21 @@ const routes = [
         component: () => import('../views/OrdersView.vue'),
       },
       {
+        path: 'link-history',
+        name: 'admin-link-history',
+        component: () => import('../views/LinkHistoryView.vue'),
+      },
+      {
+        path: 'transaction-history',
+        name: 'admin-transaction-history',
+        component: () => import('../views/TransactionHistoryView.vue'),
+      },
+      {
+        path: 'withdrawals',
+        name: 'admin-withdrawals',
+        component: () => import('../views/WithdrawalsView.vue'),
+      },
+      {
         path: 'shopee-config',
         name: 'shopee-config',
         component: () => import('../views/ShopeeConfigView.vue'),

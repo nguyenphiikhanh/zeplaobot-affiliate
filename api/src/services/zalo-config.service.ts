@@ -7,13 +7,15 @@ const CONFIG_KEY = 'zalo_bot_settings'
 export interface ZaloBotSettings {
   group_ids: string[]
   link_convert_template: string
+  link_convert_error_template: string
   welcome_enabled: boolean
   welcome_template: string
 }
 
 export const defaultZaloBotSettings: ZaloBotSettings = {
   group_ids: [],
-  link_convert_template: '🛒 Link hoàn tiền của bạn:\n{affiliate_link}\n\n📦 Sản phẩm: {product_name}\n💰 Hoa hồng: {commission}đ ({commission_rate}%)\n\nTiết kiệm ngay khi mua sắm qua Zalo Bot!',
+  link_convert_template: '🛒 Link hoàn tiền của bạn:\n{affiliate_link}\n\n📦 Sản phẩm: {product_name}\n💰 Hoa hồng: {commission} ({commission_rate})\n\nTiết kiệm ngay khi mua sắm qua Zalo Bot!',
+  link_convert_error_template: '⚠️ Không thể lấy thông tin sản phẩm từ link này:\n{original_link}\n\nVui lòng kiểm tra lại link Shopee hoặc thử lại sau.',
   welcome_enabled: true,
   welcome_template: '👋 Chào mừng {user_name} đã tham gia nhóm {group_name}!\n\n🤖 Mình là Bot Hoàn Tiền. Hãy dán link Shopee vào nhóm để nhận ngay hoàn tiền tự động nhé! 💸',
 }
@@ -36,10 +38,12 @@ export const saveZaloBotSettings = async (input: Partial<ZaloBotSettings>) => {
   const settings: ZaloBotSettings = {
     group_ids: groupIds,
     link_convert_template: String(input.link_convert_template ?? current.link_convert_template).trim(),
+    link_convert_error_template: String(input.link_convert_error_template ?? current.link_convert_error_template).trim(),
     welcome_enabled: typeof input.welcome_enabled === 'boolean' ? input.welcome_enabled : current.welcome_enabled,
     welcome_template: String(input.welcome_template ?? current.welcome_template).trim(),
   }
   if (!settings.link_convert_template) throw new Error('Mẫu chuyển đổi link không được để trống')
+  if (!settings.link_convert_error_template) throw new Error('Mẫu báo lỗi sản phẩm không được để trống')
   if (settings.welcome_enabled && !settings.welcome_template) throw new Error('Mẫu chào mừng không được để trống')
 
   const value = JSON.stringify(settings)

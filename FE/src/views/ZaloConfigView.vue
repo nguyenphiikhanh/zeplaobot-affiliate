@@ -23,7 +23,10 @@ const savingGroups = ref(false);
 
 // State 2: Link Conversion Message Template
 const linkConvertTemplate = ref(
-  `🛒 Link hoàn tiền của bạn:\n{affiliate_link}\n\n📦 Sản phẩm: {product_name}\n💰 Hoa hồng: {commission}đ ({commission_rate}%)\n\nTiết kiệm ngay khi mua sắm qua Zalo Bot!`
+  `🛒 Link hoàn tiền của bạn:\n{affiliate_link}\n\n📦 Sản phẩm: {product_name}\n💰 Hoa hồng: {commission} ({commission_rate})\n\nTiết kiệm ngay khi mua sắm qua Zalo Bot!`
+);
+const linkConvertErrorTemplate = ref(
+  `⚠️ Không thể lấy thông tin sản phẩm từ link này:\n{original_link}\n\nVui lòng kiểm tra lại link Shopee hoặc thử lại sau.`
 );
 const savingLinkTemplate = ref(false);
 
@@ -44,7 +47,15 @@ interface ZaloBotStatus {
   listenerStartedAt: string | null;
   botId: string | null;
   qrImage: string | null;
-  qrState: "idle" | "generating" | "waiting_scan" | "scanned" | "expired" | "declined" | "connected" | "error";
+  qrState:
+    | "idle"
+    | "generating"
+    | "waiting_scan"
+    | "scanned"
+    | "expired"
+    | "declined"
+    | "connected"
+    | "error";
   scannedAccount: { displayName: string; avatar: string } | null;
   error: string | null;
 }
@@ -63,6 +74,7 @@ const botStatus = ref<ZaloBotStatus>({
 interface ZaloBotSettings {
   group_ids: string[];
   link_convert_template: string;
+  link_convert_error_template: string;
   welcome_enabled: boolean;
   welcome_template: string;
 }
@@ -70,6 +82,7 @@ interface ZaloBotSettings {
 const configPayload = (): ZaloBotSettings => ({
   group_ids: groupIds.value.map((id) => id.trim()).filter(Boolean),
   link_convert_template: linkConvertTemplate.value.trim(),
+  link_convert_error_template: linkConvertErrorTemplate.value.trim(),
   welcome_enabled: enableWelcomeMessage.value,
   welcome_template: welcomeMessageTemplate.value.trim(),
 });
@@ -77,6 +90,7 @@ const configPayload = (): ZaloBotSettings => ({
 const applyConfig = (config: ZaloBotSettings) => {
   groupIds.value = [...config.group_ids];
   linkConvertTemplate.value = config.link_convert_template;
+  linkConvertErrorTemplate.value = config.link_convert_error_template;
   enableWelcomeMessage.value = config.welcome_enabled;
   welcomeMessageTemplate.value = config.welcome_template;
 };
@@ -88,7 +102,9 @@ const getErrorMessage = (error: unknown, fallback: string) =>
 
 const loadConfig = async () => {
   try {
-    const response = await api.get<ApiResponse<ZaloBotSettings>>("/api/admin/zalo-config");
+    const response = await api.get<ApiResponse<ZaloBotSettings>>(
+      "/api/admin/zalo-config"
+    );
     if (response.data.data) applyConfig(response.data.data);
   } catch (error) {
     message.error(getErrorMessage(error, "Không thể tải cấu hình Bot Zalo."));
@@ -103,14 +119,19 @@ const stopStatusPolling = () => {
 const checkBotStatus = async (silent = false) => {
   if (!silent) checkingBotStatus.value = true;
   try {
-    const response = await api.get<ApiResponse<ZaloBotStatus>>("/api/admin/zalo-config/status");
+    const response = await api.get<ApiResponse<ZaloBotStatus>>(
+      "/api/admin/zalo-config/status"
+    );
     if (response.data.data) botStatus.value = response.data.data;
     if (botStatus.value.connected) {
       showQrModal.value = false;
       stopStatusPolling();
     }
   } catch (error) {
-    if (!silent) message.error(getErrorMessage(error, "Không thể kiểm tra trạng thái Bot Zalo."));
+    if (!silent)
+      message.error(
+        getErrorMessage(error, "Không thể kiểm tra trạng thái Bot Zalo.")
+      );
   } finally {
     checkingBotStatus.value = false;
   }
@@ -120,7 +141,9 @@ const startQrLogin = async () => {
   startingQrLogin.value = true;
   showQrModal.value = true;
   try {
-    const response = await api.post<ApiResponse<ZaloBotStatus>>("/api/admin/zalo-config/login-qr");
+    const response = await api.post<ApiResponse<ZaloBotStatus>>(
+      "/api/admin/zalo-config/login-qr"
+    );
     if (response.data.data) botStatus.value = response.data.data;
     stopStatusPolling();
     statusTimer = window.setInterval(() => checkBotStatus(true), 1500);
@@ -134,7 +157,10 @@ const startQrLogin = async () => {
 };
 
 const persistConfig = async () => {
-  const response = await api.put<ApiResponse<ZaloBotSettings>>("/api/admin/zalo-config", configPayload());
+  const response = await api.put<ApiResponse<ZaloBotSettings>>(
+    "/api/admin/zalo-config",
+    configPayload()
+  );
   if (response.data.data) applyConfig(response.data.data);
 };
 
@@ -176,6 +202,10 @@ const copyVariable = (varName: string) => {
 const saveLinkTemplate = async () => {
   if (!linkConvertTemplate.value.trim()) {
     message.warning("Nội dung chuyển đổi link không được để trống!");
+    return;
+  }
+  if (!linkConvertErrorTemplate.value.trim()) {
+    message.warning("Nội dung báo lỗi sản phẩm không được để trống!");
     return;
   }
   savingLinkTemplate.value = true;
@@ -226,7 +256,9 @@ const saveWelcomeTemplate = async () => {
       <div
         class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-2xs"
       >
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
           <div class="flex items-center gap-3">
             <div
               :class="[
@@ -243,13 +275,26 @@ const saveWelcomeTemplate = async () => {
               <h4 class="m-0 text-sm font-black text-slate-900 dark:text-white">
                 Trạng thái Bot
               </h4>
-              <div v-if="botStatus.connected" class="mt-1 flex items-center gap-2">
+              <div
+                v-if="botStatus.connected"
+                class="mt-1 flex items-center gap-2"
+              >
                 <span class="relative flex h-2.5 w-2.5">
-                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
-                  <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                  <span
+                    class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"
+                  ></span>
+                  <span
+                    class="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"
+                  ></span>
                 </span>
-                <span class="text-xs font-bold text-emerald-600">Bot đang hoạt động</span>
-                <span v-if="botStatus.botId" class="text-[11px] text-slate-400 font-mono">ID: {{ botStatus.botId }}</span>
+                <span class="text-xs font-bold text-emerald-600"
+                  >Bot đang hoạt động</span
+                >
+                <span
+                  v-if="botStatus.botId"
+                  class="text-[11px] text-slate-400 font-mono"
+                  >ID: {{ botStatus.botId }}</span
+                >
               </div>
               <p v-else class="mt-1 mb-0 text-xs font-semibold text-slate-500">
                 Bạn chưa đăng nhập bot
@@ -451,6 +496,40 @@ const saveWelcomeTemplate = async () => {
           ></textarea>
         </div>
 
+        <div
+          class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3"
+        >
+          <div>
+            <h5
+              class="m-0 text-xs font-black text-slate-800 dark:text-slate-200"
+            >
+              Nội dung báo lỗi khi không lấy được dữ liệu sản phẩm
+            </h5>
+            <p class="mt-1 mb-0 text-[11px] text-slate-500 leading-5">
+              Bot gửi nội dung này khi nhận đúng link Shopee nhưng không lấy
+              được thông tin sản phẩm hoặc link shopee giả.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-[11px] font-bold text-slate-500"
+              >Biến hỗ trợ:</span
+            >
+            <button
+              type="button"
+              class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] font-mono font-bold transition-all cursor-pointer"
+              @click="copyVariable('{original_link}')"
+            >
+              {original_link}
+            </button>
+          </div>
+          <textarea
+            v-model="linkConvertErrorTemplate"
+            rows="4"
+            placeholder="Nhập nội dung báo lỗi khi không lấy được dữ liệu sản phẩm..."
+            class="w-full bg-rose-50/40 dark:bg-slate-800 border border-rose-200 dark:border-slate-700 rounded-xl p-3 text-xs font-sans text-slate-800 dark:text-slate-100 focus:border-[#ee4d2d] focus:ring-2 focus:ring-orange-100"
+          ></textarea>
+        </div>
+
         <!-- Save Button -->
         <div class="flex justify-end pt-1">
           <button
@@ -557,29 +636,71 @@ const saveWelcomeTemplate = async () => {
     >
       <div class="py-3 flex flex-col items-center text-center">
         <template v-if="botStatus.qrImage">
-          <div class="p-3 bg-white border border-slate-200 rounded-2xl shadow-sm">
-            <img :src="botStatus.qrImage" alt="QR đăng nhập Zalo" class="w-64 h-64 object-contain" />
+          <div
+            class="p-3 bg-white border border-slate-200 rounded-2xl shadow-sm"
+          >
+            <img
+              :src="botStatus.qrImage"
+              alt="QR đăng nhập Zalo"
+              class="w-64 h-64 object-contain"
+            />
           </div>
           <h4 class="mt-4 mb-1 text-sm font-black text-slate-900">
-            {{ botStatus.qrState === 'scanned' ? 'Đã quét mã QR' : 'Quét mã bằng ứng dụng Zalo' }}
+            {{
+              botStatus.qrState === "scanned"
+                ? "Đã quét mã QR"
+                : "Quét mã bằng ứng dụng Zalo"
+            }}
           </h4>
           <p class="m-0 text-xs text-slate-500 leading-5">
-            {{ botStatus.qrState === 'scanned' ? 'Vui lòng xác nhận đăng nhập trên điện thoại.' : 'Mở Zalo → biểu tượng QR → quét mã và xác nhận đăng nhập.' }}
+            {{
+              botStatus.qrState === "scanned"
+                ? "Vui lòng xác nhận đăng nhập trên điện thoại."
+                : "Mở Zalo → biểu tượng QR → quét mã và xác nhận đăng nhập."
+            }}
           </p>
-          <div v-if="botStatus.scannedAccount" class="mt-3 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2">
-            <img v-if="botStatus.scannedAccount.avatar" :src="botStatus.scannedAccount.avatar" class="w-7 h-7 rounded-full object-cover" alt="Zalo avatar" />
-            <span class="text-xs font-bold text-emerald-700">{{ botStatus.scannedAccount.displayName }}</span>
+          <div
+            v-if="botStatus.scannedAccount"
+            class="mt-3 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2"
+          >
+            <img
+              v-if="botStatus.scannedAccount.avatar"
+              :src="botStatus.scannedAccount.avatar"
+              class="w-7 h-7 rounded-full object-cover"
+              alt="Zalo avatar"
+            />
+            <span class="text-xs font-bold text-emerald-700">{{
+              botStatus.scannedAccount.displayName
+            }}</span>
           </div>
         </template>
-        <template v-else-if="botStatus.qrState === 'expired' || botStatus.qrState === 'declined' || botStatus.qrState === 'error'">
+        <template
+          v-else-if="
+            botStatus.qrState === 'expired' ||
+            botStatus.qrState === 'declined' ||
+            botStatus.qrState === 'error'
+          "
+        >
           <QrcodeOutlined class="text-5xl text-slate-300" />
-          <h4 class="mt-4 mb-1 text-sm font-black text-slate-900">Mã QR không còn hiệu lực</h4>
-          <p class="m-0 text-xs text-slate-500">{{ botStatus.error || 'Vui lòng tạo mã QR mới để tiếp tục.' }}</p>
-          <button type="button" class="mt-4 h-9 px-4 rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white text-xs font-bold cursor-pointer" @click="startQrLogin">Tạo mã QR mới</button>
+          <h4 class="mt-4 mb-1 text-sm font-black text-slate-900">
+            Mã QR không còn hiệu lực
+          </h4>
+          <p class="m-0 text-xs text-slate-500">
+            {{ botStatus.error || "Vui lòng tạo mã QR mới để tiếp tục." }}
+          </p>
+          <button
+            type="button"
+            class="mt-4 h-9 px-4 rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white text-xs font-bold cursor-pointer"
+            @click="startQrLogin"
+          >
+            Tạo mã QR mới
+          </button>
         </template>
         <template v-else>
           <a-spin size="large" />
-          <p class="mt-4 mb-0 text-xs font-semibold text-slate-500">Đang tạo mã QR đăng nhập...</p>
+          <p class="mt-4 mb-0 text-xs font-semibold text-slate-500">
+            Đang tạo mã QR đăng nhập...
+          </p>
         </template>
       </div>
     </a-modal>
