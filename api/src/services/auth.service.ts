@@ -108,6 +108,7 @@ export const loginUserService = async (trackingCode: string) => {
     .select({
       id: users.id,
       name: users.name,
+      image: users.image,
       trackingCode: users.trackingCode,
     })
     .from(users)
@@ -124,6 +125,7 @@ export const loginUserService = async (trackingCode: string) => {
     user: {
       id: user.id,
       name: user.name,
+      image: user.image,
       role,
       tracking_code: user.trackingCode,
     },
@@ -159,6 +161,7 @@ export const getSessionUserService = async (authorization: string) => {
     id: string
     role: AuthRole
     name?: string | null
+    image?: string | null
     tracking_code?: string | null
   } = {
     id: payload.sub,
@@ -170,6 +173,7 @@ export const getSessionUserService = async (authorization: string) => {
       .select({
         id: users.id,
         name: users.name,
+        image: users.image,
         trackingCode: users.trackingCode,
       })
       .from(users)
@@ -181,6 +185,7 @@ export const getSessionUserService = async (authorization: string) => {
         id: user.id,
         role: 'user',
         name: user.name,
+        image: user.image,
         tracking_code: user.trackingCode,
       }
     }

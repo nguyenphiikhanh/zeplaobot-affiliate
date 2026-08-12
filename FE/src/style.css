@@ -13,6 +13,18 @@ body {
   overflow-x: hidden;
 }
 
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+.ant-btn:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+.ant-btn:disabled {
+  cursor: not-allowed;
+}
+
 /* Ensure white text buttons override Ant Design reset CSS */
 button.text-white,
 button.text-white *,

@@ -19,6 +19,7 @@ import { getSessionUser, clearAuthTokens, type SessionUser } from '../services/a
 const router = useRouter()
 const route = useRoute()
 const user = ref<SessionUser | null>(null)
+const avatarFailed = ref(false)
 const isMobileMenuOpen = ref(false)
 
 const navItems = [
@@ -31,6 +32,7 @@ const navigate=(item:typeof navItems[number])=>{router.push(item.path);isMobileM
 
 onMounted(async () => {
   user.value = await getSessionUser()
+  avatarFailed.value = false
 })
 
 const displayName = computed(() => {
@@ -41,15 +43,9 @@ const displayName = computed(() => {
 
 const avatarInitials = computed(() => {
   if (!user.value) return 'U'
-  if (user.value.name && user.value.name.trim()) {
-    const parts = user.value.name.trim().split(' ')
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-    }
-    return user.value.name.substring(0, 2).toUpperCase()
-  }
-  return user.value.id.substring(0, 2).toUpperCase()
+  return (user.value.name?.trim().charAt(0) || user.value.id.charAt(0) || 'U').toUpperCase()
 })
+const avatarUrl = computed(() => !avatarFailed.value ? user.value?.image?.trim() || '' : '')
 
 const copyTrackingCode = () => {
   if (user.value?.tracking_code) {
@@ -109,8 +105,9 @@ const handleLogout = () => {
               class="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-slate-50 hover:bg-orange-50/70 border border-slate-200/80 hover:border-orange-200/80 cursor-pointer transition-all duration-200 shadow-2xs group"
             >
               <!-- Avatar Circle -->
-              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#ff6b4a] to-[#ff4520] text-white flex items-center justify-center font-extrabold text-xs shadow-xs group-hover:scale-105 transition-transform">
-                {{ avatarInitials }}
+              <div class="w-9 h-9 overflow-hidden rounded-full bg-gradient-to-br from-[#ff6b4a] to-[#ff4520] text-white flex items-center justify-center font-extrabold text-xs shadow-xs group-hover:scale-105 transition-transform">
+                <img v-if="avatarUrl" :src="avatarUrl" :alt="displayName" class="h-full w-full object-cover" referrerpolicy="no-referrer" @error="avatarFailed = true" />
+                <span v-else class="text-white">{{ avatarInitials }}</span>
               </div>
 
               <!-- Display Name / ID -->
@@ -132,8 +129,9 @@ const handleLogout = () => {
                 <!-- User Profile Header -->
                 <div class="p-3 bg-gradient-to-br from-rose-50/60 to-orange-50/60 rounded-xl space-y-1.5">
                   <div class="flex items-center gap-2.5">
-                    <div class="w-10 h-10 rounded-full bg-[#ff5733] text-white flex items-center justify-center font-black text-sm shrink-0">
-                      {{ avatarInitials }}
+                    <div class="w-10 h-10 overflow-hidden rounded-full bg-[#ff5733] text-white flex items-center justify-center font-black text-sm shrink-0">
+                      <img v-if="avatarUrl" :src="avatarUrl" :alt="displayName" class="h-full w-full object-cover" referrerpolicy="no-referrer" @error="avatarFailed = true" />
+                      <span v-else class="text-white">{{ avatarInitials }}</span>
                     </div>
                     <div class="overflow-hidden">
                       <div class="text-sm font-bold text-slate-900 truncate">
@@ -199,8 +197,9 @@ const handleLogout = () => {
       <!-- User Info Box on Mobile -->
       <div class="p-3.5 bg-gradient-to-br from-rose-50 to-orange-50 rounded-2xl border border-orange-100 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#ff6b4a] to-[#ff4520] text-white flex items-center justify-center font-extrabold text-sm">
-            {{ avatarInitials }}
+          <div class="w-10 h-10 overflow-hidden rounded-full bg-gradient-to-br from-[#ff6b4a] to-[#ff4520] text-white flex items-center justify-center font-extrabold text-sm">
+            <img v-if="avatarUrl" :src="avatarUrl" :alt="displayName" class="h-full w-full object-cover" referrerpolicy="no-referrer" @error="avatarFailed = true" />
+            <span v-else class="text-white">{{ avatarInitials }}</span>
           </div>
           <div>
             <div class="text-sm font-bold text-slate-800">

@@ -18,6 +18,7 @@ interface AuthTokens {
 export interface AuthUser {
   id: string;
   name: string | null;
+  image?: string | null;
   role: "admin" | "user";
   tracking_code: string;
 }
@@ -164,6 +165,7 @@ export interface SessionUser {
   id: string;
   role: "admin" | "user";
   name?: string | null;
+  image?: string | null;
   tracking_code?: string | null;
 }
 
