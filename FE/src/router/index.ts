@@ -1,29 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
-import LoginView from '../views/LoginView.vue'
-import AdminLoginView from '../views/AdminLoginView.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
-import ShopeeConfigView from '../views/ShopeeConfigView.vue'
-import ZaloConfigView from '../views/ZaloConfigView.vue'
 import { getSessionUser } from '../services/api'
 
 const routes = [
   {
     path: '/',
     name: 'home',
-    component: HomeView,
+    component: () => import('../views/HomeView.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/login',
     name: 'login',
-    component: LoginView,
+    component: () => import('../views/LoginView.vue'),
     meta: { guestOnly: true },
   },
   {
     path: '/admin/login',
     name: 'admin-login',
-    component: AdminLoginView,
+    component: () => import('../views/AdminLoginView.vue'),
   },
   {
     path: '/admin',
@@ -34,14 +29,19 @@ const routes = [
         redirect: '/admin/shopee-config',
       },
       {
+        path: 'orders',
+        name: 'admin-orders',
+        component: () => import('../views/OrdersView.vue'),
+      },
+      {
         path: 'shopee-config',
         name: 'shopee-config',
-        component: ShopeeConfigView,
+        component: () => import('../views/ShopeeConfigView.vue'),
       },
       {
         path: 'settings',
         name: 'settings',
-        component: ZaloConfigView,
+        component: () => import('../views/ZaloConfigView.vue'),
       },
     ],
   },
@@ -82,8 +82,5 @@ router.beforeEach(async (to) => {
     }
   }
 })
-
-
-
 
 export default router

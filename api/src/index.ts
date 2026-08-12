@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { config } from './config.js'
 import { authRoutes } from './routes/auth.routes.js'
+import { orderRoutes } from './routes/order.routes.js'
 import { redirectRoutes } from './routes/redirect.routes.js'
 import { sendError, sendResponse } from './utils/response.js'
 import { getZaloStatus, initZalo } from './zalo.js'
@@ -34,6 +35,7 @@ app.get('/api/zalo/status', (c) =>
 
 // Mount Route Modules
 app.route('/api', authRoutes)
+app.route('/api', orderRoutes)
 app.route('/', redirectRoutes)
 
 // Global Error Handler

@@ -22,6 +22,13 @@
       "when": 1786473579185,
       "tag": "0002_users_name",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786521515530,
+      "tag": "0003_same_marvel_zombies",
+      "breakpoints": true
     }
   ]
 }
