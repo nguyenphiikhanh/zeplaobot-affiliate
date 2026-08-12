@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
         {
-            name: 'zeplaobot',
+            name: 'zeplaobot-api',
             script: 'dist/index.js',
             cwd: __dirname,
             env_file: '.env',
