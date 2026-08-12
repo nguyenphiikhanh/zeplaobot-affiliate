@@ -2,7 +2,12 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "ant-design-vue";
-import { API_ACTIVITY_EVENT, api, clearAuthTokens, type ApiResponse } from "../services/api";
+import {
+  API_ACTIVITY_EVENT,
+  api,
+  clearAuthTokens,
+  type ApiResponse,
+} from "../services/api";
 import {
   ZALO_BOT_STATUS_EVENT,
   readZaloBotStatus,
@@ -30,25 +35,21 @@ const botStatus = ref(readZaloBotStatus());
 const apiLoading = ref(false);
 
 const botStatusLabel = computed(() =>
-  botStatus.value.connected
-    ? "Bot đang hoạt động"
-    : botStatus.value.connecting
-      ? "Bot đang kết nối"
-      : "Bot chưa hoạt động"
+  botStatus.value.connected ? "Bot đang hoạt động" : "Bot chưa hoạt động"
 );
 const botStatusClasses = computed(() =>
   botStatus.value.connected
     ? "bg-emerald-50 text-emerald-600 border-emerald-200"
     : botStatus.value.connecting
-      ? "bg-amber-50 text-amber-600 border-amber-200"
-      : "bg-slate-100 text-slate-500 border-slate-200"
+    ? "bg-amber-50 text-amber-600 border-amber-200"
+    : "bg-slate-100 text-slate-500 border-slate-200"
 );
 const botStatusDotClass = computed(() =>
   botStatus.value.connected
     ? "bg-emerald-500 animate-pulse"
     : botStatus.value.connecting
-      ? "bg-amber-500 animate-pulse"
-      : "bg-slate-400"
+    ? "bg-amber-500 animate-pulse"
+    : "bg-slate-400"
 );
 
 const handleBotStatusEvent = (event: Event) => {
@@ -62,7 +63,9 @@ onMounted(async () => {
   window.addEventListener(ZALO_BOT_STATUS_EVENT, handleBotStatusEvent);
   window.addEventListener(API_ACTIVITY_EVENT, handleApiActivity);
   try {
-    const response = await api.get<ApiResponse<ZaloBotStatus>>("/api/admin/zalo-config/status");
+    const response = await api.get<ApiResponse<ZaloBotStatus>>(
+      "/api/admin/zalo-config/status"
+    );
     if (response.data.data) {
       botStatus.value = response.data.data;
       saveZaloBotStatus(response.data.data);
@@ -123,7 +126,8 @@ const menuItems = [
 const currentRouteKey = computed(() => route.path);
 
 const isActive = (path: string) =>
-  currentRouteKey.value === path || currentRouteKey.value.startsWith(`${path}/`);
+  currentRouteKey.value === path ||
+  currentRouteKey.value.startsWith(`${path}/`);
 
 const navigate = (path: string) => {
   router.push(path);
@@ -190,7 +194,9 @@ const navigate = (path: string) => {
         </div>
 
         <!-- Sidebar Navigation Menu -->
-        <nav class="p-3 pt-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-150px)]">
+        <nav
+          class="p-3 pt-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-150px)]"
+        >
           <div
             v-show="!isCollapsed"
             class="px-3 pb-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.16em] text-left"
@@ -256,13 +262,18 @@ const navigate = (path: string) => {
           <span v-show="!isCollapsed" class="truncate">Đăng xuất</span>
         </button>
       </div>
-
     </aside>
 
     <!-- Main Content Layout Area -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <div class="absolute left-0 right-0 top-0 z-50 h-[3px] overflow-hidden" aria-hidden="true">
-        <div v-if="apiLoading" class="admin-loading-bar h-full bg-[#ee4d2d]"></div>
+      <div
+        class="absolute left-0 right-0 top-0 z-50 h-[3px] overflow-hidden"
+        aria-hidden="true"
+      >
+        <div
+          v-if="apiLoading"
+          class="admin-loading-bar h-full bg-[#ee4d2d]"
+        ></div>
       </div>
       <!-- Top Header Bar -->
       <header
@@ -276,11 +287,12 @@ const navigate = (path: string) => {
 
         <div class="flex items-center gap-4">
           <div
-            :class="['flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border', botStatusClasses]"
+            :class="[
+              'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border',
+              botStatusClasses,
+            ]"
           >
-            <span
-              :class="['w-2 h-2 rounded-full', botStatusDotClass]"
-            ></span>
+            <span :class="['w-2 h-2 rounded-full', botStatusDotClass]"></span>
             <span>{{ botStatusLabel }}</span>
           </div>
 
@@ -308,7 +320,11 @@ const navigate = (path: string) => {
   box-shadow: 0 0 10px rgba(238, 77, 45, 0.55);
 }
 @keyframes admin-loading {
-  0% { transform: translateX(-110%); }
-  100% { transform: translateX(340%); }
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
 }
 </style>

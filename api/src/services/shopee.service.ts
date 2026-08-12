@@ -1,7 +1,8 @@
+import { log } from 'console';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
 import { linkGenerations } from '../db/schema.js';
-import { getShopeeSettings, getStoredShopeeCookieData } from './shopee-config.service.js';
+import { getShopeeSettings, getStoredShopeeCookieData, normalizeShopeeCookie } from './shopee-config.service.js';
 import { notifyShopeeCookieError } from './zalo-notification.service.js';
 
 export interface ProductInfo {
@@ -121,7 +122,7 @@ export class ShopeeService {
   ): Promise<ShopeeBatchCustomLinkItem | null> {
     const shopeeBaseApi = config.shopee.baseApi;
     const storedCookie = await getStoredShopeeCookieData();
-    const activeCookie = cookie || storedCookie?.cookie;
+    const activeCookie = normalizeShopeeCookie(cookie || storedCookie?.cookie);
 
     if (!activeCookie) {
       console.warn('[ShopeeService] Shopee Cookie is not set.');
@@ -175,6 +176,7 @@ export class ShopeeService {
           'user-agent': this.userAgent,
           'sec-fetch-dest': 'empty',
           'sec-fetch-site': 'same-origin',
+          'sec-ch-ua': '"Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"',
           'cookie': activeCookie,
         },
         body: JSON.stringify(payload),
@@ -190,8 +192,8 @@ export class ShopeeService {
         data?: { batchCustomLink?: ShopeeBatchCustomLinkItem[] };
         errors?: Array<{ message?: string }>;
       };
-
       const item = json.data?.batchCustomLink?.[0];
+
       if (!item || item.failCode !== 0 || !item.shortLink) {
         console.warn('[ShopeeService] BatchCustomLink failed or empty shortLink:', item);
         await notifyShopeeCookieError('Convert link Shopee');
@@ -285,7 +287,7 @@ export class ShopeeService {
     });
 
     // 6. Generate shortened APP_URL link for user facing output
-    const shortLink = this.getAppShortLink(subId);
+    const shortLink = usedFallback ? this.getAppShortLink(subId) : targetAffiliateLink;
 
     return {
       originalLink,

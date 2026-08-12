@@ -79,9 +79,39 @@ export const saveShopeeSettings = async (input: Partial<ShopeeSettings>) => {
 
 interface StoredCookie { cookie: string; updated_at: string }
 
+type ExportedCookie = { name?: unknown; value?: unknown }
+type ExportedCookiePayload = { cookie?: unknown; cookies?: unknown }
+
+/** Converts browser-extension JSON exports to the Cookie request-header format. */
+export const normalizeShopeeCookie = (input: unknown): string => {
+  let value: unknown = input
+
+  // Cookie exports can be JSON encoded more than once (system config -> cookie -> export payload).
+  for (let depth = 0; depth < 3 && typeof value === 'string'; depth += 1) {
+    const trimmed = value.trim()
+    if (!trimmed) return ''
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[') && !trimmed.startsWith('"')) {
+      return trimmed.replace(/[\r\n]+/g, '')
+    }
+    try { value = JSON.parse(trimmed) } catch { return trimmed.replace(/[\r\n]+/g, '') }
+  }
+
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const payload = value as ExportedCookiePayload
+    if (Array.isArray(payload.cookies)) value = payload.cookies
+    else if (payload.cookie !== undefined) return normalizeShopeeCookie(payload.cookie)
+  }
+
+  if (!Array.isArray(value)) return ''
+  return (value as ExportedCookie[])
+    .filter(item => item && typeof item === 'object' && typeof item.name === 'string' && typeof item.value === 'string' && item.name.trim())
+    .map(item => `${String(item.name).trim()}=${String(item.value)}`)
+    .join('; ')
+}
+
 export const getStoredShopeeCookie = async () => {
   const stored = await readJson<StoredCookie>(COOKIE_KEY)
-  return stored?.cookie || null
+  return stored?.cookie ? normalizeShopeeCookie(stored.cookie) : null
 }
 
 export const getStoredShopeeCookieData = async () => readJson<StoredCookie>(COOKIE_KEY)
