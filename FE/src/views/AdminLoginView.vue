@@ -25,7 +25,7 @@ const handleAdminLogin = async () => {
   try {
     await loginAdmin(passcode.value);
     message.success("Đăng nhập Quản trị thành công!");
-    await router.push("/admin/shopee-config");
+    await router.push("/admin/orders");
   } catch (error) {
     const errorMessage = axios.isAxiosError<{ message?: string }>(error)
       ? error.response?.data?.message ||

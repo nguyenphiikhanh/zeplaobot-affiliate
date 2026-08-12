@@ -1,11 +1,14 @@
 import { eq, sql, desc, and, like, or } from 'drizzle-orm'
 import { db } from '../db/index.js'
 import { orders, users, linkGenerations } from '../db/schema.js'
+import { getShopeeSettings } from './shopee-config.service.js'
 
 export interface GetOrdersParams {
   status?: string
   search?: string
   userId?: string
+  type?: string
+  orderId?: string
   page?: number
   limit?: number
 }
@@ -13,212 +16,147 @@ export interface GetOrdersParams {
 export const getOrdersListService = async (params: GetOrdersParams) => {
   const page = Math.max(1, params.page || 1)
   const limit = Math.max(1, Math.min(100, params.limit || 20))
-  const offset = (page - 1) * limit
-
-  // Conditions array
   const conditions = []
 
-  if (params.status && params.status !== 'all') {
-    conditions.push(eq(orders.orderStatus, params.status))
+  if (params.status && params.status !== 'all') conditions.push(eq(orders.orderStatus, params.status))
+  if (params.userId) conditions.push(eq(linkGenerations.userId, params.userId))
+  if (params.type && params.type !== 'all') conditions.push(eq(linkGenerations.type, Number(params.type)))
+  if (params.orderId?.trim()) conditions.push(eq(orders.orderId, params.orderId.trim()))
+  if (params.search?.trim()) {
+    const value = `%${params.search.trim()}%`
+    conditions.push(or(like(orders.orderId, value), like(orders.subId, value), like(orders.productName, value)))
   }
 
-  if (params.userId) {
-    conditions.push(eq(orders.userId, params.userId))
-  }
-
-  if (params.search && params.search.trim()) {
-    const searchVal = `%${params.search.trim()}%`
-    conditions.push(
-      or(
-        like(orders.orderId, searchVal),
-        like(orders.subId, searchVal),
-        like(orders.productName, searchVal),
-      ),
-    )
-  }
-
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-
-  // Query records joined with users table
-  const records = await db
-    .select({
-      id: orders.id,
-      order_id: orders.orderId,
-      order_status: orders.orderStatus,
-      order_time: orders.orderTime,
-      complete_time: orders.completeTime,
-      click_time: orders.clickTime,
-      shop_name: orders.shopName,
-      product_id: orders.productId,
-      product_name: orders.productName,
-      quantity: orders.quantity,
-      currency: orders.currency,
-      purchase_value: orders.purchaseValue,
-      actual_commission: orders.actualCommission,
-      user_commission: orders.userCommission,
-      sub_id: orders.subId,
-      sub1: orders.sub1,
-      sub2: orders.sub2,
-      sub3: orders.sub3,
-      sub4: orders.sub4,
-      sub5: orders.sub5,
-      user_id: orders.userId,
-      user_name: users.name,
-      user_tracking_code: users.trackingCode,
-      is_paid: orders.isPaid,
-      created_at: orders.createdAt,
-    })
-    .from(orders)
-    .leftJoin(users, eq(orders.userId, users.id))
-    .where(whereClause)
-    .orderBy(desc(orders.id))
+  const where = conditions.length ? and(...conditions) : undefined
+  const records = await db.select({
+    id: orders.id,
+    order_id: orders.orderId,
+    order_status: orders.orderStatus,
+    order_time: orders.orderTime,
+    complete_time: orders.completeTime,
+    click_time: orders.clickTime,
+    shop_name: orders.shopName,
+    product_id: orders.productId,
+    product_name: orders.productName,
+    quantity: orders.quantity,
+    currency: orders.currency,
+    purchase_value: orders.purchaseValue,
+    actual_commission: orders.actualCommission,
+    user_commission: orders.userCommission,
+    sub_id: orders.subId,
+    sub1: orders.sub1,
+    sub2: orders.sub2,
+    sub3: orders.sub3,
+    sub4: orders.sub4,
+    sub5: orders.sub5,
+    user_id: linkGenerations.userId,
+    user_name: users.name,
+    user_tracking_code: users.trackingCode,
+    type: linkGenerations.type,
+    is_paid: orders.isPaid,
+    created_at: orders.createdAt,
+  }).from(orders)
+    .leftJoin(linkGenerations, eq(orders.subId, linkGenerations.subId))
+    .leftJoin(users, eq(linkGenerations.userId, users.id))
+    .where(where)
+    .orderBy(desc(orders.orderTime), desc(orders.id))
     .limit(limit)
-    .offset(offset)
+    .offset((page - 1) * limit)
 
-  // Query total count
-  const [countResult] = await db
-    .select({ count: sql<number>`count(*)` })
+  const [count] = await db.select({ count: sql<number>`count(*)` })
     .from(orders)
-    .where(whereClause)
-
-  const total = Number(countResult?.count || 0)
-
-  return {
-    orders: records,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  }
+    .leftJoin(linkGenerations, eq(orders.subId, linkGenerations.subId))
+    .where(where)
+  const total = Number(count?.count || 0)
+  return { orders: records, total, page, limit, totalPages: Math.ceil(total / limit) }
 }
 
-// Simple CSV parser for Shopee Affiliate Order CSV exports
-export const uploadShopeeCsvService = async (csvContent: string) => {
-  const lines = csvContent
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean)
+interface ShopeeOrderImport {
+  orderId?: unknown
+  orderStatus?: unknown
+  orderTime?: unknown
+  completeTime?: unknown
+  clickTime?: unknown
+  shopName?: unknown
+  itemId?: unknown
+  itemName?: unknown
+  qty?: unknown
+  purchaseValue?: unknown
+  totalOrderCommission?: unknown
+  subId1?: unknown
+}
 
-  if (lines.length <= 1) {
-    return { successCount: 0, message: 'File CSV rỗng hoặc chỉ có dòng tiêu đề' }
-  }
+const asText = (value: unknown) => value == null ? null : String(value).trim() || null
+const asNumber = (value: unknown) => {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : 0
+}
+const asDate = (value: unknown) => {
+  const text = asText(value)
+  if (!text) return null
+  const date = new Date(text)
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
-  // Parse headers
-  const headers = lines[0].split(',').map((h) => h.replace(/^["']|["']$/g, '').trim().toLowerCase())
-
-  // Find column indexes (supporting various Shopee CSV export column names)
-  const getColIndex = (names: string[]) =>
-    headers.findIndex((h) => names.some((n) => h.includes(n)))
-
-  const idxOrderId = getColIndex(['order id', 'mã đơn hàng', 'purchase id', 'order_id'])
-  const idxStatus = getColIndex(['status', 'trạng thái', 'order status', 'order_status'])
-  const idxShop = getColIndex(['shop', 'tên shop', 'shop name', 'shop_name'])
-  const idxProduct = getColIndex(['product', 'tên sản phẩm', 'item name', 'product_name'])
-  const idxQuantity = getColIndex(['quantity', 'số lượng', 'item quantity'])
-  const idxValue = getColIndex(['purchase value', 'giá trị đơn', 'item price', 'total payment'])
-  const idxCommission = getColIndex(['commission', 'hoa hồng', 'estimated commission'])
-  const idxSubId = getColIndex(['sub_id', 'sub id', 'mã giới thiệu', 'subid'])
-  const idxSub1 = getColIndex(['sub1', 'sub_1'])
-  const idxSub2 = getColIndex(['sub2', 'sub_2'])
-  const idxSub3 = getColIndex(['sub3', 'sub_3'])
-  const idxSub4 = getColIndex(['sub4', 'sub_4'])
-  const idxSub5 = getColIndex(['sub5', 'sub_5'])
-
-  let importedCount = 0
-
-  for (let i = 1; i < lines.length; i++) {
-    // Regex to parse CSV line respecting quotes
-    const row = lines[i]
-      .match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
-      ?.map((val) => val.replace(/^["']|["']$/g, '').trim()) || lines[i].split(',')
-
-    const orderId = idxOrderId >= 0 ? row[idxOrderId] : row[0]
+// Same payload contract and matching rules as the PHP /order/import endpoint.
+export const uploadShopeeCsvService = async (input: unknown[]) => {
+  const settings = await getShopeeSettings()
+  const userCommissionMultiplier = (settings.user_share_percentage / 100)
+    * (1 - settings.service_fee_rate / 100)
+    * (1 - settings.tax_rate / 100)
+  const uniqueRows = new Map<string, ShopeeOrderImport>()
+  for (const raw of input) {
+    if (!raw || typeof raw !== 'object') continue
+    const row = raw as ShopeeOrderImport
+    const orderId = asText(row.orderId)
     if (!orderId) continue
-
-    const rawStatus = idxStatus >= 0 ? row[idxStatus]?.toLowerCase() : 'pending'
-    const shopName = idxShop >= 0 ? row[idxShop] : null
-    const productName = idxProduct >= 0 ? row[idxProduct] : null
-    const quantity = idxQuantity >= 0 ? parseInt(row[idxQuantity] || '1', 10) : 1
-    const purchaseValue = idxValue >= 0 ? parseFloat(row[idxValue]?.replace(/[^0-9.]/g, '') || '0') : 0
-    const actualCommission = idxCommission >= 0 ? parseFloat(row[idxCommission]?.replace(/[^0-9.]/g, '') || '0') : 0
-    const subId = idxSubId >= 0 ? row[idxSubId] : null
-    const sub1 = idxSub1 >= 0 ? row[idxSub1] : null
-    const sub2 = idxSub2 >= 0 ? row[idxSub2] : null
-    const sub3 = idxSub3 >= 0 ? row[idxSub3] : null
-    const sub4 = idxSub4 >= 0 ? row[idxSub4] : null
-    const sub5 = idxSub5 >= 0 ? row[idxSub5] : null
-
-    // Map Shopee status to standardized status
-    let orderStatus = 'pending'
-    if (rawStatus.includes('hoàn thành') || rawStatus.includes('completed') || rawStatus.includes('thành công') || rawStatus.includes('success')) {
-      orderStatus = 'success'
-    } else if (rawStatus.includes('hủy') || rawStatus.includes('cancel')) {
-      orderStatus = 'cancelled'
-    } else if (rawStatus.includes('chưa thanh toán') || rawStatus.includes('unpaid')) {
-      orderStatus = 'unpaid'
-    }
-
-    // Attempt to match userId from linkGenerations table using subId
-    let matchedUserId: string | null = null
-    if (subId) {
-      const [linkRecord] = await db
-        .select({ userId: linkGenerations.userId })
-        .from(linkGenerations)
-        .where(eq(linkGenerations.subId, subId))
-        .limit(1)
-
-      if (linkRecord?.userId) {
-        matchedUserId = linkRecord.userId
-      }
-    }
-
-    // Check if order already exists
-    const [existingOrder] = await db
-      .select({ id: orders.id })
-      .from(orders)
-      .where(eq(orders.orderId, orderId))
-      .limit(1)
-
-    if (existingOrder) {
-      await db
-        .update(orders)
-        .set({
-          orderStatus,
-          purchaseValue: Math.round(purchaseValue),
-          actualCommission: Math.round(actualCommission),
-          userCommission: Math.round(actualCommission * 0.7), // 70% commission allocation
-          sub1,
-          sub2,
-          sub3,
-          sub4,
-          sub5,
-          userId: matchedUserId || undefined,
-          updatedAt: new Date(),
-        })
-        .where(eq(orders.id, existingOrder.id))
-    } else {
-      await db.insert(orders).values({
-        orderId,
-        orderStatus,
-        shopName,
-        productName,
-        quantity,
-        purchaseValue: Math.round(purchaseValue),
-        actualCommission: Math.round(actualCommission),
-        userCommission: Math.round(actualCommission * 0.7),
-        subId,
-        sub1,
-        sub2,
-        sub3,
-        sub4,
-        sub5,
-        userId: matchedUserId,
-        orderTime: new Date(),
-      })
-    }
-
-    importedCount++
+    const previous = uniqueRows.get(orderId)
+    if (!previous || asNumber(row.totalOrderCommission) > 0) uniqueRows.set(orderId, row)
   }
 
-  return { successCount: importedCount, message: `Đã nhập thành công ${importedCount} đơn hàng Shopee` }
+  let successCount = 0
+  let skippedCount = 0
+  for (const row of uniqueRows.values()) {
+    const orderId = asText(row.orderId)!
+    const subId = asText(row.subId1)
+    if (!subId) { skippedCount++; continue }
+
+    const [link] = await db.select({ userId: linkGenerations.userId })
+      .from(linkGenerations).where(eq(linkGenerations.subId, subId)).limit(1)
+    if (!link?.userId) { skippedCount++; continue }
+
+    const status = asText(row.orderStatus)
+    const totalCommission = Math.round(asNumber(row.totalOrderCommission))
+    const values = {
+      orderStatus: status,
+      orderTime: asDate(row.orderTime),
+      completeTime: asDate(row.completeTime),
+      clickTime: asDate(row.clickTime),
+      shopName: asText(row.shopName),
+      productId: asText(row.itemId),
+      productName: asText(row.itemName),
+      quantity: Math.round(asNumber(row.qty) || 1),
+      purchaseValue: Math.round(asNumber(row.purchaseValue)),
+      actualCommission: totalCommission,
+      userCommission: status?.toLowerCase() === 'cancelled' ? 0 : Math.round(totalCommission * userCommissionMultiplier),
+      userId: link.userId,
+      isPaid: status?.toLowerCase() === 'completed' ? 1 : 0,
+      updatedAt: new Date(),
+    }
+    const [existing] = await db.select({ id: orders.id, isPaid: orders.isPaid })
+      .from(orders).where(and(eq(orders.orderId, orderId), eq(orders.subId, subId))).limit(1)
+
+    if (existing) {
+      if (existing.isPaid === 0) await db.update(orders).set(values).where(eq(orders.id, existing.id))
+    } else {
+      await db.insert(orders).values({ ...values, orderId, subId })
+    }
+    successCount++
+  }
+
+  return {
+    successCount,
+    skippedCount,
+    message: `Cập nhật thành công ${successCount} đơn hàng${skippedCount ? `, bỏ qua ${skippedCount} đơn không khớp Sub ID` : ''}`,
+  }
 }

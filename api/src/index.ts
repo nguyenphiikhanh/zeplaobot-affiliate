@@ -5,8 +5,10 @@ import { config } from './config.js'
 import { authRoutes } from './routes/auth.routes.js'
 import { orderRoutes } from './routes/order.routes.js'
 import { redirectRoutes } from './routes/redirect.routes.js'
+import { shopeeConfigRoutes } from './routes/shopee-config.routes.js'
+import { zaloConfigRoutes } from './routes/zalo-config.routes.js'
 import { sendError, sendResponse } from './utils/response.js'
-import { getZaloStatus, initZalo } from './zalo.js'
+import { getZaloStatus } from './zalo.js'
 
 const app = new Hono()
 
@@ -16,7 +18,7 @@ app.use(
   cors({
     origin: config.appUrl,
     allowHeaders: ['Content-Type', 'Authorization'],
-    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
   }),
 )
 
@@ -29,13 +31,20 @@ app.get('/health', (c) =>
   c.json(sendResponse({ zalo: getZaloStatus() }, 'Service is healthy')),
 )
 
-app.get('/api/zalo/status', (c) =>
-  c.json(sendResponse(getZaloStatus(), 'Zalo status retrieved successfully')),
-)
+app.get('/api/zalo/status', (c) => {
+  const status = getZaloStatus()
+  return c.json(sendResponse({
+    connected: status.connected,
+    connecting: status.connecting,
+    listenerStartedAt: status.listenerStartedAt,
+  }, 'Zalo status retrieved successfully'))
+})
 
 // Mount Route Modules
 app.route('/api', authRoutes)
 app.route('/api', orderRoutes)
+app.route('/api', shopeeConfigRoutes)
+app.route('/api', zaloConfigRoutes)
 app.route('/', redirectRoutes)
 
 // Global Error Handler
@@ -49,7 +58,3 @@ serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(`[HTTP] Listening on http://localhost:${info.port}`)
 })
 
-// Initialize Background Services
-initZalo().catch((error) => {
-  console.error('[ZALO] Startup failed:', error)
-})

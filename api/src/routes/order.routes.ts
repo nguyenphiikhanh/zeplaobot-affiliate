@@ -27,11 +27,13 @@ orderRoutes.get('/admin/orders', async (c) => {
   const status = c.req.query('status')
   const search = c.req.query('search')
   const userId = c.req.query('userId')
+  const type = c.req.query('type')
+  const orderId = c.req.query('order_id')
   const page = parseInt(c.req.query('page') || '1', 10)
   const limit = parseInt(c.req.query('limit') || '20', 10)
 
   try {
-    const data = await getOrdersListService({ status, search, userId, page, limit })
+    const data = await getOrdersListService({ status, search, userId, type, orderId, page, limit })
     return c.json(sendResponse(data, 'Retrieved orders list successfully'))
   } catch (error) {
     console.error('[Orders] Error fetching orders list:', error)
@@ -41,19 +43,19 @@ orderRoutes.get('/admin/orders', async (c) => {
 
 // Upload Shopee CSV file
 orderRoutes.post('/admin/orders/upload-csv', async (c) => {
-  let body: { csv?: string }
+  let body: { data?: unknown[] }
   try {
     body = await c.req.json()
   } catch {
     return c.json(sendError('Invalid JSON request body'), 400)
   }
 
-  if (typeof body.csv !== 'string' || !body.csv.trim()) {
+  if (!Array.isArray(body.data) || body.data.length === 0) {
     return c.json(sendError('Dữ liệu CSV không được để rỗng'), 400)
   }
 
   try {
-    const result = await uploadShopeeCsvService(body.csv)
+    const result = await uploadShopeeCsvService(body.data)
     return c.json(sendResponse(result, result.message))
   } catch (error) {
     console.error('[Orders] Error uploading CSV:', error)

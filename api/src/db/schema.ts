@@ -26,6 +26,18 @@ export const users = mysqlTable('users', {
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
+export const systemConfigs = mysqlTable('system_configs', {
+  id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
+  key: varchar('key', { length: 100 }).notNull().unique(),
+  value: text('value').notNull(),
+  description: varchar('description', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
+});
+
+export type SystemConfig = typeof systemConfigs.$inferSelect;
+export type NewSystemConfig = typeof systemConfigs.$inferInsert;
+
 export const orders = mysqlTable('orders', {
   id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
   orderId: varchar('order_id', { length: 255 }).notNull(),

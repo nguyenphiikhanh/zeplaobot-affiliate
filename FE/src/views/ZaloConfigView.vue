@@ -1,6 +1,8 @@
 ﻿<script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import { message } from "ant-design-vue";
+import axios from "axios";
+import { api, type ApiResponse } from "../services/api";
 import {
   TeamOutlined,
   LinkOutlined,
@@ -11,10 +13,12 @@ import {
   DeleteOutlined,
   InfoCircleOutlined,
   MessageOutlined,
+  CheckCircleOutlined,
+  QrcodeOutlined,
 } from "@ant-design/icons-vue";
 
 // State 1: Zalo Group IDs Management
-const groupIds = ref(["183749204817", "92817402918", "30491827461"]);
+const groupIds = ref<string[]>([]);
 const savingGroups = ref(false);
 
 // State 2: Link Conversion Message Template
@@ -29,6 +33,113 @@ const welcomeMessageTemplate = ref(
   `👋 Chào mừng {user_name} đã tham gia nhóm {group_name}!\n\n🤖 Mình là Bot Hoàn Tiền. Hãy dán link Shopee vào nhóm để nhận ngay hoàn tiền tự động nhé! 💸`
 );
 const savingWelcomeTemplate = ref(false);
+const checkingBotStatus = ref(false);
+const startingQrLogin = ref(false);
+const showQrModal = ref(false);
+let statusTimer: number | undefined;
+
+interface ZaloBotStatus {
+  connected: boolean;
+  connecting: boolean;
+  listenerStartedAt: string | null;
+  botId: string | null;
+  qrImage: string | null;
+  qrState: "idle" | "generating" | "waiting_scan" | "scanned" | "expired" | "declined" | "connected" | "error";
+  scannedAccount: { displayName: string; avatar: string } | null;
+  error: string | null;
+}
+
+const botStatus = ref<ZaloBotStatus>({
+  connected: false,
+  connecting: false,
+  listenerStartedAt: null,
+  botId: null,
+  qrImage: null,
+  qrState: "idle",
+  scannedAccount: null,
+  error: null,
+});
+
+interface ZaloBotSettings {
+  group_ids: string[];
+  link_convert_template: string;
+  welcome_enabled: boolean;
+  welcome_template: string;
+}
+
+const configPayload = (): ZaloBotSettings => ({
+  group_ids: groupIds.value.map((id) => id.trim()).filter(Boolean),
+  link_convert_template: linkConvertTemplate.value.trim(),
+  welcome_enabled: enableWelcomeMessage.value,
+  welcome_template: welcomeMessageTemplate.value.trim(),
+});
+
+const applyConfig = (config: ZaloBotSettings) => {
+  groupIds.value = [...config.group_ids];
+  linkConvertTemplate.value = config.link_convert_template;
+  enableWelcomeMessage.value = config.welcome_enabled;
+  welcomeMessageTemplate.value = config.welcome_template;
+};
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  axios.isAxiosError<{ message?: string }>(error)
+    ? error.response?.data?.message || fallback
+    : fallback;
+
+const loadConfig = async () => {
+  try {
+    const response = await api.get<ApiResponse<ZaloBotSettings>>("/api/admin/zalo-config");
+    if (response.data.data) applyConfig(response.data.data);
+  } catch (error) {
+    message.error(getErrorMessage(error, "Không thể tải cấu hình Bot Zalo."));
+  }
+};
+
+const stopStatusPolling = () => {
+  if (statusTimer !== undefined) window.clearInterval(statusTimer);
+  statusTimer = undefined;
+};
+
+const checkBotStatus = async (silent = false) => {
+  if (!silent) checkingBotStatus.value = true;
+  try {
+    const response = await api.get<ApiResponse<ZaloBotStatus>>("/api/admin/zalo-config/status");
+    if (response.data.data) botStatus.value = response.data.data;
+    if (botStatus.value.connected) {
+      showQrModal.value = false;
+      stopStatusPolling();
+    }
+  } catch (error) {
+    if (!silent) message.error(getErrorMessage(error, "Không thể kiểm tra trạng thái Bot Zalo."));
+  } finally {
+    checkingBotStatus.value = false;
+  }
+};
+
+const startQrLogin = async () => {
+  startingQrLogin.value = true;
+  showQrModal.value = true;
+  try {
+    const response = await api.post<ApiResponse<ZaloBotStatus>>("/api/admin/zalo-config/login-qr");
+    if (response.data.data) botStatus.value = response.data.data;
+    stopStatusPolling();
+    statusTimer = window.setInterval(() => checkBotStatus(true), 1500);
+    await checkBotStatus(true);
+  } catch (error) {
+    showQrModal.value = false;
+    message.error(getErrorMessage(error, "Không thể khởi tạo đăng nhập QR."));
+  } finally {
+    startingQrLogin.value = false;
+  }
+};
+
+const persistConfig = async () => {
+  const response = await api.put<ApiResponse<ZaloBotSettings>>("/api/admin/zalo-config", configPayload());
+  if (response.data.data) applyConfig(response.data.data);
+};
+
+onMounted(() => Promise.all([loadConfig(), checkBotStatus()]));
+onUnmounted(stopStatusPolling);
 
 // Group ID operations (dynamic input rows)
 const addGroupInput = () => {
@@ -39,12 +150,21 @@ const removeGroupInput = (index: number) => {
   groupIds.value.splice(index, 1);
 };
 
-const saveGroupIds = () => {
+const saveGroupIds = async () => {
+  const normalized = groupIds.value.map((id) => id.trim()).filter(Boolean);
+  if (!normalized.length) {
+    message.warning("Vui lòng nhập ít nhất một ID nhóm Zalo!");
+    return;
+  }
   savingGroups.value = true;
-  setTimeout(() => {
-    savingGroups.value = false;
+  try {
+    await persistConfig();
     message.success("Lưu danh sách ID nhóm Zalo thành công!");
-  }, 500);
+  } catch (error) {
+    message.error(getErrorMessage(error, "Không thể lưu danh sách nhóm Zalo."));
+  } finally {
+    savingGroups.value = false;
+  }
 };
 
 // Variable copy helper
@@ -53,24 +173,36 @@ const copyVariable = (varName: string) => {
   message.success(`Đã sao chép biến ${varName}!`);
 };
 
-const saveLinkTemplate = () => {
+const saveLinkTemplate = async () => {
   if (!linkConvertTemplate.value.trim()) {
     message.warning("Nội dung chuyển đổi link không được để trống!");
     return;
   }
   savingLinkTemplate.value = true;
-  setTimeout(() => {
-    savingLinkTemplate.value = false;
+  try {
+    await persistConfig();
     message.success("Cập nhật mẫu tin nhắn chuyển đổi link thành công!");
-  }, 500);
+  } catch (error) {
+    message.error(getErrorMessage(error, "Không thể lưu mẫu chuyển đổi link."));
+  } finally {
+    savingLinkTemplate.value = false;
+  }
 };
 
-const saveWelcomeTemplate = () => {
+const saveWelcomeTemplate = async () => {
+  if (enableWelcomeMessage.value && !welcomeMessageTemplate.value.trim()) {
+    message.warning("Nội dung chào mừng không được để trống!");
+    return;
+  }
   savingWelcomeTemplate.value = true;
-  setTimeout(() => {
-    savingWelcomeTemplate.value = false;
+  try {
+    await persistConfig();
     message.success("Cập nhật cấu hình tin chào mừng thành công!");
-  }, 500);
+  } catch (error) {
+    message.error(getErrorMessage(error, "Không thể lưu mẫu chào mừng."));
+  } finally {
+    savingWelcomeTemplate.value = false;
+  }
 };
 </script>
 
@@ -90,6 +222,66 @@ const saveWelcomeTemplate = () => {
     </div>
 
     <div class="flex flex-col gap-6">
+      <!-- Bot Status Card -->
+      <div
+        class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-2xs"
+      >
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-3">
+            <div
+              :class="[
+                'w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border',
+                botStatus.connected
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                  : 'bg-orange-50 border-orange-200 text-[#ee4d2d]',
+              ]"
+            >
+              <CheckCircleOutlined v-if="botStatus.connected" class="text-xl" />
+              <QrcodeOutlined v-else class="text-xl" />
+            </div>
+            <div>
+              <h4 class="m-0 text-sm font-black text-slate-900 dark:text-white">
+                Trạng thái Bot
+              </h4>
+              <div v-if="botStatus.connected" class="mt-1 flex items-center gap-2">
+                <span class="relative flex h-2.5 w-2.5">
+                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
+                  <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                </span>
+                <span class="text-xs font-bold text-emerald-600">Bot đang hoạt động</span>
+                <span v-if="botStatus.botId" class="text-[11px] text-slate-400 font-mono">ID: {{ botStatus.botId }}</span>
+              </div>
+              <p v-else class="mt-1 mb-0 text-xs font-semibold text-slate-500">
+                Bạn chưa đăng nhập bot
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              v-if="!botStatus.connected"
+              type="button"
+              :disabled="startingQrLogin"
+              class="h-9 px-4 rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-sm shadow-orange-500/20 cursor-pointer disabled:opacity-60"
+              @click="startQrLogin"
+            >
+              <ReloadOutlined v-if="startingQrLogin" spin class="!text-white" />
+              <QrcodeOutlined v-else class="!text-white" />
+              <span class="!text-white">Đăng nhập ngay</span>
+            </button>
+            <button
+              type="button"
+              :disabled="checkingBotStatus"
+              class="h-9 px-3 rounded-xl border border-slate-200 text-slate-500 hover:text-[#ee4d2d] hover:border-orange-200 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+              @click="checkBotStatus()"
+            >
+              <ReloadOutlined :spin="checkingBotStatus" />
+              <span>Kiểm tra</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Card 1: Quản lý ID Nhóm Zalo -->
       <div
         class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs"
@@ -297,7 +489,11 @@ const saveWelcomeTemplate = () => {
           </div>
 
           <!-- Enable/Disable Switch -->
-          <a-switch v-model:checked="enableWelcomeMessage" />
+          <a-switch
+            v-model:checked="enableWelcomeMessage"
+            :loading="savingWelcomeTemplate"
+            @change="saveWelcomeTemplate"
+          />
         </div>
 
         <!-- Conditional Welcome Textarea -->
@@ -350,5 +546,42 @@ const saveWelcomeTemplate = () => {
         </div>
       </div>
     </div>
+
+    <a-modal
+      v-model:open="showQrModal"
+      title="Đăng nhập Bot Zalo"
+      :footer="null"
+      :mask-closable="false"
+      width="420px"
+      @cancel="stopStatusPolling"
+    >
+      <div class="py-3 flex flex-col items-center text-center">
+        <template v-if="botStatus.qrImage">
+          <div class="p-3 bg-white border border-slate-200 rounded-2xl shadow-sm">
+            <img :src="botStatus.qrImage" alt="QR đăng nhập Zalo" class="w-64 h-64 object-contain" />
+          </div>
+          <h4 class="mt-4 mb-1 text-sm font-black text-slate-900">
+            {{ botStatus.qrState === 'scanned' ? 'Đã quét mã QR' : 'Quét mã bằng ứng dụng Zalo' }}
+          </h4>
+          <p class="m-0 text-xs text-slate-500 leading-5">
+            {{ botStatus.qrState === 'scanned' ? 'Vui lòng xác nhận đăng nhập trên điện thoại.' : 'Mở Zalo → biểu tượng QR → quét mã và xác nhận đăng nhập.' }}
+          </p>
+          <div v-if="botStatus.scannedAccount" class="mt-3 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2">
+            <img v-if="botStatus.scannedAccount.avatar" :src="botStatus.scannedAccount.avatar" class="w-7 h-7 rounded-full object-cover" alt="Zalo avatar" />
+            <span class="text-xs font-bold text-emerald-700">{{ botStatus.scannedAccount.displayName }}</span>
+          </div>
+        </template>
+        <template v-else-if="botStatus.qrState === 'expired' || botStatus.qrState === 'declined' || botStatus.qrState === 'error'">
+          <QrcodeOutlined class="text-5xl text-slate-300" />
+          <h4 class="mt-4 mb-1 text-sm font-black text-slate-900">Mã QR không còn hiệu lực</h4>
+          <p class="m-0 text-xs text-slate-500">{{ botStatus.error || 'Vui lòng tạo mã QR mới để tiếp tục.' }}</p>
+          <button type="button" class="mt-4 h-9 px-4 rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white text-xs font-bold cursor-pointer" @click="startQrLogin">Tạo mã QR mới</button>
+        </template>
+        <template v-else>
+          <a-spin size="large" />
+          <p class="mt-4 mb-0 text-xs font-semibold text-slate-500">Đang tạo mã QR đăng nhập...</p>
+        </template>
+      </div>
+    </a-modal>
   </section>
 </template>

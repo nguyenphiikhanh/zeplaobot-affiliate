@@ -26,7 +26,7 @@ const routes = [
     children: [
       {
         path: '',
-        redirect: '/admin/shopee-config',
+        redirect: '/admin/orders',
       },
       {
         path: 'orders',
@@ -66,7 +66,7 @@ router.beforeEach(async (to) => {
     if (!user) return '/admin/login'
     if (user.role !== 'admin') return '/'
   } else if (to.path === '/admin/login') {
-    if (user?.role === 'admin') return '/admin/shopee-config'
+    if (user?.role === 'admin') return '/admin/orders'
     if (user?.role === 'user') return '/'
   }
 
@@ -75,10 +75,10 @@ router.beforeEach(async (to) => {
     if (!user) {
       return { path: '/login', query: { redirect: to.fullPath !== '/' ? to.fullPath : undefined } }
     }
-    if (user.role === 'admin') return '/admin/shopee-config'
+    if (user.role === 'admin') return '/admin/orders'
   } else if (to.meta.guestOnly) {
     if (user) {
-      return user.role === 'admin' ? '/admin/shopee-config' : '/'
+      return user.role === 'admin' ? '/admin/orders' : '/'
     }
   }
 })

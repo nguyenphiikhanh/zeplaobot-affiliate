@@ -1,6 +1,8 @@
 ﻿<script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { message } from "ant-design-vue";
+import axios from "axios";
+import { api, type ApiResponse } from "../services/api";
 import {
   KeyOutlined,
   SaveOutlined,
@@ -34,22 +36,86 @@ const zaloNotifyContent = ref(
 // Cookie Config & Status (matching php CookieCard.vue)
 const isEditingCookie = ref(false);
 const shopeeCookieInput = ref("");
-const cookieStatus = ref("Cookie set. Remaining 6 day(s).");
+const cookieStatus = ref("Đang kiểm tra...");
+
+interface ShopeeSettings {
+  platform_enabled: boolean;
+  service_fee_rate: number;
+  tax_rate: number;
+  user_share_percentage: number;
+  zalo_notify_on_expired: boolean;
+  zalo_phone_number: string;
+  zalo_notify_content: string;
+}
+
+const errorMessage = (error: unknown, fallback: string) =>
+  axios.isAxiosError<{ message?: string }>(error)
+    ? error.response?.data?.message || fallback
+    : fallback;
+
+const settingsPayload = (): ShopeeSettings => ({
+  platform_enabled: platformShopee.value,
+  service_fee_rate: Number(serviceFeeRate.value),
+  tax_rate: Number(taxRate.value),
+  user_share_percentage: Number(userSharePercentage.value),
+  zalo_notify_on_expired: zaloNotifyOnExpired.value,
+  zalo_phone_number: zaloPhoneNumber.value.trim(),
+  zalo_notify_content: zaloNotifyContent.value.trim(),
+});
+
+const applySettings = (settings: ShopeeSettings) => {
+  platformShopee.value = settings.platform_enabled;
+  serviceFeeRate.value = settings.service_fee_rate;
+  taxRate.value = settings.tax_rate;
+  userSharePercentage.value = settings.user_share_percentage;
+  zaloNotifyOnExpired.value = settings.zalo_notify_on_expired;
+  zaloPhoneNumber.value = settings.zalo_phone_number;
+  zaloNotifyContent.value = settings.zalo_notify_content;
+};
+
+const loadConfig = async () => {
+  try {
+    const response = await api.get<ApiResponse<{ settings: ShopeeSettings; cookie_status: string }>>("/api/admin/shopee-config");
+    if (response.data.data) {
+      applySettings(response.data.data.settings);
+      cookieStatus.value = response.data.data.cookie_status;
+    }
+  } catch (error) {
+    cookieStatus.value = "Không thể tải trạng thái Cookie.";
+    message.error(errorMessage(error, "Không thể tải cấu hình Shopee."));
+  }
+};
+
+onMounted(loadConfig);
 
 const saveStatus = async () => {
   savingStatus.value = true;
-  setTimeout(() => {
+  try {
+    const response = await api.put<ApiResponse<ShopeeSettings>>("/api/admin/shopee-config/settings", settingsPayload());
+    if (response.data.data) applySettings(response.data.data);
+    message.success("Lưu cấu hình hoàn tiền Shopee thành công!");
+  } catch (error) {
+    message.error(errorMessage(error, "Không thể lưu cấu hình Shopee."));
+  } finally {
     savingStatus.value = false;
-    message.success("Lưu trạng thái Shopee thành công!");
-  }, 600);
+  }
 };
 
 const saveZaloNotifyConfig = async () => {
+  if (zaloNotifyOnExpired.value && (!zaloPhoneNumber.value.trim() || !zaloNotifyContent.value.trim())) {
+    message.warning("Vui lòng nhập số điện thoại và nội dung thông báo Zalo!");
+    return;
+  }
   savingZaloConfig.value = true;
-  setTimeout(() => {
-    savingZaloConfig.value = false;
+  try {
+    const response = await api.put<ApiResponse<ShopeeSettings>>("/api/admin/shopee-config/settings", settingsPayload());
+    if (response.data.data) applySettings(response.data.data);
     message.success("Cập nhật cấu hình thông báo Zalo thành công!");
-  }, 500);
+  } catch (error) {
+    message.error(errorMessage(error, "Không thể lưu cấu hình thông báo Zalo."));
+  } finally {
+    savingZaloConfig.value = false;
+  }
 };
 
 const cancelCookieEdit = () => {
@@ -64,13 +130,19 @@ const saveCookie = async () => {
   }
 
   savingCookie.value = true;
-  setTimeout(() => {
-    savingCookie.value = false;
+  try {
+    const response = await api.put<ApiResponse<{ cookie_status: string }>>("/api/admin/shopee-config/cookie", {
+      cookie: shopeeCookieInput.value.trim(),
+    });
+    cookieStatus.value = response.data.data?.cookie_status || "Cookie đã được cập nhật.";
     isEditingCookie.value = false;
-    cookieStatus.value = "Cookie set. Remaining 7 day(s).";
     shopeeCookieInput.value = "";
     message.success("Cập nhật Cookie Shopee thành công!");
-  }, 600);
+  } catch (error) {
+    message.error(errorMessage(error, "Không thể cập nhật Cookie Shopee."));
+  } finally {
+    savingCookie.value = false;
+  }
 };
 </script>
 

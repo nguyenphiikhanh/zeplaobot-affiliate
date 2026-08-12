@@ -1,6 +1,7 @@
 import { config } from '../config.js';
 import { db } from '../db/index.js';
 import { linkGenerations } from '../db/schema.js';
+import { getShopeeSettings, getStoredShopeeCookie } from './shopee-config.service.js';
 
 export interface ProductInfo {
   productLink?: string;
@@ -117,7 +118,7 @@ export class ShopeeService {
     cookie?: string
   ): Promise<ShopeeBatchCustomLinkItem | null> {
     const shopeeBaseApi = config.shopee.baseApi;
-    const activeCookie = cookie || config.shopee.cookie;
+    const activeCookie = cookie || await getStoredShopeeCookie() || config.shopee.cookie;
 
     if (!activeCookie) {
       console.warn('[ShopeeService] Shopee Cookie is not set.');
@@ -198,6 +199,10 @@ export class ShopeeService {
     originalLink: string,
     userId: string
   ): Promise<ConvertShopeeLinkResult> {
+    const settings = await getShopeeSettings();
+    if (!settings.platform_enabled) {
+      throw new Error('Tính năng hoàn tiền Shopee đang tạm tắt.');
+    }
     const subId = this.generateSubId();
 
     // 1. Fetch Product Metadata
