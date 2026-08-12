@@ -3,6 +3,7 @@ import { config, type TargetThreadType } from './config.js'
 import { shopeeService } from './services/shopee.service.js'
 import { getZaloBotSettings, renderZaloTemplate } from './services/zalo-config.service.js'
 import { registerZaloNotificationApi, unregisterZaloNotificationApi } from './services/zalo-notification.service.js'
+import { ensureZaloUser, getZaloUser } from './services/user.service.js'
 
 type ZaloApi = Awaited<ReturnType<Zalo['loginQR']>>
 
@@ -125,6 +126,19 @@ async function handleIncomingMessage(
     const match = text.match(/https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|s\.shopee\.vn)\/[^\s]+/i)
     if (!match) return
 
+    const existingUser = await getZaloUser(message.data.uidFrom)
+    const senderProfile = !existingUser || !existingUser.image
+        ? await getZaloSenderProfile(loggedInApi, message)
+        : {
+            name: message.data.dName?.trim() || existingUser.name || 'Người dùng Zalo',
+            image: existingUser.image,
+        }
+    await ensureZaloUser({
+        id: message.data.uidFrom,
+        name: senderProfile.name,
+        image: senderProfile.image,
+    })
+
     try {
         await loggedInApi.addReaction(Reactions.HEART, {
             data: {
@@ -167,6 +181,44 @@ async function handleIncomingMessage(
         commission_rate: commissionRate,
     })
     await sendTaggedGroupMessage(loggedInApi, message, response)
+}
+
+async function getZaloSenderProfile(
+    loggedInApi: ZaloApi,
+    message: Message,
+): Promise<{ name: string; image: string | null }> {
+    const fallbackName = message.data.dName?.trim() || 'Người dùng Zalo'
+    const userId = message.data.uidFrom
+
+    try {
+        const response = await loggedInApi.getUserInfo(userId)
+        const profile = response.changed_profiles[userId]
+            || Object.values(response.changed_profiles).find(item => item.userId === userId)
+        if (profile) {
+            return {
+                name: profile.displayName?.trim() || profile.zaloName?.trim() || fallbackName,
+                image: profile.avatar?.trim() || null,
+            }
+        }
+    } catch (error) {
+        console.warn(`[ZALO] getUserInfo failed for ${userId}:`, error)
+    }
+
+    try {
+        const response = await loggedInApi.getGroupMembersInfo(userId)
+        const profile = response.profiles[userId]
+            || Object.values(response.profiles).find(item => item.id === userId)
+        if (profile) {
+            return {
+                name: profile.displayName?.trim() || profile.zaloName?.trim() || fallbackName,
+                image: profile.avatar?.trim() || null,
+            }
+        }
+    } catch (error) {
+        console.warn(`[ZALO] getGroupMembersInfo failed for ${userId}:`, error)
+    }
+
+    return { name: fallbackName, image: null }
 }
 
 async function sendTaggedGroupMessage(

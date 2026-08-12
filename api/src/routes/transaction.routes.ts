@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { getSessionUserService } from '../services/auth.service.js'
 import { getAdminUsers, getTransactionHistory, getUserTransactionOverview, getWithdrawals, updateWithdrawalStatus } from '../services/transaction.service.js'
 import { sendError, sendResponse } from '../utils/response.js'
+import { getAdminUserList } from '../services/user.service.js'
 
 export const transactionRoutes = new Hono()
 transactionRoutes.use('/admin/*', async (c, next) => {
@@ -9,6 +10,11 @@ transactionRoutes.use('/admin/*', async (c, next) => {
   catch { return c.json(sendError('Unauthorized'), 401) }
 })
 transactionRoutes.get('/admin/users', async c => c.json(sendResponse(await getAdminUsers(c.req.query('search') || ''), 'Đã tải người dùng')))
+transactionRoutes.get('/admin/users/list', async c => c.json(sendResponse(await getAdminUserList({
+  page: Number(c.req.query('page') || 1),
+  limit: Number(c.req.query('limit') || 20),
+  search: c.req.query('search'),
+}), 'Đã tải danh sách người dùng')))
 transactionRoutes.get('/admin/transactions', async c => c.json(sendResponse(await getTransactionHistory({ page: Number(c.req.query('page') || 1), limit: Number(c.req.query('limit') || 20), userId: c.req.query('userId'), type: c.req.query('type'), status: c.req.query('status'), startDate: c.req.query('startDate'), endDate: c.req.query('endDate') }), 'Đã tải lịch sử giao dịch')))
 transactionRoutes.get('/admin/transactions/overview/:userId', async c => {
   const data = await getUserTransactionOverview(c.req.param('userId')); return data ? c.json(sendResponse(data, 'Đã tải tổng quan')) : c.json(sendError('Không tìm thấy người dùng'), 404)

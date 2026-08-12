@@ -49,6 +49,11 @@ const routes = [
         component: () => import('../views/WithdrawalsView.vue'),
       },
       {
+        path: 'users',
+        name: 'admin-users',
+        component: () => import('../views/UsersView.vue'),
+      },
+      {
         path: 'shopee-config',
         name: 'shopee-config',
         component: () => import('../views/ShopeeConfigView.vue'),

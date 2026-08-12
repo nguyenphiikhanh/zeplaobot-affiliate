@@ -1,6 +1,6 @@
 import { eq, sql, desc, and, like, or } from 'drizzle-orm'
 import { db } from '../db/index.js'
-import { orders, users, linkGenerations } from '../db/schema.js'
+import { orders, users, linkGenerations, wallets, walletTransactions } from '../db/schema.js'
 import { getShopeeSettings } from './shopee-config.service.js'
 
 export interface GetOrdersParams {
@@ -143,15 +143,73 @@ export const uploadShopeeCsvService = async (input: unknown[]) => {
       isPaid: status?.toLowerCase() === 'completed' ? 1 : 0,
       updatedAt: new Date(),
     }
-    const [existing] = await db.select({ id: orders.id, isPaid: orders.isPaid })
-      .from(orders).where(and(eq(orders.orderId, orderId), eq(orders.subId, subId))).limit(1)
+    try {
+      await db.transaction(async (tx) => {
+        const [existing] = await tx.select({
+          id: orders.id,
+          isPaid: orders.isPaid,
+          userCommission: orders.userCommission,
+        })
+          .from(orders)
+          .where(and(eq(orders.orderId, orderId), eq(orders.subId, subId)))
+          .limit(1)
 
-    if (existing) {
-      if (existing.isPaid === 0) await db.update(orders).set(values).where(eq(orders.id, existing.id))
-    } else {
-      await db.insert(orders).values({ ...values, orderId, subId })
+        let payoutAmount = values.userCommission
+        if (existing?.isPaid === 1) {
+          // Repair orders imported by the previous Node logic, which marked
+          // is_paid without crediting the wallet. A matching transaction proves
+          // that the commission was actually paid and keeps re-import idempotent.
+          const [existingWallet] = await tx.select({ id: wallets.id })
+            .from(wallets).where(eq(wallets.userId, link.userId)).limit(1)
+          if (existingWallet) {
+            const [paidTransaction] = await tx.select({ id: walletTransactions.id })
+              .from(walletTransactions)
+              .where(and(
+                eq(walletTransactions.walletId, existingWallet.id),
+                eq(walletTransactions.type, 'commission'),
+                eq(walletTransactions.referenceId, orderId),
+              )).limit(1)
+            if (paidTransaction) return
+          }
+          payoutAmount = existing.userCommission || 0
+        }
+
+        if (existing?.isPaid !== 1 && existing) {
+          await tx.update(orders).set(values).where(eq(orders.id, existing.id))
+        } else if (!existing) {
+          await tx.insert(orders).values({ ...values, orderId, subId })
+        }
+
+        if (existing?.isPaid !== 1 && values.isPaid !== 1) return
+
+        // Keep the order update, wallet credit and transaction history atomic.
+        // If any operation fails, is_paid is rolled back together with the money.
+        await tx.insert(wallets).values({ userId: link.userId })
+          .onDuplicateKeyUpdate({ set: { userId: link.userId } })
+        const [wallet] = await tx.select({ id: wallets.id })
+          .from(wallets).where(eq(wallets.userId, link.userId)).limit(1)
+        if (!wallet) throw new Error(`Wallet not found for user ${link.userId}`)
+
+        await tx.update(wallets)
+          .set({
+            availableBalance: sql`${wallets.availableBalance} + ${payoutAmount}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(wallets.id, wallet.id))
+        await tx.insert(walletTransactions).values({
+          walletId: wallet.id,
+          type: 'commission',
+          amount: payoutAmount,
+          status: 'success',
+          referenceId: orderId,
+          description: `Hoa hồng đơn hàng #${orderId}`,
+        })
+      })
+      successCount++
+    } catch (error) {
+      console.error(`[Orders] Failed to import order ${orderId}:`, error)
+      skippedCount++
     }
-    successCount++
   }
 
   return {

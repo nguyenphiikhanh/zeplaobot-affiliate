@@ -202,16 +202,16 @@ const confirmUpload = async () => {
           <div class="flex flex-wrap items-center gap-3">
             <a-select v-model:value="selectedStatus" :options="statusOptions" style="width:180px" />
             <a-select v-model:value="limit" :options="[{label:'20 / trang',value:20},{label:'50 / trang',value:50},{label:'100 / trang',value:100}]" style="width:120px" />
-            <a-button class="!inline-flex !items-center !justify-center !gap-1.5 !h-8 !px-3 text-xs font-medium" @click="isFilterExpanded = !isFilterExpanded"><template #icon><FilterOutlined /></template><span>{{ isFilterExpanded ? 'Thu gọn' : 'Mở rộng' }}</span></a-button>
+            <a-button class="!inline-flex !items-center !justify-center !gap-1.5 !h-8 !px-3 !rounded-lg !border-[#ee4d2d] !text-[#ee4d2d] hover:!border-[#d63d1e] hover:!text-[#d63d1e] text-xs font-semibold" @click="isFilterExpanded = !isFilterExpanded"><template #icon><FilterOutlined /></template><span>{{ isFilterExpanded ? 'Thu gọn' : 'Mở rộng' }}</span></a-button>
             <a-button v-if="hasFilters" type="text" danger class="!inline-flex !items-center !justify-center !gap-1 !h-8 !px-2 text-xs font-medium" @click="clearAllFilters"><template #icon><DeleteOutlined /></template><span>Xóa bộ lọc</span></a-button>
           </div>
           <a-button :loading="loading" class="!inline-flex !items-center !justify-center !gap-1.5 !h-8 !px-4 !rounded-lg !border-[#ee4d2d] !text-[#ee4d2d] hover:!border-[#d63d1e] hover:!text-[#d63d1e] text-xs font-semibold shrink-0" @click="fetchOrders"><template #icon><ReloadOutlined /></template><span>Làm mới</span></a-button>
         </div>
         <div v-if="isFilterExpanded" class="flex flex-wrap items-center gap-4 pt-3 border-t border-slate-100 border-dashed">
           <span class="text-xs font-semibold text-slate-500 uppercase">Tìm theo Order ID:</span>
-          <a-input-search v-model:value="orderIdInput" placeholder="Nhập mã đơn hàng..." enter-button allow-clear style="width:250px" @search="applyOrderSearch" />
+          <a-input-search v-model:value="orderIdInput" placeholder="Nhập mã đơn hàng..." enter-button allow-clear class="orange-search" style="width:250px" @search="applyOrderSearch" />
           <span class="text-xs font-semibold text-slate-500 uppercase">User ID:</span>
-          <a-input-search v-model:value="selectedUserId" placeholder="Nhập ID thành viên..." enter-button allow-clear style="width:220px" @search="fetchOrders" />
+          <a-input-search v-model:value="selectedUserId" placeholder="Nhập ID thành viên..." enter-button allow-clear class="orange-search" style="width:220px" @search="fetchOrders" />
         </div>
       </div>
 
@@ -243,3 +243,20 @@ const confirmUpload = async () => {
     <a-drawer :open="!!selectedOrder" placement="right" width="450" title="Chi tiết đơn hàng" @close="selectedOrder=null"><div v-if="selectedOrder" class="space-y-4 text-sm"><p><b>#{{ selectedOrder.order_id }}</b></p><p>Shop: {{ selectedOrder.shop_name || 'N/A' }}</p><p>Sản phẩm: {{ selectedOrder.product_name || 'N/A' }}</p><p>Sub ID: {{ selectedOrder.sub_id || 'N/A' }}</p><p>Giá trị đơn: {{ formatMoney(selectedOrder.purchase_value) }}</p><p>Hoa hồng Sàn: {{ formatMoney(selectedOrder.actual_commission) }}</p><p class="text-emerald-600 font-bold">Hoa hồng User: {{ formatMoney(selectedOrder.user_commission) }}</p></div></a-drawer>
   </div>
 </template>
+
+<style scoped>
+:deep(.orange-search .ant-input-search-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  border-color: #ee4d2d !important;
+  background: #ee4d2d !important;
+  color: #fff !important;
+}
+
+:deep(.orange-search .ant-input-search-button:hover) {
+  border-color: #d63d1e !important;
+  background: #d63d1e !important;
+}
+</style>
