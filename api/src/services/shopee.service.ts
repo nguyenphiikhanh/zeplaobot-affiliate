@@ -98,10 +98,9 @@ export class ShopeeService {
   public getShopeeAffiliateFallbackLink(
     shopId: string,
     productId: string,
-    subId: string
+    subId: string,
+    affiliateId: string,
   ): string {
-    const affiliateId = config.shopee.affiliateId;
-
     const originLink = `https://shopee.vn/opaanlp/${shopId}/${productId}`;
     const params = new URLSearchParams({
       origin_link: originLink,
@@ -220,6 +219,9 @@ export class ShopeeService {
     userId: string
   ): Promise<ConvertShopeeLinkResult> {
     const settings = await getShopeeSettings();
+    if (!settings.affiliate_id) {
+      throw new Error('Affiliate ID Shopee chưa được cấu hình.');
+    }
     if (!settings.platform_enabled) {
       throw new Error('Tính năng hoàn tiền Shopee đang tạm tắt.');
     }
@@ -263,12 +265,11 @@ export class ShopeeService {
     if (!targetAffiliateLink) {
       usedFallback = true;
       if (shopId && productId) {
-        targetAffiliateLink = this.getShopeeAffiliateFallbackLink(shopId, productId, subId);
+        targetAffiliateLink = this.getShopeeAffiliateFallbackLink(shopId, productId, subId, settings.affiliate_id);
       } else {
-        const affiliateId = config.shopee.affiliateId;
         targetAffiliateLink = `https://s.shopee.vn/an_redir?origin_link=${encodeURIComponent(
           originalLink
-        )}&affiliate_id=${affiliateId}&sub_id=${subId}`;
+        )}&affiliate_id=${settings.affiliate_id}&sub_id=${subId}`;
       }
     }
 

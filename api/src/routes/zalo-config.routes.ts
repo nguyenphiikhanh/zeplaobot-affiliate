@@ -7,6 +7,11 @@ import { getZaloStatus, initZalo } from '../zalo.js'
 
 export const zaloConfigRoutes = new Hono()
 
+zaloConfigRoutes.get('/zalo/login-command', async (c) => {
+  const settings = await getZaloBotSettings()
+  return c.json(sendResponse({ command: `#${settings.private_commands.tracking.command}` }, 'Đã tải lệnh lấy mã theo dõi'))
+})
+
 const requireAdmin = async (c: Context, next: Next) => {
   try {
     const user = await getSessionUserService(c.req.header('Authorization') || '')

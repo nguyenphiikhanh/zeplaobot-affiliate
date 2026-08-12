@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { message } from "ant-design-vue";
 import axios from "axios";
-import { loginUser } from "../services/api";
+import { api, loginUser, type ApiResponse } from "../services/api";
+import { consumeUserRedirectPath } from "../services/user-redirect";
 import {
   LoginOutlined,
   InfoCircleOutlined,
@@ -15,6 +16,14 @@ const router = useRouter();
 const route = useRoute();
 const trackingCode = ref("");
 const loading = ref(false);
+const trackingCommand = ref('#tracking-code');
+
+onMounted(async () => {
+  try {
+    const response = await api.get<ApiResponse<{ command: string }>>('/api/zalo/login-command');
+    if (response.data.data?.command) trackingCommand.value = response.data.data.command;
+  } catch { /* Keep the seeded default command when config cannot be loaded. */ }
+});
 
 const handleLogin = async () => {
   if (!trackingCode.value.trim()) {
@@ -26,7 +35,11 @@ const handleLogin = async () => {
   try {
     await loginUser(trackingCode.value.trim());
     message.success("Đăng nhập thành công!");
-    const targetPath = (route.query.redirect as string) || "/";
+    const storedPath = consumeUserRedirectPath();
+    const queryPath = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') && !route.query.redirect.startsWith('/admin')
+      ? route.query.redirect
+      : null;
+    const targetPath = storedPath || queryPath || "/";
     await router.push(targetPath);
   } catch (error) {
     const errorMessage = axios.isAxiosError<{ message?: string }>(error)
@@ -39,8 +52,8 @@ const handleLogin = async () => {
 };
 
 const copyCommand = () => {
-  navigator.clipboard.writeText("/matheodoi");
-  message.success("Đã sao chép cú pháp /matheodoi!");
+  navigator.clipboard.writeText(trackingCommand.value);
+  message.success(`Đã sao chép cú pháp ${trackingCommand.value}!`);
 };
 </script>
 
@@ -132,7 +145,7 @@ const copyCommand = () => {
             <code
               class="text-xs font-mono font-extrabold text-amber-950 tracking-wider"
             >
-              #ma-theo-doi
+              {{ trackingCommand }}
             </code>
             <span
               class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 group-hover:text-amber-900"

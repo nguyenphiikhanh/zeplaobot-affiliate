@@ -25,7 +25,7 @@ async function generateTrackingCode(): Promise<string> {
 }
 
 export async function getZaloUser(id: string) {
-  const [user] = await db.select({ id: users.id, name: users.name, image: users.image })
+  const [user] = await db.select({ id: users.id, name: users.name, image: users.image, trackingCode: users.trackingCode })
     .from(users).where(eq(users.id, id)).limit(1)
   return user || null
 }
@@ -94,4 +94,10 @@ export async function ensureZaloUser(input: EnsureZaloUserInput): Promise<void> 
     await tx.insert(wallets).values({ userId: id })
       .onDuplicateKeyUpdate({ set: { userId: id } })
   })
+}
+
+export async function regenerateTrackingCode(userId: string): Promise<string> {
+  const trackingCode = await generateTrackingCode()
+  await db.update(users).set({ trackingCode, updatedAt: new Date() }).where(eq(users.id, userId))
+  return trackingCode
 }

@@ -3,6 +3,7 @@ import { onMounted, ref } from "vue";
 import { message } from "ant-design-vue";
 import axios from "axios";
 import { api, type ApiResponse } from "../services/api";
+import { cacheAffiliateConfig } from "../services/affiliate-config-state";
 import {
   KeyOutlined,
   SaveOutlined,
@@ -21,6 +22,7 @@ const loadingConfig = ref(true);
 
 // Platforms status
 const platformShopee = ref(true);
+const affiliateId = ref("");
 
 // Commission settings (service fee, tax, and user share rate)
 const serviceFeeRate = ref(1.0);
@@ -41,6 +43,7 @@ const shopeeCookieInput = ref("");
 const cookieStatus = ref("Đang kiểm tra...");
 
 interface ShopeeSettings {
+  affiliate_id: string;
   platform_enabled: boolean;
   service_fee_rate: number;
   tax_rate: number;
@@ -57,6 +60,7 @@ const errorMessage = (error: unknown, fallback: string) =>
     : fallback;
 
 const settingsPayload = (): ShopeeSettings => ({
+  affiliate_id: affiliateId.value.trim(),
   platform_enabled: platformShopee.value,
   service_fee_rate: Number(serviceFeeRate.value),
   tax_rate: Number(taxRate.value),
@@ -68,6 +72,7 @@ const settingsPayload = (): ShopeeSettings => ({
 });
 
 const applySettings = (settings: ShopeeSettings) => {
+  affiliateId.value = settings.affiliate_id || "";
   platformShopee.value = settings.platform_enabled;
   serviceFeeRate.value = settings.service_fee_rate;
   taxRate.value = settings.tax_rate;
@@ -99,6 +104,10 @@ const loadConfig = async () => {
 onMounted(loadConfig);
 
 const saveStatus = async () => {
+  if (!affiliateId.value.trim()) {
+    message.warning("Affiliate ID không được để trống!");
+    return;
+  }
   savingStatus.value = true;
   try {
     const response = await api.put<ApiResponse<ShopeeSettings>>(
@@ -106,6 +115,7 @@ const saveStatus = async () => {
       settingsPayload()
     );
     if (response.data.data) applySettings(response.data.data);
+    cacheAffiliateConfig();
     message.success("Lưu cấu hình hoàn tiền Shopee thành công!");
   } catch (error) {
     message.error(errorMessage(error, "Không thể lưu cấu hình Shopee."));
@@ -208,6 +218,15 @@ const saveCookie = async () => {
 
     <a-spin :spinning="loadingConfig" tip="Đang tải cấu hình Shopee...">
     <div class="flex flex-col gap-5" :class="{ 'min-h-[360px]': loadingConfig }">
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4 dark:border-slate-800 dark:bg-slate-900">
+        <div>
+          <h4 class="m-0 flex items-center gap-2 text-sm font-black text-slate-900 dark:text-white"><KeyOutlined class="text-[#ee4d2d]"/><span>Affiliate ID</span><span class="text-rose-500">*</span></h4>
+          <p class="mb-0 mt-1 text-xs text-slate-500">Mã Affiliate ID dùng để tạo link tiếp thị Shopee. Đây là cấu hình bắt buộc.</p>
+        </div>
+        <input v-model="affiliateId" type="text" autocomplete="off" placeholder="Nhập Affiliate ID Shopee..." class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-3 text-xs font-bold text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"/>
+        <div class="flex justify-end pt-2"><button type="button" :disabled="savingStatus" class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#ee4d2d] px-5 py-2.5 text-xs font-bold !text-white shadow-xs disabled:opacity-70" @click="saveStatus"><ReloadOutlined v-if="savingStatus" spin class="!text-white"/><SaveOutlined v-else class="!text-white"/><span class="!text-white">Lưu Affiliate ID</span></button></div>
+      </div>
+
       <!-- Commission Settings Card -->
       <div
         class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs"

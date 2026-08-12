@@ -25,7 +25,9 @@ async function seedDefaultConfigs() {
     await db.insert(systemConfigs).values(config)
       .onDuplicateKeyUpdate({
         set: {
+          value: config.value,
           description: config.description,
+          updatedAt: new Date(),
         },
       })
   }

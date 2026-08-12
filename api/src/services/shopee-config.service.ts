@@ -9,6 +9,7 @@ const COOKIE_NOTIFICATION_STATE_KEY = 'shopee_cookie_notification_state'
 const NOTIFY_REPEAT_HOUR_OPTIONS = [1, 3, 6, 24] as const
 
 export interface ShopeeSettings {
+  affiliate_id: string
   platform_enabled: boolean
   service_fee_rate: number
   tax_rate: number
@@ -20,6 +21,7 @@ export interface ShopeeSettings {
 }
 
 export const defaultShopeeSettings: ShopeeSettings = {
+  affiliate_id: '',
   platform_enabled: true,
   service_fee_rate: 1,
   tax_rate: 10,
@@ -59,6 +61,7 @@ export const getShopeeSettings = async (): Promise<ShopeeSettings> => {
 export const saveShopeeSettings = async (input: Partial<ShopeeSettings>) => {
   const current = await getShopeeSettings()
   const settings: ShopeeSettings = {
+    affiliate_id: String(input.affiliate_id ?? current.affiliate_id).trim(),
     platform_enabled: typeof input.platform_enabled === 'boolean' ? input.platform_enabled : current.platform_enabled,
     service_fee_rate: percent(input.service_fee_rate, 'Phí dịch vụ'),
     tax_rate: percent(input.tax_rate, 'Thuế'),
@@ -70,6 +73,7 @@ export const saveShopeeSettings = async (input: Partial<ShopeeSettings>) => {
       ? Number(input.zalo_notify_repeat_hours ?? current.zalo_notify_repeat_hours)
       : 3,
   }
+  if (!settings.affiliate_id) throw new Error('Affiliate ID không được để trống')
   if (settings.zalo_notify_on_expired && !settings.zalo_phone_number) {
     throw new Error('Vui lòng nhập số điện thoại Zalo khi bật gửi thông báo')
   }

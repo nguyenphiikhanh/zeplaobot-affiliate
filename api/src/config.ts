@@ -17,7 +17,6 @@ export const config = {
     },
     shopee: {
         fetchProductApi: process.env.SHOPEE_FETCH_PRODUCT_API || 'https://data.addlivetag.com/product-data/product-data.php',
-        affiliateId: process.env.SHOPEE_AFFILIATE_ID || '',
         baseApi: process.env.SHOPEE_BASE_API || 'https://affiliate.shopee.vn/api/v3',
         cookie: process.env.SHOPEE_COOKIE || '',
     },

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import UserPageLayout from '../components/UserPageLayout.vue'
 import { getSessionUser } from '../services/api'
+import { saveUserRedirectPath } from '../services/user-redirect'
 
 const routes = [
   {
@@ -98,7 +99,8 @@ router.beforeEach(async (to) => {
   // 2. User Routes Guard
   if (to.meta.requiresAuth) {
     if (!user) {
-      return { path: '/login', query: { redirect: to.fullPath !== '/' ? to.fullPath : undefined } }
+      saveUserRedirectPath(to.fullPath)
+      return '/login'
     }
     if (user.role === 'admin') return '/admin/orders'
   } else if (to.meta.guestOnly) {

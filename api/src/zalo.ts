@@ -3,7 +3,8 @@ import { config, type TargetThreadType } from './config.js'
 import { shopeeService } from './services/shopee.service.js'
 import { getZaloBotSettings, renderZaloTemplate } from './services/zalo-config.service.js'
 import { registerZaloNotificationApi, unregisterZaloNotificationApi } from './services/zalo-notification.service.js'
-import { ensureZaloUser, getZaloUser } from './services/user.service.js'
+import { ensureZaloUser, getZaloUser, regenerateTrackingCode } from './services/user.service.js'
+import { formatWalletBalance, getOrdersUrl, getZaloCommandUser, withdrawAllZaloBalance } from './services/zalo-command.service.js'
 
 type ZaloApi = Awaited<ReturnType<Zalo['loginQR']>>
 
@@ -138,9 +139,62 @@ async function handleIncomingMessage(
         return
     }
 
-    if (message.type !== ThreadType.Group) return
     const botConfig = await getZaloBotSettings()
+    if (message.type === ThreadType.User) {
+        const incomingCommand = extractChatCommand(text)
+        const trackingCommand = normalizeChatCommand(botConfig.private_commands.tracking.command)
+        const resetCommand = normalizeChatCommand(botConfig.private_commands.reset_tracking.command)
+        if (incomingCommand !== trackingCommand && incomingCommand !== resetCommand) return
+        await synchronizeZaloSender(loggedInApi, message)
+        const user = await getZaloCommandUser(message.data.uidFrom)
+        const isReset = incomingCommand === resetCommand
+        const trackingCode = isReset ? await regenerateTrackingCode(message.data.uidFrom) : user.trackingCode
+        const responseTemplate = isReset ? botConfig.private_commands.reset_tracking.response : botConfig.private_commands.tracking.response
+        await loggedInApi.sendMessage(renderZaloTemplate(responseTemplate, {
+            tracking_code: trackingCode,
+            new_tracking_code: `#${resetCommand}`,
+        }), message.threadId, ThreadType.User)
+        return
+    }
+    if (message.type !== ThreadType.Group) return
     if (!botConfig.group_ids.includes(message.threadId)) return
+
+    await synchronizeZaloSender(loggedInApi, message)
+
+    const normalizedMessage = text.trim().toLowerCase()
+    const commands = botConfig.group_commands
+    if (normalizedMessage === `#${commands.wallet.command}`) {
+        const user = await getZaloCommandUser(message.data.uidFrom)
+        await sendTaggedGroupMessage(loggedInApi, message, renderZaloTemplate(commands.wallet.response, {
+            total_balance: formatWalletBalance(user.availableBalance), uid: user.uid,
+        }))
+        return
+    }
+    if (normalizedMessage === `#${commands.withdraw.command}`) {
+        try {
+            const result = await withdrawAllZaloBalance(message.data.uidFrom)
+            const template = result.withdrawn ? commands.withdraw.response : commands.withdraw.insufficient_response
+            await sendTaggedGroupMessage(loggedInApi, message, renderZaloTemplate(template, {
+                total_balance: formatWalletBalance(result.user.availableBalance),
+            }))
+        } catch (error) {
+            const content = error instanceof Error ? error.message : 'Không thể tạo yêu cầu rút tiền.'
+            await sendTaggedGroupMessage(loggedInApi, message, `⚠️ ${content}`)
+        }
+        return
+    }
+    if (normalizedMessage === `#${commands.orders.command}`) {
+        const user = await getZaloCommandUser(message.data.uidFrom)
+        await loggedInApi.sendMessage(renderZaloTemplate(commands.orders.private_response, {
+            tracking_code: user.trackingCode,
+            new_tracking_code: `#${botConfig.private_commands.reset_tracking.command}`,
+        }), message.data.uidFrom, ThreadType.User)
+        await sendTaggedGroupMessage(loggedInApi, message, renderZaloTemplate(commands.orders.response, {
+            url: getOrdersUrl(),
+            get_tracking_code_command: `#${botConfig.private_commands.tracking.command}`,
+        }))
+        return
+    }
 
     const shopeeUrl = extractShopeeUrl(text)
     if (!shopeeUrl) return
@@ -157,24 +211,6 @@ async function handleIncomingMessage(
     } catch (error) {
         // Reaction failure must not prevent the affiliate-link response.
         console.error('[ZALO] Failed to react to Shopee link message:', error)
-    }
-
-    try {
-        const existingUser = await getZaloUser(message.data.uidFrom)
-        const senderProfile = !existingUser || !existingUser.image
-            ? await getZaloSenderProfile(loggedInApi, message)
-            : {
-                name: message.data.dName?.trim() || existingUser.name || 'Người dùng Zalo',
-                image: existingUser.image,
-            }
-        await ensureZaloUser({
-            id: message.data.uidFrom,
-            name: senderProfile.name,
-            image: senderProfile.image,
-        })
-    } catch (error) {
-        // User synchronization must not block heart reaction or link conversion.
-        console.error(`[ZALO] Failed to synchronize sender ${message.data.uidFrom}:`, error)
     }
 
     let result
@@ -217,6 +253,14 @@ async function handleIncomingMessage(
     await sendTaggedGroupMessage(loggedInApi, message, response)
 }
 
+async function synchronizeZaloSender(loggedInApi: ZaloApi, message: Message): Promise<void> {
+    const existingUser = await getZaloUser(message.data.uidFrom)
+    const senderProfile = !existingUser || !existingUser.image
+        ? await getZaloSenderProfile(loggedInApi, message)
+        : { name: message.data.dName?.trim() || existingUser.name || 'Người dùng Zalo', image: existingUser.image }
+    await ensureZaloUser({ id: message.data.uidFrom, name: senderProfile.name, image: senderProfile.image })
+}
+
 function extractMessageText(content: Message['data']['content']): string {
     if (typeof content === 'string') return content.trim()
     if (!content || typeof content !== 'object') return ''
@@ -238,6 +282,16 @@ function extractMessageText(content: Message['data']['content']): string {
     }
     visit(content)
     return values.join(' ').replace(/\\\//g, '/').replace(/&amp;/gi, '&').trim()
+}
+
+function normalizeChatCommand(command: string): string {
+    return command.normalize('NFKC').trim().replace(/^#+/, '').replace(/[‐‑‒–—−]/g, '-').toLowerCase()
+}
+
+function extractChatCommand(text: string): string | null {
+    const normalized = text.normalize('NFKC').replace(/[‐‑‒–—−]/g, '-').toLowerCase()
+    const match = normalized.match(/(?:^|\s)#([a-z0-9_-]+)/i)
+    return match?.[1] ? normalizeChatCommand(match[1]) : null
 }
 
 const SHOPEE_URL_PATTERN = /https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|shp\.ee)\/[^\s"'<>]+/i

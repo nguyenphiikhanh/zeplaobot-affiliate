@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "ant-design-vue";
 import {
@@ -14,6 +14,11 @@ import {
   saveZaloBotStatus,
   type ZaloBotStatus,
 } from "../services/zalo-bot-status";
+import {
+  cacheAffiliateConfig,
+  clearAffiliateConfigCache,
+  hasCachedAffiliateConfig,
+} from "../services/affiliate-config-state";
 import {
   ShoppingCartOutlined,
   WalletOutlined,
@@ -33,6 +38,7 @@ const router = useRouter();
 const isCollapsed = ref(false);
 const botStatus = ref(readZaloBotStatus());
 const apiLoading = ref(false);
+const affiliateConfigRequired = ref(false);
 const year = new Date().getFullYear();
 
 const botStatusLabel = computed(() =>
@@ -60,9 +66,35 @@ const handleApiActivity = (event: Event) => {
   apiLoading.value = Number((event as CustomEvent<number>).detail || 0) > 0;
 };
 
+const checkAffiliateConfig = async () => {
+  if (route.path === "/admin/shopee-config") {
+    affiliateConfigRequired.value = false;
+    return;
+  }
+  if (hasCachedAffiliateConfig()) {
+    affiliateConfigRequired.value = false;
+    return;
+  }
+  try {
+    const response = await api.get<
+      ApiResponse<{ settings: { affiliate_id?: string } }>
+    >("/api/admin/shopee-config");
+    const configured = Boolean(
+      response.data.data?.settings.affiliate_id?.trim()
+    );
+    affiliateConfigRequired.value = !configured;
+    if (configured) cacheAffiliateConfig();
+  } catch {
+    affiliateConfigRequired.value = false;
+  }
+};
+
+watch(() => route.path, checkAffiliateConfig);
+
 onMounted(async () => {
   window.addEventListener(ZALO_BOT_STATUS_EVENT, handleBotStatusEvent);
   window.addEventListener(API_ACTIVITY_EVENT, handleApiActivity);
+  await checkAffiliateConfig();
   try {
     const response = await api.get<ApiResponse<ZaloBotStatus>>(
       "/api/admin/zalo-config/status"
@@ -81,6 +113,7 @@ onUnmounted(() => {
 });
 
 const handleLogout = () => {
+  clearAffiliateConfigCache();
   clearAuthTokens();
   message.info("Đã đăng xuất tài khoản Quản trị");
   router.push("/admin/login");
@@ -307,7 +340,9 @@ const navigate = (path: string) => {
       </header>
 
       <!-- Main Page Router View -->
-      <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-slate-100 flex flex-col justify-between">
+      <main
+        class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-slate-100 flex flex-col justify-between"
+      >
         <div>
           <router-view />
         </div>
@@ -320,12 +355,35 @@ const navigate = (path: string) => {
               target="_blank"
               rel="noopener noreferrer"
               class="text-slate-600 hover:text-[#ee4d2d] font-semibold transition-colors"
-            >KhanhNT</a>❤️
+              >KhanhNT</a
+            >❤️
           </p>
         </footer>
       </main>
     </div>
   </div>
+
+  <a-modal
+    :open="affiliateConfigRequired"
+    title="Yêu cầu cấu hình Affiliate ID"
+    :closable="false"
+    :mask-closable="false"
+    :keyboard="false"
+    width="440px"
+  >
+    <div class="py-2 text-sm leading-6 text-slate-600">
+      Affiliate ID là cấu hình bắt buộc để hệ thống hoạt động. Vui lòng thiết
+      lập trước khi sử dụng các chức năng khác.
+    </div>
+    <template #footer>
+      <a-button
+        type="primary"
+        class="!inline-flex !items-center !justify-center"
+        @click="router.push('/admin/shopee-config')"
+        >Đến trang cài đặt</a-button
+      >
+    </template>
+  </a-modal>
 </template>
 
 <style scoped>

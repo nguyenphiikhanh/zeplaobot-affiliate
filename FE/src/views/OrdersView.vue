@@ -144,7 +144,11 @@ const clearAllFilters = () => {
   currentPage.value = 1
   fetchOrders()
 }
-const applyOrderSearch = (value: string) => { orderIdFilter.value = value.trim(); currentPage.value = 1; fetchOrders() }
+const applyOrderSearch = () => {
+  orderIdFilter.value = orderIdInput.value.trim()
+  currentPage.value = 1
+  fetchOrders()
+}
 const hasFilters = computed(() => selectedStatus.value !== 'all' || !!orderIdFilter.value || !!selectedUserId.value)
 const pendingCount = computed(() => orders.value.filter((item) => item.order_status?.toLowerCase() === 'pending').length)
 const paginationText = computed(() => `Hiển thị ${orders.value.length} / Tổng ${totalOrders.value} đơn hàng`)
@@ -298,7 +302,7 @@ const confirmUpload = async () => {
               v-model="orderIdInput"
               placeholder="Nhập mã đơn hàng..."
               class="w-44 sm:w-52 h-7 pl-2 pr-2 text-xs text-slate-700 placeholder-slate-400 bg-transparent focus:outline-none"
-              @keyup.enter="applyOrderSearch"
+              @keyup.enter="applyOrderSearch()"
             />
             <button
               v-if="orderIdInput"
@@ -311,7 +315,7 @@ const confirmUpload = async () => {
             <button
               type="button"
               class="inline-flex items-center justify-center gap-1.5 h-7 px-3.5 rounded-lg bg-[#ee4d2d] hover:bg-[#d63d1e] active:bg-[#bd3617] text-white text-xs font-bold transition-all shrink-0 cursor-pointer shadow-sm"
-              @click="applyOrderSearch"
+              @click="applyOrderSearch()"
             >
               <SearchOutlined class="text-[11px]" />
               <span>Tìm</span>

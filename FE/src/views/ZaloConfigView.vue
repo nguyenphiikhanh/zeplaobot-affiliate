@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, reactive, ref } from "vue";
 import { message } from "ant-design-vue";
 import axios from "axios";
 import { api, type ApiResponse } from "../services/api";
@@ -20,7 +20,24 @@ import {
   MessageOutlined,
   CheckCircleOutlined,
   QrcodeOutlined,
+  SettingOutlined,
+  CodeOutlined,
 } from "@ant-design/icons-vue";
+
+const activeSettingsMenu = ref<'bot' | 'commands'>('bot');
+const activeCommandTab = ref<'group' | 'private'>('group');
+const savingGroupCommands = ref(false);
+const savingPrivateCommands = ref(false);
+const groupCommands = reactive({
+  wallet: { command: 'vitien', response: '💰 Số dư ví của bạn: {total_balance}\n🆔 UID: {uid}' },
+  withdraw: { command: 'ruttien', response: '✅ Đã tạo yêu cầu rút toàn bộ {total_balance}. Vui lòng chờ quản trị viên xử lý.', insufficient_response: '⚠️ Số dư hiện tại của bạn là {total_balance}. Số tiền rút tối thiểu là 10.000đ.' },
+  orders: { command: 'donhang', response: '📦 Theo dõi các đơn hàng của bạn tại đây:\n{url}\n🔐 Mã đăng nhập đã được gửi qua tin nhắn riêng.\nChú ý: Tin nhắn có thể nằm trong phần "Tin nhắn từ người lạ". Nếu tắt nhận tin nhắn từ người lạ, vui lòng nhắn riêng cho bot với cú pháp {get_tracking_code_command}', private_response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
+});
+const privateCommands = reactive({
+  tracking: { command: 'tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
+  reset_tracking: { command: 'new-tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
+});
+const commandText = (value: string) => value.replace(/^#+/, '').replace(/\s+/g, '').toLowerCase();
 
 // State 1: Zalo Group IDs Management
 const groupIds = ref<string[]>([]);
@@ -55,6 +72,8 @@ interface ZaloBotSettings {
   link_convert_error_template: string;
   welcome_enabled: boolean;
   welcome_template: string;
+  group_commands: typeof groupCommands;
+  private_commands: typeof privateCommands;
 }
 
 const configPayload = (): ZaloBotSettings => ({
@@ -63,6 +82,15 @@ const configPayload = (): ZaloBotSettings => ({
   link_convert_error_template: linkConvertErrorTemplate.value.trim(),
   welcome_enabled: enableWelcomeMessage.value,
   welcome_template: welcomeMessageTemplate.value.trim(),
+  group_commands: {
+    wallet: { ...groupCommands.wallet, command: groupCommands.wallet.command.trim().toLowerCase() },
+    withdraw: { ...groupCommands.withdraw, command: groupCommands.withdraw.command.trim().toLowerCase() },
+    orders: { ...groupCommands.orders, command: groupCommands.orders.command.trim().toLowerCase() },
+  },
+  private_commands: {
+    tracking: { ...privateCommands.tracking, command: privateCommands.tracking.command.trim().toLowerCase() },
+    reset_tracking: { ...privateCommands.reset_tracking, command: privateCommands.reset_tracking.command.trim().toLowerCase() },
+  },
 });
 
 const applyConfig = (config: ZaloBotSettings) => {
@@ -71,6 +99,38 @@ const applyConfig = (config: ZaloBotSettings) => {
   linkConvertErrorTemplate.value = config.link_convert_error_template;
   enableWelcomeMessage.value = config.welcome_enabled;
   welcomeMessageTemplate.value = config.welcome_template;
+  Object.assign(groupCommands.wallet, config.group_commands.wallet);
+  Object.assign(groupCommands.withdraw, config.group_commands.withdraw);
+  Object.assign(groupCommands.orders, config.group_commands.orders);
+  Object.assign(privateCommands.tracking, config.private_commands.tracking);
+  Object.assign(privateCommands.reset_tracking, config.private_commands.reset_tracking);
+};
+
+const savePrivateCommands = async () => {
+  const commands = [privateCommands.tracking.command, privateCommands.reset_tracking.command].map(value => value.trim().replace(/^#+/, '').toLowerCase());
+  if (commands.some(command => !command)) return message.warning('Lệnh chat riêng không được để trống!');
+  if (commands.some(command => !/^[a-z0-9_-]+$/i.test(command))) return message.warning('Lệnh chỉ được chứa chữ không dấu, số, gạch ngang và gạch dưới!');
+  if (new Set(commands).size !== commands.length) return message.warning('Các lệnh chat riêng không được trùng nhau!');
+  if (!privateCommands.tracking.response.trim() || !privateCommands.reset_tracking.response.trim()) return message.warning('Nội dung phản hồi không được để trống!');
+  [privateCommands.tracking.command, privateCommands.reset_tracking.command] = commands;
+  savingPrivateCommands.value = true;
+  try { await persistConfig(); message.success('Lưu lệnh chat riêng thành công!'); }
+  catch (error) { message.error(getErrorMessage(error, 'Không thể lưu lệnh chat riêng.')); }
+  finally { savingPrivateCommands.value = false; }
+};
+
+const saveGroupCommands = async () => {
+  const commandValues = [groupCommands.wallet.command, groupCommands.withdraw.command, groupCommands.orders.command].map(value => value.trim().replace(/^#+/, '').toLowerCase());
+  if (commandValues.some(value => !value)) return message.warning('Lệnh chat nhóm không được để trống!');
+  if (commandValues.some(value => !/^[a-z0-9_]+$/i.test(value))) return message.warning('Lệnh chỉ được chứa chữ không dấu, số và dấu gạch dưới!');
+  if (new Set(commandValues).size !== commandValues.length) return message.warning('Các lệnh chat nhóm không được trùng nhau!');
+  const contents = [groupCommands.wallet.response, groupCommands.withdraw.response, groupCommands.withdraw.insufficient_response, groupCommands.orders.response, groupCommands.orders.private_response];
+  if (contents.some(value => !value.trim())) return message.warning('Nội dung phản hồi không được để trống!');
+  [groupCommands.wallet.command, groupCommands.withdraw.command, groupCommands.orders.command] = commandValues;
+  savingGroupCommands.value = true;
+  try { await persistConfig(); message.success('Lưu thiết lập lệnh chat nhóm thành công!'); }
+  catch (error) { message.error(getErrorMessage(error, 'Không thể lưu thiết lập lệnh chat nhóm.')); }
+  finally { savingGroupCommands.value = false; }
 };
 
 const getErrorMessage = (error: unknown, fallback: string) =>
@@ -239,8 +299,37 @@ const saveWelcomeTemplate = async () => {
       </p>
     </div>
 
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <button
+        type="button"
+        :class="[
+          'flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
+          activeSettingsMenu === 'bot'
+            ? 'border-orange-200 bg-orange-50/70 shadow-sm'
+            : 'border-slate-200 bg-white hover:border-orange-100 hover:bg-orange-50/30',
+        ]"
+        @click="activeSettingsMenu = 'bot'"
+      >
+        <span :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', activeSettingsMenu === 'bot' ? 'bg-[#ee4d2d] text-white' : 'bg-slate-100 text-slate-500']"><SettingOutlined /></span>
+        <span><span class="block text-sm font-black text-slate-900">Thiết lập Bot</span><span class="mt-1 block text-[11px] text-slate-500">Trạng thái, nhóm và nội dung tự động</span></span>
+      </button>
+      <button
+        type="button"
+        :class="[
+          'flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
+          activeSettingsMenu === 'commands'
+            ? 'border-orange-200 bg-orange-50/70 shadow-sm'
+            : 'border-slate-200 bg-white hover:border-orange-100 hover:bg-orange-50/30',
+        ]"
+        @click="activeSettingsMenu = 'commands'"
+      >
+        <span :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', activeSettingsMenu === 'commands' ? 'bg-[#ee4d2d] text-white' : 'bg-slate-100 text-slate-500']"><CodeOutlined /></span>
+        <span><span class="block text-sm font-black text-slate-900">Thiết lập lệnh chat</span><span class="mt-1 block text-[11px] text-slate-500">Lệnh chat trong nhóm và chat riêng</span></span>
+      </button>
+    </div>
+
     <a-spin :spinning="loadingConfig" tip="Đang tải cấu hình Bot Zalo...">
-    <div class="flex flex-col gap-6" :class="{ 'min-h-[360px]': loadingConfig }">
+    <div v-show="activeSettingsMenu === 'bot'" class="flex flex-col gap-6" :class="{ 'min-h-[360px]': loadingConfig }">
       <!-- Bot Status Card -->
       <div
         class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-2xs"
@@ -613,6 +702,72 @@ const saveWelcomeTemplate = async () => {
           </div>
         </div>
       </div>
+    </div>
+
+    <div v-show="activeSettingsMenu === 'commands'" class="min-h-[360px] rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
+      <div class="mb-5">
+        <h4 class="m-0 flex items-center gap-2 text-sm font-black text-slate-900"><CodeOutlined class="text-[#ee4d2d]"/> Thiết lập lệnh chat</h4>
+        <p class="mb-0 mt-1 text-xs text-slate-500">Quản lý lệnh Bot phản hồi theo từng loại hội thoại Zalo.</p>
+      </div>
+      <a-tabs v-model:activeKey="activeCommandTab" class="zalo-command-tabs">
+        <a-tab-pane key="group">
+          <template #tab><span class="inline-flex items-center gap-2"><TeamOutlined/> Lệnh chat nhóm</span></template>
+          <div class="space-y-4">
+            <a-alert type="info" show-icon message="Bot chỉ nhận các lệnh này trong nhóm đã khai báo. Dấu # luôn được giữ cố định; tên lệnh không được để trống hoặc trùng nhau." class="!rounded-xl"/>
+
+            <div class="rounded-2xl border border-slate-200 p-4">
+              <div class="mb-4"><h5 class="m-0 text-sm font-black text-slate-800">Ví tiền</h5><p class="mb-0 mt-1 text-xs leading-5 text-slate-500">Tạo người dùng và ví nếu chưa tồn tại, sau đó trả về số dư khả dụng cùng UID của người gửi.</p></div>
+              <label class="mb-1.5 block text-xs font-bold text-slate-600">Lệnh</label>
+              <a-input :value="groupCommands.wallet.command" placeholder="vitien" @update:value="groupCommands.wallet.command = commandText($event)"><template #addonBefore><b>#</b></template></a-input>
+              <div class="mb-1.5 mt-4 flex items-center justify-between"><label class="text-xs font-bold text-slate-600">Nội dung phản hồi</label><div class="flex gap-1"><button v-for="variable in ['{total_balance}','{uid}']" :key="variable" type="button" class="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-bold text-orange-600" @click="copyVariable(variable)">{{ variable }}</button></div></div>
+              <a-textarea v-model:value="groupCommands.wallet.response" :rows="3"/>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 p-4">
+              <div class="mb-4"><h5 class="m-0 text-sm font-black text-slate-800">Rút tiền</h5><p class="mb-0 mt-1 text-xs leading-5 text-slate-500">Rút toàn bộ số dư khả dụng. Bot từ chối nếu số dư dưới 10.000đ và tạo yêu cầu rút tiền nếu đủ điều kiện.</p></div>
+              <label class="mb-1.5 block text-xs font-bold text-slate-600">Lệnh</label>
+              <a-input :value="groupCommands.withdraw.command" placeholder="ruttien" @update:value="groupCommands.withdraw.command = commandText($event)"><template #addonBefore><b>#</b></template></a-input>
+              <div class="mb-1.5 mt-4 flex items-center justify-between"><label class="text-xs font-bold text-slate-600">Nội dung rút thành công</label><button type="button" class="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-bold text-orange-600" @click="copyVariable('{total_balance}')">{total_balance}</button></div>
+              <a-textarea v-model:value="groupCommands.withdraw.response" :rows="3"/>
+              <div class="mb-1.5 mt-4 flex items-center justify-between"><label class="text-xs font-bold text-slate-600">Nội dung khi chưa đủ 10.000đ</label><button type="button" class="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-bold text-orange-600" @click="copyVariable('{total_balance}')">{total_balance}</button></div>
+              <a-textarea v-model:value="groupCommands.withdraw.insufficient_response" :rows="3"/>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 p-4">
+              <div class="mb-4"><h5 class="m-0 text-sm font-black text-slate-800">Đơn hàng</h5><p class="mb-0 mt-1 text-xs leading-5 text-slate-500">Gửi đường dẫn tra cứu vào nhóm và nhắn riêng mã tracking để người dùng đăng nhập xem đơn hàng.</p></div>
+              <label class="mb-1.5 block text-xs font-bold text-slate-600">Lệnh</label>
+              <a-input :value="groupCommands.orders.command" placeholder="donhang" @update:value="groupCommands.orders.command = commandText($event)"><template #addonBefore><b>#</b></template></a-input>
+              <div class="mb-1.5 mt-4 flex flex-wrap items-center justify-between gap-2"><label class="text-xs font-bold text-slate-600">Nội dung phản hồi trong nhóm</label><div class="flex flex-wrap gap-1"><button v-for="variable in ['{url}','{get_tracking_code_command}']" :key="variable" type="button" class="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-bold text-orange-600" @click="copyVariable(variable)">{{ variable }}</button></div></div>
+              <a-textarea v-model:value="groupCommands.orders.response" :rows="3"/>
+              <div class="mb-1.5 mt-4 flex flex-wrap items-center justify-between gap-2"><label class="text-xs font-bold text-slate-600">Nội dung tin nhắn riêng</label><div class="flex gap-1"><button v-for="variable in ['{tracking_code}','{new_tracking_code}']" :key="variable" type="button" class="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-bold text-orange-600" @click="copyVariable(variable)">{{ variable }}</button></div></div>
+              <a-textarea v-model:value="groupCommands.orders.private_response" :rows="3"/>
+            </div>
+
+            <div class="flex justify-end pt-1"><button type="button" :disabled="savingGroupCommands" class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#ee4d2d] px-5 py-2.5 text-xs font-bold !text-white shadow-sm disabled:opacity-60" @click="saveGroupCommands"><ReloadOutlined v-if="savingGroupCommands" spin class="!text-white"/><SaveOutlined v-else class="!text-white"/><span class="!text-white">Lưu lệnh chat nhóm</span></button></div>
+          </div>
+        </a-tab-pane>
+        <a-tab-pane key="private">
+          <template #tab><span class="inline-flex items-center gap-2"><MessageOutlined/> Lệnh chat riêng</span></template>
+          <div class="space-y-4">
+            <a-alert type="info" show-icon message="Khi người dùng gửi lệnh riêng, Bot sẽ tự tạo tài khoản và ví nếu chưa tồn tại." class="!rounded-xl"/>
+            <div class="rounded-2xl border border-slate-200 p-4">
+              <div class="mb-4"><h5 class="m-0 text-sm font-black text-slate-800">Mã theo dõi</h5><p class="mb-0 mt-1 text-xs leading-5 text-slate-500">Lấy tracking code của người dùng từ hệ thống để đăng nhập tại trang /login.</p></div>
+              <label class="mb-1.5 block text-xs font-bold text-slate-600">Lệnh</label>
+              <a-input :value="privateCommands.tracking.command" placeholder="tracking-code" @update:value="privateCommands.tracking.command = commandText($event)"><template #addonBefore><b>#</b></template></a-input>
+              <div class="mb-1.5 mt-4 flex flex-wrap items-center justify-between gap-2"><label class="text-xs font-bold text-slate-600">Nội dung phản hồi</label><div class="flex gap-1"><button v-for="variable in ['{tracking_code}','{new_tracking_code}']" :key="variable" type="button" class="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-bold text-orange-600" @click="copyVariable(variable)">{{ variable }}</button></div></div>
+              <a-textarea v-model:value="privateCommands.tracking.response" :rows="3"/>
+            </div>
+            <div class="rounded-2xl border border-slate-200 p-4">
+              <div class="mb-4"><h5 class="m-0 text-sm font-black text-slate-800">Quên mã theo dõi</h5><p class="mb-0 mt-1 text-xs leading-5 text-slate-500">Sinh mã tracking mới, cập nhật người dùng tương ứng trong DB và vô hiệu mã cũ.</p></div>
+              <label class="mb-1.5 block text-xs font-bold text-slate-600">Lệnh</label>
+              <a-input :value="privateCommands.reset_tracking.command" placeholder="new-tracking-code" @update:value="privateCommands.reset_tracking.command = commandText($event)"><template #addonBefore><b>#</b></template></a-input>
+              <div class="mb-1.5 mt-4 flex flex-wrap items-center justify-between gap-2"><label class="text-xs font-bold text-slate-600">Nội dung phản hồi</label><div class="flex gap-1"><button v-for="variable in ['{tracking_code}','{new_tracking_code}']" :key="variable" type="button" class="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-bold text-orange-600" @click="copyVariable(variable)">{{ variable }}</button></div></div>
+              <a-textarea v-model:value="privateCommands.reset_tracking.response" :rows="3"/>
+            </div>
+            <div class="flex justify-end"><button type="button" :disabled="savingPrivateCommands" class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#ee4d2d] px-5 py-2.5 text-xs font-bold !text-white shadow-sm disabled:opacity-60" @click="savePrivateCommands"><ReloadOutlined v-if="savingPrivateCommands" spin class="!text-white"/><SaveOutlined v-else class="!text-white"/><span class="!text-white">Lưu lệnh chat riêng</span></button></div>
+          </div>
+        </a-tab-pane>
+      </a-tabs>
     </div>
     </a-spin>
 
