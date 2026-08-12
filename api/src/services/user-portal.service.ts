@@ -54,7 +54,7 @@ export async function createUserWithdrawal(userId: string, amountInput: unknown)
     const [bank] = await tx.select().from(bankAccounts).where(eq(bankAccounts.userId, userId)).limit(1)
     if (!bank) throw new Error('Vui lòng cấu hình tài khoản ngân hàng trước khi rút tiền')
     const referenceId = `WD${randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase()}`
-    const description = `Hoàn tiền Shopee ${referenceId}`
+    const description = `Cashback ${referenceId}`
     const qrCodeUrl = `https://img.vietqr.io/image/${bank.bankId}-${bank.accountNo}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(description)}&accountName=${encodeURIComponent(bank.accountName)}`
     await tx.update(wallets).set({ availableBalance: wallet.availableBalance - amount, pendingBalance: wallet.pendingBalance + amount, updatedAt: new Date() }).where(eq(wallets.id, wallet.id))
     const result = await tx.insert(walletTransactions).values({ walletId: wallet.id, type: 'withdrawal', amount: -amount, status: 'pending', referenceId, description, qrCodeUrl })

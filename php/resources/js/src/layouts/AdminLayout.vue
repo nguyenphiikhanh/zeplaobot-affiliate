@@ -198,7 +198,7 @@
 
       <!-- Content -->
       <a-layout-content
-        class="overflow-y-auto p-4 sm:p-6 lg:p-8"
+        class="overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-between"
         style="background: var(--bg-content)"
       >
         <div
@@ -207,6 +207,18 @@
         >
           <router-view />
         </div>
+
+        <footer class="mt-8 border-t border-slate-200/80 pt-6 pb-2 text-center">
+          <p class="text-xs text-slate-400 font-medium">
+            © {{ year }}. Made & Support by
+            <a
+              href="https://www.facebook.com/nguyenphiikhanh"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-slate-600 hover:text-[#ee4d2d] font-semibold transition-colors"
+            >KhanhNT</a>❤️
+          </p>
+        </footer>
       </a-layout-content>
     </a-layout>
   </a-layout>
@@ -240,6 +252,7 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const { siteSettings } = useSiteSettings();
+const year = new Date().getFullYear();
 
 // Theme state Mock
 const isDark = ref(false);

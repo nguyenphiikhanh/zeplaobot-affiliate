@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import { DeleteOutlined, FileDoneOutlined, FilterOutlined, InfoCircleOutlined, ReloadOutlined, RightOutlined, UploadOutlined } from '@ant-design/icons-vue'
+import { CloseOutlined, DeleteOutlined, FileDoneOutlined, FilterOutlined, InfoCircleOutlined, ReloadOutlined, RightOutlined, SearchOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { api, type ApiResponse } from '../services/api'
 
 interface OrderItem {
@@ -24,6 +24,12 @@ interface OrderItem {
 type CsvRow = Record<string, string | null>
 type ImportRow = Record<string, string | number | null>
 
+interface AdminUser {
+  id: string
+  name: string | null
+  image: string | null
+}
+
 const loading = ref(false)
 const orders = ref<OrderItem[]>([])
 const totalOrders = ref(0)
@@ -36,6 +42,55 @@ const orderIdFilter = ref('')
 const selectedUserId = ref('')
 const isFilterExpanded = ref(false)
 const selectedOrder = ref<OrderItem | null>(null)
+
+// User selection modal state
+const users = ref<AdminUser[]>([])
+const showUserModal = ref(false)
+const userSearch = ref('')
+const loadingUsers = ref(false)
+
+const selectedUser = computed(() => users.value.find(x => x.id === selectedUserId.value))
+const filteredUsers = computed(() => {
+  const keyword = userSearch.value.trim().toLowerCase()
+  return keyword
+    ? users.value.filter(u => (u.name || '').toLowerCase().includes(keyword) || u.id.toLowerCase().includes(keyword))
+    : users.value
+})
+
+const fetchUsers = async () => {
+  loadingUsers.value = true
+  try {
+    const r = await api.get<ApiResponse<{ users: AdminUser[] }>>('/api/admin/users/list', {
+      params: { page: 1, limit: 100, search: userSearch.value.trim() || undefined }
+    })
+    users.value = r.data.data?.users || []
+  } catch {
+    users.value = []
+    message.error('Không thể tải danh sách người dùng.')
+  } finally {
+    loadingUsers.value = false
+  }
+}
+
+const openUserModal = async () => {
+  showUserModal.value = true
+  userSearch.value = ''
+  await fetchUsers()
+}
+
+const selectUser = (user: AdminUser) => {
+  selectedUserId.value = user.id
+  showUserModal.value = false
+  userSearch.value = ''
+  currentPage.value = 1
+  fetchOrders()
+}
+
+const clearUserFilter = () => {
+  selectedUserId.value = ''
+  currentPage.value = 1
+  fetchOrders()
+}
 
 const showUploadModal = ref(false)
 const selectedFile = ref<File | null>(null)
@@ -202,16 +257,77 @@ const confirmUpload = async () => {
           <div class="flex flex-wrap items-center gap-3">
             <a-select v-model:value="selectedStatus" :options="statusOptions" style="width:180px" />
             <a-select v-model:value="limit" :options="[{label:'20 / trang',value:20},{label:'50 / trang',value:50},{label:'100 / trang',value:100}]" style="width:120px" />
-            <a-button class="!inline-flex !items-center !justify-center !gap-1.5 !h-8 !px-3 !rounded-lg !border-[#ee4d2d] !text-[#ee4d2d] hover:!border-[#d63d1e] hover:!text-[#d63d1e] text-xs font-semibold" @click="isFilterExpanded = !isFilterExpanded"><template #icon><FilterOutlined /></template><span>{{ isFilterExpanded ? 'Thu gọn' : 'Mở rộng' }}</span></a-button>
-            <a-button v-if="hasFilters" type="text" danger class="!inline-flex !items-center !justify-center !gap-1 !h-8 !px-2 text-xs font-medium" @click="clearAllFilters"><template #icon><DeleteOutlined /></template><span>Xóa bộ lọc</span></a-button>
+            
+            <button
+              type="button"
+              class="btn-action-secondary"
+              @click="isFilterExpanded = !isFilterExpanded"
+            >
+              <FilterOutlined />
+              <span>{{ isFilterExpanded ? 'Thu gọn' : 'Mở rộng' }}</span>
+            </button>
+
+            <button
+              v-if="hasFilters"
+              type="button"
+              class="btn-action-danger"
+              @click="clearAllFilters"
+            >
+              <DeleteOutlined />
+              <span>Xóa bộ lọc</span>
+            </button>
           </div>
-          <a-button :loading="loading" class="!inline-flex !items-center !justify-center !gap-1.5 !h-8 !px-4 !rounded-lg !border-[#ee4d2d] !text-[#ee4d2d] hover:!border-[#d63d1e] hover:!text-[#d63d1e] text-xs font-semibold shrink-0" @click="fetchOrders"><template #icon><ReloadOutlined /></template><span>Làm mới</span></a-button>
+
+          <button
+            type="button"
+            class="btn-action-primary shrink-0"
+            :disabled="loading"
+            @click="fetchOrders"
+          >
+            <ReloadOutlined />
+            <span>Làm mới</span>
+          </button>
         </div>
+
         <div v-if="isFilterExpanded" class="flex flex-wrap items-center gap-4 pt-3 border-t border-slate-100 border-dashed">
           <span class="text-xs font-semibold text-slate-500 uppercase">Tìm theo Order ID:</span>
-          <a-input-search v-model:value="orderIdInput" placeholder="Nhập mã đơn hàng..." enter-button allow-clear class="orange-search" style="width:250px" @search="applyOrderSearch" />
-          <span class="text-xs font-semibold text-slate-500 uppercase">User ID:</span>
-          <a-input-search v-model:value="selectedUserId" placeholder="Nhập ID thành viên..." enter-button allow-clear class="orange-search" style="width:220px" @search="fetchOrders" />
+          <!-- Unified Order ID Search Pill -->
+          <div class="flex items-center rounded-xl border border-slate-200 bg-white p-1 focus-within:border-[#ee4d2d] focus-within:ring-2 focus-within:ring-orange-100 transition-all shadow-sm">
+            <SearchOutlined class="text-slate-400 ml-2.5 text-xs" />
+            <input
+              v-model="orderIdInput"
+              placeholder="Nhập mã đơn hàng..."
+              class="w-44 sm:w-52 h-7 pl-2 pr-2 text-xs text-slate-700 placeholder-slate-400 bg-transparent focus:outline-none"
+              @keyup.enter="applyOrderSearch"
+            />
+            <button
+              v-if="orderIdInput"
+              type="button"
+              class="text-slate-300 hover:text-slate-500 mr-3.5 text-xs cursor-pointer flex items-center justify-center p-0.5"
+              @click="orderIdInput = ''; applyOrderSearch()"
+            >
+              <CloseOutlined class="text-[10px]" />
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center justify-center gap-1.5 h-7 px-3.5 rounded-lg bg-[#ee4d2d] hover:bg-[#d63d1e] active:bg-[#bd3617] text-white text-xs font-bold transition-all shrink-0 cursor-pointer shadow-sm"
+              @click="applyOrderSearch"
+            >
+              <SearchOutlined class="text-[11px]" />
+              <span>Tìm</span>
+            </button>
+          </div>
+
+          <span class="text-xs font-semibold text-slate-500 uppercase">Người dùng:</span>
+          <button
+            type="button"
+            class="btn-action-secondary"
+            @click="openUserModal"
+          >
+            <UserOutlined />
+            <span class="max-w-[150px] truncate">{{ selectedUser ? (selectedUser.name || selectedUser.id) : 'Tìm người dùng' }}</span>
+            <CloseOutlined v-if="selectedUserId" class="ml-1 text-slate-400 hover:text-rose-500" @click.stop="clearUserFilter" />
+          </button>
         </div>
       </div>
 
@@ -224,7 +340,7 @@ const confirmUpload = async () => {
           <template v-else-if="column.key === 'actual_commission'"><span class="font-bold text-slate-800 text-[13px]">{{ formatMoney(record.actual_commission) }}</span></template>
           <template v-else-if="column.key === 'user_commission'"><span class="font-bold text-emerald-600 text-[13px]">{{ formatMoney(record.user_commission) }}</span></template>
           <template v-else-if="column.key === 'order_status'"><a-tag :color="getStatusColor(record.order_status)">{{ getStatusLabel(record.order_status) }}</a-tag></template>
-          <template v-else-if="column.key === 'action'"><RightOutlined class="text-slate-400" /></template>
+          <template v-else-if="column.key === 'action'"><button type="button" class="btn-action-primary !h-7 !px-2.5 text-[11px]" @click.stop="selectedOrder = record"><span>Chi tiết</span><RightOutlined class="text-[10px]" /></button></template>
         </template>
       </a-table>
       <div class="px-4 py-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3"><span class="text-xs text-slate-500">{{ paginationText }}</span><a-pagination v-if="totalPages > 1" v-model:current="currentPage" :total="totalOrders" :page-size="limit" show-less-items @change="fetchOrders" /></div>
@@ -241,22 +357,30 @@ const confirmUpload = async () => {
     </a-modal>
 
     <a-drawer :open="!!selectedOrder" placement="right" width="450" title="Chi tiết đơn hàng" @close="selectedOrder=null"><div v-if="selectedOrder" class="space-y-4 text-sm"><p><b>#{{ selectedOrder.order_id }}</b></p><p>Shop: {{ selectedOrder.shop_name || 'N/A' }}</p><p>Sản phẩm: {{ selectedOrder.product_name || 'N/A' }}</p><p>Sub ID: {{ selectedOrder.sub_id || 'N/A' }}</p><p>Giá trị đơn: {{ formatMoney(selectedOrder.purchase_value) }}</p><p>Hoa hồng Sàn: {{ formatMoney(selectedOrder.actual_commission) }}</p><p class="text-emerald-600 font-bold">Hoa hồng User: {{ formatMoney(selectedOrder.user_commission) }}</p></div></a-drawer>
+
+    <!-- User Selection Modal -->
+    <a-modal v-model:open="showUserModal" title="Chọn người dùng" :footer="null" width="560px" @after-close="userSearch=''">
+      <a-input v-model:value="userSearch" allow-clear placeholder="Tìm theo tên hoặc Zalo UID..." class="mb-4" autofocus>
+        <template #prefix><SearchOutlined class="text-slate-400" /></template>
+      </a-input>
+      <div class="max-h-[430px] space-y-2 overflow-y-auto pr-1">
+        <div v-if="loadingUsers" class="flex justify-center py-12"><a-spin /></div>
+        <button v-else v-for="user in filteredUsers" :key="user.id" type="button" :class="['flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all hover:border-orange-200 hover:bg-orange-50/60', user.id === selectedUserId ? 'border-[#ee4d2d] bg-orange-50' : 'border-slate-200 bg-[#FAFAFA]']" @click="selectUser(user)">
+          <div class="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-orange-100 bg-orange-50">
+            <img v-if="user.image" :src="user.image" referrerpolicy="no-referrer" loading="lazy" class="h-full w-full object-cover" />
+            <div v-else class="flex h-full w-full items-center justify-center font-black text-[#ee4d2d]">{{ user.name?.charAt(0)?.toUpperCase() || 'U' }}</div>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-sm font-bold text-slate-800">{{ user.name || 'Người dùng Zalo' }}</div>
+            <div class="mt-1 truncate font-mono text-[10px] text-slate-400">UID: {{ user.id }}</div>
+          </div>
+          <span v-if="user.id === selectedUserId" class="rounded-full bg-[#ee4d2d] px-2.5 py-1 text-[10px] font-bold text-white">Đang chọn</span>
+        </button>
+        <a-empty v-if="!loadingUsers && !filteredUsers.length" description="Không tìm thấy người dùng" />
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <style scoped>
-:deep(.orange-search .ant-input-search-button) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  border-color: #ee4d2d !important;
-  background: #ee4d2d !important;
-  color: #fff !important;
-}
-
-:deep(.orange-search .ant-input-search-button:hover) {
-  border-color: #d63d1e !important;
-  background: #d63d1e !important;
-}
 </style>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import { CloseOutlined, CopyOutlined, DeleteOutlined, FilterOutlined, LinkOutlined, ReloadOutlined, RightOutlined, UserOutlined } from '@ant-design/icons-vue'
+import { CloseOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, ReloadOutlined, RightOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { api, type ApiResponse } from '../services/api'
 
 interface LinkHistoryItem {
@@ -16,6 +16,12 @@ interface LinkHistoryItem {
   user: { id: string | null; name: string | null; image: string | null; tracking_code: string | null } | null
 }
 
+interface AdminUser {
+  id: string
+  name: string | null
+  image: string | null
+}
+
 const links = ref<LinkHistoryItem[]>([])
 const loading = ref(false)
 const page = ref(1)
@@ -25,12 +31,23 @@ const totalPages = ref(1)
 const subIdInput = ref('')
 const subIdFilter = ref('')
 const userId = ref('')
-const startDate = ref('')
-const endDate = ref('')
-const expanded = ref(false)
 const selectedItem = ref<LinkHistoryItem | null>(null)
 
-const hasFilters = computed(() => !!subIdFilter.value || !!userId.value.trim() || !!startDate.value || !!endDate.value)
+// User selection modal state
+const users = ref<AdminUser[]>([])
+const showUserModal = ref(false)
+const userSearch = ref('')
+const loadingUsers = ref(false)
+
+const selectedUser = computed(() => users.value.find(x => x.id === userId.value))
+const filteredUsers = computed(() => {
+  const keyword = userSearch.value.trim().toLowerCase()
+  return keyword
+    ? users.value.filter(u => (u.name || '').toLowerCase().includes(keyword) || u.id.toLowerCase().includes(keyword))
+    : users.value
+})
+
+const hasFilters = computed(() => !!subIdFilter.value || !!userId.value.trim())
 const paginationText = computed(() => `Hiển thị ${links.value.length} / Tổng ${total.value} lượt tạo link`)
 const columns = [
   { title: 'Thời gian', dataIndex: 'created_at', key: 'created_at', width: 150 },
@@ -47,8 +64,6 @@ const fetchHistory = async () => {
     const params: Record<string, string | number> = { page: page.value, limit: limit.value }
     if (subIdFilter.value) params.subId = subIdFilter.value
     if (userId.value.trim()) params.userId = userId.value.trim()
-    if (startDate.value) params.startDate = startDate.value
-    if (endDate.value) params.endDate = endDate.value
     const response = await api.get<ApiResponse<{ links: LinkHistoryItem[]; total: number; totalPages: number }>>('/api/admin/link-history', { params })
     links.value = response.data.data?.links || []
     total.value = response.data.data?.total || 0
@@ -58,27 +73,66 @@ const fetchHistory = async () => {
   } finally { loading.value = false }
 }
 
-onMounted(fetchHistory)
-watch(limit, () => { page.value = 1; fetchHistory() })
-
-const searchSubId = (value: string) => { subIdFilter.value = value.trim(); page.value = 1; fetchHistory() }
-const applyAdvancedFilters = () => {
-  if (startDate.value && endDate.value && startDate.value > endDate.value) {
-    message.warning('Ngày bắt đầu không được lớn hơn ngày kết thúc.')
-    return
+const fetchUsers = async () => {
+  loadingUsers.value = true
+  try {
+    const r = await api.get<ApiResponse<{ users: AdminUser[] }>>('/api/admin/users/list', {
+      params: { page: 1, limit: 100, search: userSearch.value.trim() || undefined }
+    })
+    users.value = r.data.data?.users || []
+  } catch {
+    users.value = []
+    message.error('Không thể tải danh sách người dùng.')
+  } finally {
+    loadingUsers.value = false
   }
+}
+
+const openUserModal = async () => {
+  showUserModal.value = true
+  userSearch.value = ''
+  await fetchUsers()
+}
+
+const selectUser = (user: AdminUser) => {
+  userId.value = user.id
+  showUserModal.value = false
+  userSearch.value = ''
   page.value = 1
   fetchHistory()
 }
+
+const clearUserFilter = () => {
+  userId.value = ''
+  page.value = 1
+  fetchHistory()
+}
+
+onMounted(fetchHistory)
+watch(limit, () => { page.value = 1; fetchHistory() })
+watch(subIdInput, (newVal) => {
+  if (!newVal && subIdFilter.value) {
+    subIdFilter.value = ''
+    page.value = 1
+    fetchHistory()
+  }
+})
+
+const searchSubId = (val?: string) => {
+  const query = val !== undefined ? val : subIdInput.value
+  subIdFilter.value = query.trim()
+  page.value = 1
+  fetchHistory()
+}
+
 const clearFilters = () => {
   subIdInput.value = ''
   subIdFilter.value = ''
   userId.value = ''
-  startDate.value = ''
-  endDate.value = ''
   page.value = 1
   fetchHistory()
 }
+
 const changePage = (value: number) => { page.value = value; fetchHistory() }
 
 const productName = (info: Record<string, unknown> | null) => {
@@ -86,10 +140,13 @@ const productName = (info: Record<string, unknown> | null) => {
   const value = info.productName || info.title || info.name
   return value ? String(value) : 'Không xác định sản phẩm'
 }
+
 const formatJson = (value: unknown) => {
   try { return JSON.stringify(value || {}, null, 2) } catch { return String(value || '{}') }
 }
+
 const truncate = (value: string, length = 36) => value.length > length ? `${value.slice(0, length)}...` : value
+
 const copyText = async (value: string, label = 'Nội dung') => {
   try { await navigator.clipboard.writeText(value); message.success(`Đã sao chép ${label}.`) }
   catch { message.error('Không thể sao chép nội dung.') }
@@ -108,21 +165,64 @@ const copyText = async (value: string, label = 'Nội dung') => {
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-3">
             <a-select v-model:value="limit" :options="[{label:'10 / trang',value:10},{label:'20 / trang',value:20},{label:'50 / trang',value:50},{label:'100 / trang',value:100}]" style="width:120px" />
-            <a-input-search v-model:value="subIdInput" placeholder="Tìm theo Sub ID..." enter-button allow-clear class="orange-search" style="width:240px" @search="searchSubId" />
-            <a-button class="!inline-flex !items-center !justify-center !gap-1.5 !h-8 !px-3 !rounded-lg !border-slate-200 hover:!border-orange-200 hover:!text-[#ee4d2d] text-xs font-semibold" @click="expanded = !expanded"><template #icon><FilterOutlined /></template><span>{{ expanded ? 'Thu gọn' : 'Mở rộng' }}</span></a-button>
-            <a-button v-if="hasFilters" type="text" danger class="!inline-flex !items-center !justify-center !gap-1 !h-8 !px-2 text-xs font-semibold" @click="clearFilters"><template #icon><DeleteOutlined /></template><span>Xóa bộ lọc</span></a-button>
-          </div>
-          <a-button class="!inline-flex !items-center !justify-center !gap-1.5 !h-8 !px-4 !rounded-lg !border-[#ee4d2d] !text-[#ee4d2d] hover:!border-[#d63d1e] hover:!text-[#d63d1e] text-xs font-semibold shrink-0" :loading="loading" @click="fetchHistory"><template #icon><ReloadOutlined /></template><span>Làm mới</span></a-button>
-        </div>
+            
+            <!-- Unified Sub ID Search Pill -->
+            <div class="flex items-center rounded-xl border border-slate-200 bg-white p-1 focus-within:border-[#ee4d2d] focus-within:ring-2 focus-within:ring-orange-100 transition-all shadow-sm">
+              <SearchOutlined class="text-slate-400 ml-2.5 text-xs" />
+              <input
+                v-model="subIdInput"
+                placeholder="Tìm theo Sub ID..."
+                class="w-48 sm:w-56 h-7 pl-2 pr-2 text-xs text-slate-700 placeholder-slate-400 bg-transparent focus:outline-none"
+                @keyup.enter="searchSubId(subIdInput)"
+              />
+              <button
+                v-if="subIdInput"
+                type="button"
+                class="text-slate-300 hover:text-slate-500 mr-3.5 text-xs cursor-pointer flex items-center justify-center p-0.5"
+                @click="subIdInput = ''"
+              >
+                <CloseOutlined class="text-[10px]" />
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center justify-center gap-1.5 h-7 px-3.5 rounded-lg bg-[#ee4d2d] hover:bg-[#d63d1e] active:bg-[#bd3617] text-white text-xs font-bold transition-all shrink-0 cursor-pointer shadow-sm"
+                @click="searchSubId(subIdInput)"
+              >
+                <SearchOutlined class="text-[11px]" />
+                <span>Tìm</span>
+              </button>
+            </div>
 
-        <div v-if="expanded" class="pt-3 border-t border-slate-100 border-dashed flex flex-wrap items-end gap-4">
-          <div class="space-y-1.5">
-            <label class="block text-[11px] font-bold text-slate-500 uppercase">User ID</label>
-            <div class="relative"><UserOutlined class="absolute left-3 top-2.5 text-slate-400" /><input v-model="userId" class="w-56 h-9 pl-9 pr-3 rounded-lg border border-slate-300 bg-slate-50 text-xs font-mono focus:outline-none focus:border-[#ee4d2d]" placeholder="Nhập User ID..." /></div>
+            <button
+              type="button"
+              class="btn-action-secondary"
+              @click="openUserModal"
+            >
+              <UserOutlined />
+              <span class="max-w-[150px] truncate">{{ selectedUser ? (selectedUser.name || selectedUser.id) : 'Tìm người dùng' }}</span>
+              <CloseOutlined v-if="userId" class="ml-1 text-slate-400 hover:text-rose-500" @click.stop="clearUserFilter" />
+            </button>
+
+            <button
+              v-if="hasFilters"
+              type="button"
+              class="btn-action-danger"
+              @click="clearFilters"
+            >
+              <DeleteOutlined />
+              <span>Xóa bộ lọc</span>
+            </button>
           </div>
-          <div class="space-y-1.5"><label class="block text-[11px] font-bold text-slate-500 uppercase">Từ ngày</label><input v-model="startDate" type="date" class="h-9 px-3 rounded-lg border border-slate-300 bg-slate-50 text-xs" /></div>
-          <div class="space-y-1.5"><label class="block text-[11px] font-bold text-slate-500 uppercase">Đến ngày</label><input v-model="endDate" type="date" class="h-9 px-3 rounded-lg border border-slate-300 bg-slate-50 text-xs" /></div>
-          <a-button type="primary" class="!inline-flex !items-center !justify-center !h-9 !px-5 !rounded-lg !border-none !bg-[#ee4d2d] hover:!bg-[#d63d1e] !text-white text-xs font-bold" @click="applyAdvancedFilters"><span class="!text-white">Áp dụng</span></a-button>
+
+          <button
+            type="button"
+            class="btn-action-primary shrink-0"
+            :disabled="loading"
+            @click="fetchHistory"
+          >
+            <ReloadOutlined />
+            <span>Làm mới</span>
+          </button>
         </div>
       </div>
 
@@ -133,7 +233,7 @@ const copyText = async (value: string, label = 'Nội dung') => {
           <template v-else-if="column.key === 'sub_id'"><span class="px-2 py-1 rounded-md bg-orange-50 text-[#ee4d2d] border border-orange-100 text-[11px] font-mono font-bold">{{ record.sub_id }}</span></template>
           <template v-else-if="column.key === 'affiliate_link'"><div class="flex items-center gap-2 max-w-[250px]"><LinkOutlined class="text-[#ee4d2d] shrink-0" /><span class="text-xs text-slate-600 truncate" :title="record.affiliate_link">{{ truncate(record.affiliate_link) }}</span></div></template>
           <template v-else-if="column.key === 'product'"><div class="max-w-[280px] px-2.5 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-mono text-emerald-600 truncate" :title="productName(record.product_info)">{{ productName(record.product_info) }}</div></template>
-          <template v-else-if="column.key === 'details'"><RightOutlined class="text-slate-400" /></template>
+          <template v-else-if="column.key === 'details'"><button type="button" class="btn-action-primary !h-7 !px-2.5 text-[11px]" @click.stop="selectedItem = record"><span>Chi tiết</span><RightOutlined class="text-[10px]" /></button></template>
         </template>
       </a-table>
 
@@ -141,31 +241,38 @@ const copyText = async (value: string, label = 'Nội dung') => {
     </a-card>
 
     <a-drawer :open="!!selectedItem" placement="right" width="480" :closable="false" @close="selectedItem=null">
-      <template #title><div class="flex items-center justify-between gap-3"><div><span class="inline-flex px-2 py-0.5 rounded-md bg-orange-50 text-[#ee4d2d] border border-orange-100 text-[10px] font-black">SHOPEE LINK</span><h3 class="text-base font-bold mt-2">Chi tiết lịch sử tạo link</h3></div><a-button type="text" class="!w-9 !h-9 !p-0 !inline-flex !items-center !justify-center !rounded-xl hover:!bg-orange-50 hover:!text-[#ee4d2d] shrink-0" @click="selectedItem=null"><CloseOutlined /></a-button></div></template>
+      <template #title><div class="flex items-center justify-between gap-3"><div><span class="inline-flex px-2 py-0.5 rounded-md bg-orange-50 text-[#ee4d2d] border border-orange-100 text-[10px] font-black">SHOPEE LINK</span><h3 class="text-base font-bold mt-2">Chi tiết lịch sử tạo link</h3></div><button type="button" class="btn-action-secondary !w-8 !h-8 !p-0" @click="selectedItem=null"><CloseOutlined /></button></div></template>
       <div v-if="selectedItem" class="flex flex-col gap-4">
-        <div v-for="item in [{label:'Sub ID',value:selectedItem.sub_id},{label:'Link gốc',value:selectedItem.origin_link},{label:'Affiliate Link',value:selectedItem.affiliate_link}]" :key="item.label" class="rounded-xl border border-slate-200 bg-slate-50 p-4"><div class="flex items-center justify-between mb-2"><span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">{{ item.label }}</span><a-button type="text" size="small" class="!inline-flex !items-center !justify-center !gap-1 !h-7 !px-2 !text-[#ee4d2d] hover:!bg-orange-50 text-xs font-semibold" @click="copyText(item.value,item.label)"><template #icon><CopyOutlined /></template><span>Copy</span></a-button></div><p class="m-0 text-xs font-mono text-slate-700 break-all">{{ item.value }}</p></div>
-        <div class="rounded-xl overflow-hidden bg-[#0d1117] border border-slate-700"><div class="px-4 py-2 flex items-center justify-between bg-[#161b22] border-b border-slate-700"><span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Product JSON</span><a-button type="text" size="small" class="!inline-flex !items-center !justify-center !gap-1 !h-7 !px-2 !text-orange-300 hover:!text-orange-200 hover:!bg-white/5 text-xs font-semibold" @click="copyText(formatJson(selectedItem.product_info),'JSON')"><template #icon><CopyOutlined /></template><span>Copy</span></a-button></div><pre class="m-0 p-4 overflow-x-auto text-[12px] leading-5 text-emerald-400 font-mono">{{ formatJson(selectedItem.product_info) }}</pre></div>
+        <div v-for="item in [{label:'Sub ID',value:selectedItem.sub_id},{label:'Link gốc',value:selectedItem.origin_link},{label:'Affiliate Link',value:selectedItem.affiliate_link}]" :key="item.label" class="rounded-xl border border-slate-200 bg-slate-50 p-4"><div class="flex items-center justify-between mb-2"><span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">{{ item.label }}</span><button type="button" class="btn-action-primary !h-7 !px-2 text-xs" @click="copyText(item.value,item.label)"><CopyOutlined /><span>Copy</span></button></div><p class="m-0 text-xs font-mono text-slate-700 break-all">{{ item.value }}</p></div>
+        <div class="rounded-xl overflow-hidden bg-[#0d1117] border border-slate-700"><div class="px-4 py-2 flex items-center justify-between bg-[#161b22] border-b border-slate-700"><span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Product JSON</span><button type="button" class="btn-action-primary !h-7 !px-2 text-xs" @click="copyText(formatJson(selectedItem.product_info),'JSON')"><CopyOutlined /><span>Copy</span></button></div><pre class="m-0 p-4 overflow-x-auto text-[12px] leading-5 text-emerald-400 font-mono">{{ formatJson(selectedItem.product_info) }}</pre></div>
       </div>
     </a-drawer>
+
+    <!-- User Selection Modal -->
+    <a-modal v-model:open="showUserModal" title="Chọn người dùng" :footer="null" width="560px" @after-close="userSearch=''">
+      <a-input v-model:value="userSearch" allow-clear placeholder="Tìm theo tên hoặc Zalo UID..." class="mb-4" autofocus>
+        <template #prefix><SearchOutlined class="text-slate-400" /></template>
+      </a-input>
+      <div class="max-h-[430px] space-y-2 overflow-y-auto pr-1">
+        <div v-if="loadingUsers" class="flex justify-center py-12"><a-spin /></div>
+        <button v-else v-for="user in filteredUsers" :key="user.id" type="button" :class="['flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all hover:border-orange-200 hover:bg-orange-50/60', user.id === userId ? 'border-[#ee4d2d] bg-orange-50' : 'border-slate-200 bg-[#FAFAFA]']" @click="selectUser(user)">
+          <div class="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-orange-100 bg-orange-50">
+            <img v-if="user.image" :src="user.image" referrerpolicy="no-referrer" loading="lazy" class="h-full w-full object-cover" />
+            <div v-else class="flex h-full w-full items-center justify-center font-black text-[#ee4d2d]">{{ user.name?.charAt(0)?.toUpperCase() || 'U' }}</div>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-sm font-bold text-slate-800">{{ user.name || 'Người dùng Zalo' }}</div>
+            <div class="mt-1 truncate font-mono text-[10px] text-slate-400">UID: {{ user.id }}</div>
+          </div>
+          <span v-if="user.id === userId" class="rounded-full bg-[#ee4d2d] px-2.5 py-1 text-[10px] font-bold text-white">Đang chọn</span>
+        </button>
+        <a-empty v-if="!loadingUsers && !filteredUsers.length" description="Không tìm thấy người dùng" />
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <style scoped>
-:deep(.orange-search .ant-input-search-button) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  border-color: #ee4d2d !important;
-  background: #ee4d2d !important;
-  color: white !important;
-}
-
-:deep(.orange-search .ant-input-search-button:hover) {
-  border-color: #d63d1e !important;
-  background: #d63d1e !important;
-}
-
 :deep(.orange-pagination .ant-pagination-item-active) {
   border-color: #ee4d2d !important;
 }

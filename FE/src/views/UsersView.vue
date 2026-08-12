@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import { ReloadOutlined, SearchOutlined, UserOutlined, WalletOutlined } from '@ant-design/icons-vue'
+import { CloseOutlined, DeleteOutlined, ReloadOutlined, SearchOutlined, UserOutlined, WalletOutlined } from '@ant-design/icons-vue'
 import { api, type ApiResponse } from '../services/api'
 
 interface AdminUser {
@@ -53,8 +53,14 @@ const fetchUsers = async () => {
 
 const applySearch = () => { search.value = searchInput.value.trim(); page.value = 1; fetchUsers() }
 const clearSearch = () => { searchInput.value = ''; search.value = ''; page.value = 1; fetchUsers() }
+
 onMounted(fetchUsers)
 watch(limit, () => { page.value = 1; fetchUsers() })
+watch(searchInput, (newVal) => {
+  if (!newVal && search.value) {
+    clearSearch()
+  }
+})
 </script>
 
 <template>
@@ -65,15 +71,57 @@ watch(limit, () => { page.value = 1; fetchUsers() })
     </div>
 
     <a-card :bordered="false" :body-style="{ padding: 0 }" class="overflow-hidden !rounded-2xl">
-      <div class="flex flex-col justify-between gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 p-4">
         <div class="flex flex-wrap items-center gap-3">
           <a-select v-model:value="limit" :options="[{label:'10 / trang',value:10},{label:'20 / trang',value:20},{label:'50 / trang',value:50},{label:'100 / trang',value:100}]" style="width:120px" />
-          <a-input v-model:value="searchInput" allow-clear placeholder="Tìm theo tên hoặc Zalo UID..." class="w-64" @press-enter="applySearch" @change="!searchInput && search ? clearSearch() : undefined">
-            <template #prefix><SearchOutlined class="text-slate-400" /></template>
-          </a-input>
-          <a-button type="primary" class="!inline-flex !h-8 !items-center !justify-center !border-none !bg-[#ee4d2d] !px-4 hover:!bg-[#d63d1e]" @click="applySearch"><span class="!text-white">Tìm kiếm</span></a-button>
+          
+          <!-- Unified Search Pill -->
+          <div class="flex items-center rounded-xl border border-slate-200 bg-white p-1 focus-within:border-[#ee4d2d] focus-within:ring-2 focus-within:ring-orange-100 transition-all shadow-sm">
+            <SearchOutlined class="text-slate-400 ml-2.5 text-xs" />
+            <input
+              v-model="searchInput"
+              placeholder="Tìm theo tên hoặc Zalo UID..."
+              class="w-56 sm:w-64 h-7 pl-2 pr-2 text-xs text-slate-700 placeholder-slate-400 bg-transparent focus:outline-none"
+              @keyup.enter="applySearch"
+            />
+            <button
+              v-if="searchInput"
+              type="button"
+              class="text-slate-300 hover:text-slate-500 mr-3.5 text-xs cursor-pointer flex items-center justify-center p-0.5"
+              @click="clearSearch"
+            >
+              <CloseOutlined class="text-[10px]" />
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center justify-center gap-1.5 h-7 px-3.5 rounded-lg bg-[#ee4d2d] hover:bg-[#d63d1e] active:bg-[#bd3617] text-white text-xs font-bold transition-all shrink-0 cursor-pointer shadow-sm"
+              @click="applySearch"
+            >
+              <SearchOutlined class="text-[11px]" />
+              <span>Tìm</span>
+            </button>
+          </div>
+
+          <button
+            v-if="search"
+            type="button"
+            class="btn-action-danger"
+            @click="clearSearch"
+          >
+            <DeleteOutlined />
+            <span>Xóa bộ lọc</span>
+          </button>
         </div>
-        <a-button :loading="loading" class="!inline-flex !h-8 !items-center !justify-center !gap-1.5 !border-[#ee4d2d] !text-[#ee4d2d] hover:!border-[#d63d1e] hover:!text-[#d63d1e]" @click="fetchUsers"><ReloadOutlined /><span>Làm mới</span></a-button>
+
+        <button
+          type="button"
+          class="btn-action-primary shrink-0"
+          :disabled="loading"
+          @click="fetchUsers"
+        >
+          <ReloadOutlined />
+          <span>Làm mới</span>
+        </button>
       </div>
 
       <a-table :columns="columns" :data-source="users" row-key="id" :loading="loading" :pagination="false" :scroll="{x:1000}" :custom-row="(record: AdminUser) => ({onClick:()=>selectedUser=record,class:'cursor-pointer'})">
@@ -109,3 +157,6 @@ watch(limit, () => { page.value = 1; fetchUsers() })
     </a-drawer>
   </div>
 </template>
+
+<style scoped>
+</style>
