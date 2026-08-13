@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { message } from "ant-design-vue";
@@ -40,7 +40,7 @@ const handleAdminLogin = async () => {
 
 <template>
   <div
-    class="min-h-screen w-full flex items-center justify-center p-4 bg-[#fff7f5] bg-gradient-to-br from-rose-100/60 via-orange-100/70 to-amber-100/50 font-sans relative overflow-hidden text-left"
+    class="min-h-screen w-full flex flex-col items-center justify-between p-4 bg-[#fff7f5] bg-gradient-to-br from-rose-100/60 via-orange-100/70 to-amber-100/50 font-sans relative overflow-hidden text-left"
   >
     <!-- Ambient Blur Glow Backdrops -->
     <div
@@ -50,9 +50,12 @@ const handleAdminLogin = async () => {
       class="absolute bottom-10 right-10 w-[450px] h-[450px] bg-amber-200/35 rounded-full blur-3xl pointer-events-none"
     ></div>
 
+    <!-- Top Spacer for Vertical Centering -->
+    <div class="h-2 sm:h-4"></div>
+
     <!-- Admin Login Card -->
     <div
-      class="max-w-md w-full bg-white rounded-[36px] shadow-2xl p-7 sm:p-9 relative z-10 space-y-6"
+      class="max-w-md w-full bg-white rounded-[36px] shadow-2xl p-7 sm:p-9 relative z-10 space-y-6 my-auto"
     >
       <!-- Top Actions Header -->
       <div class="flex items-center justify-between">
@@ -123,6 +126,19 @@ const handleAdminLogin = async () => {
           <span class="!text-white">Đăng nhập Admin</span>
         </button>
       </div>
+    </div>
+
+    <!-- Footer Author Note -->
+    <div class="relative z-10 py-3 text-center">
+      <p class="text-xs text-slate-500 font-medium">
+        Made & Support by
+        <a
+          href="https://www.facebook.com/nguyenphiikhanh"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-slate-700 hover:text-[#ee4d2d] font-bold transition-colors"
+        >KhanhNT</a> ❤️
+      </p>
     </div>
   </div>
 </template>

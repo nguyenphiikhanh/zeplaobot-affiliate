@@ -1,7 +1,6 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import {
   LinkOutlined,
-  TeamOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons-vue";
 
@@ -16,15 +15,6 @@ const features = [
     iconColor: "text-rose-500",
   },
   {
-    id: 2,
-    title: "Tham gia cộng đồng",
-    subtitle: "Kết nối - Chia sẻ - Hỗ trợ",
-    icon: TeamOutlined,
-    bgColor: "bg-amber-50",
-    borderColor: "border-amber-100",
-    iconColor: "text-amber-500",
-  },
-  {
     id: 3,
     title: "Cam kết của chúng tôi",
     subtitle: "Hoàn tiền nhanh chóng, minh bạch",
@@ -37,8 +27,8 @@ const features = [
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 sm:mt-24 pb-12">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 justify-center">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 sm:mt-20 pb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 justify-center">
       <div
         v-for="item in features"
         :key="item.id"

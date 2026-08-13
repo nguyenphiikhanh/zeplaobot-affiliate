@@ -231,6 +231,13 @@ export class ShopeeService {
     let productData: ProductInfo | null = null;
     try {
       productData = await this.getProductInfo(originalLink);
+      if (productData && typeof productData.commission === 'number' && Number.isFinite(productData.commission)) {
+        const serviceFeeRate = Number(settings.service_fee_rate) || 0;
+        const taxRate = Number(settings.tax_rate) || 0;
+        const userSharePercentage = Number(settings.user_share_percentage) || 0;
+        const netCommission = productData.commission - (productData.commission * (serviceFeeRate + taxRate)) / 100;
+        productData.user_commission = Math.round((netCommission * userSharePercentage) / 100);
+      }
     } catch (err) {
       console.warn('[ShopeeService] Product info resolution skipped/failed:', err);
     }

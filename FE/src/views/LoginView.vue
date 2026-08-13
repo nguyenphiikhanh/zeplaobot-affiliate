@@ -59,7 +59,7 @@ const copyCommand = () => {
 
 <template>
   <div
-    class="min-h-screen w-full flex items-center justify-center p-4 bg-[#fff7f5] bg-gradient-to-br from-rose-100/60 via-orange-100/70 to-amber-100/50 font-sans relative overflow-hidden"
+    class="min-h-screen w-full flex flex-col items-center justify-between p-4 bg-[#fff7f5] bg-gradient-to-br from-rose-100/60 via-orange-100/70 to-amber-100/50 font-sans relative overflow-hidden"
   >
     <!-- Ambient Blur Glow Backdrops (Low Opacity) -->
     <div
@@ -69,9 +69,12 @@ const copyCommand = () => {
       class="absolute bottom-10 right-10 w-[450px] h-[450px] bg-amber-200/35 rounded-full blur-3xl pointer-events-none"
     ></div>
 
+    <!-- Top Spacer for Vertical Centering -->
+    <div class="h-2 sm:h-4"></div>
+
     <!-- Login Card -->
     <div
-      class="max-w-md w-full bg-white rounded-[36px] shadow-2xl p-7 sm:p-9 relative z-10 text-center space-y-6"
+      class="max-w-md w-full bg-white rounded-[36px] shadow-2xl p-7 sm:p-9 relative z-10 text-center space-y-6 my-auto"
     >
       <!-- Icon & Branding Header -->
       <div class="space-y-1.5">
@@ -156,6 +159,19 @@ const copyCommand = () => {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Footer Author Note -->
+    <div class="relative z-10 py-3 text-center">
+      <p class="text-xs text-slate-500 font-medium">
+        Made & Support by
+        <a
+          href="https://www.facebook.com/nguyenphiikhanh"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-slate-700 hover:text-[#d94f3d] font-bold transition-colors"
+        >KhanhNT</a> ❤️
+      </p>
     </div>
   </div>
 </template>
