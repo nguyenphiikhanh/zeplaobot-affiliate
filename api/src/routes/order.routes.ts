@@ -2,6 +2,8 @@ import { Hono } from 'hono'
 import { getSessionUserService } from '../services/auth.service.js'
 import {
   getOrdersListService,
+  getShopeeSyncStatusService,
+  syncShopeeOrdersDirectService,
   uploadShopeeCsvService,
 } from '../services/order.service.js'
 import { sendError, sendResponse } from '../utils/response.js'
@@ -41,6 +43,17 @@ orderRoutes.get('/admin/orders', async (c) => {
   }
 })
 
+// Get current Shopee sync status
+orderRoutes.get('/admin/orders/sync-status', async (c) => {
+  try {
+    const status = getShopeeSyncStatusService()
+    return c.json(sendResponse(status, 'Retrieved sync status successfully'))
+  } catch (error) {
+    console.error('[Orders] Error fetching sync status:', error)
+    return c.json(sendError('Failed to fetch sync status'), 500)
+  }
+})
+
 // Upload Shopee CSV file
 orderRoutes.post('/admin/orders/upload-csv', async (c) => {
   let body: { data?: unknown[] }
@@ -62,4 +75,18 @@ orderRoutes.post('/admin/orders/upload-csv', async (c) => {
     return c.json(sendError('Lỗi xử lý file CSV Shopee'), 500)
   }
 })
+
+// Sync Shopee orders directly from API (without queue)
+orderRoutes.post('/admin/orders/sync-shopee', async (c) => {
+  try {
+    const result = await syncShopeeOrdersDirectService()
+    return c.json(sendResponse(result, result.message))
+  } catch (error) {
+    console.error('[Orders] Error syncing Shopee orders:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Lỗi khi đồng bộ đơn hàng Shopee'
+    return c.json(sendError(errorMessage), 500)
+  }
+})
+
+
 

@@ -299,11 +299,11 @@ const columns = [
   </div>
 </template>
 <style>
-:global(.ant-modal-confirm .ant-btn-primary) {
+.ant-modal-confirm .ant-btn-primary {
   background: #ee4d2d !important;
   border-color: #ee4d2d !important;
 }
-:global(.ant-modal-confirm .ant-btn-primary:hover) {
+.ant-modal-confirm .ant-btn-primary:hover {
   background: #d63d1e !important;
   border-color: #d63d1e !important;
 }
