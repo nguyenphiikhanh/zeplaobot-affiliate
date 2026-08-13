@@ -28,6 +28,8 @@ import {
   SettingOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MenuOutlined,
+  CloseOutlined,
   BellOutlined,
   ShoppingOutlined,
   LogoutOutlined,
@@ -37,6 +39,7 @@ import {
 const route = useRoute();
 const router = useRouter();
 const isCollapsed = ref(false);
+const isMobileMenuOpen = ref(false);
 const botStatus = ref(readZaloBotStatus());
 const apiLoading = ref(false);
 const affiliateConfigRequired = ref(false);
@@ -90,7 +93,10 @@ const checkAffiliateConfig = async () => {
   }
 };
 
-watch(() => route.path, checkAffiliateConfig);
+watch(() => route.path, () => {
+  checkAffiliateConfig();
+  isMobileMenuOpen.value = false;
+});
 
 onMounted(async () => {
   window.addEventListener(ZALO_BOT_STATUS_EVENT, handleBotStatusEvent);
@@ -171,17 +177,18 @@ const isActive = (path: string) =>
 
 const navigate = (path: string) => {
   router.push(path);
+  isMobileMenuOpen.value = false;
 };
 </script>
 
 <template>
   <div
-    class="h-screen flex overflow-hidden bg-slate-100 text-slate-800 font-sans"
+    class="h-screen flex overflow-hidden bg-slate-100 text-slate-800 font-sans relative"
   >
-    <!-- Clean White Sidebar -->
+    <!-- Desktop Clean White Sidebar (Hidden on Mobile/Tablet < 1024px) -->
     <aside
       :class="[
-        'bg-white border-r border-slate-200/80 flex flex-col justify-between transition-all duration-300 z-30 shadow-[4px_0_24px_rgba(15,23,42,0.035)] relative',
+        'bg-white border-r border-slate-200/80 hidden lg:flex flex-col justify-between transition-all duration-300 z-30 shadow-[4px_0_24px_rgba(15,23,42,0.035)] relative shrink-0',
         isCollapsed ? 'w-[76px]' : 'w-[272px]',
       ]"
     >
@@ -190,12 +197,12 @@ const navigate = (path: string) => {
         <div
           :class="[
             'h-[72px] flex items-center border-b border-slate-100',
-            isCollapsed ? 'px-3 justify-center' : 'px-4 justify-between',
+            isCollapsed ? 'px-3 justify-center' : 'px-4',
           ]"
         >
           <router-link
             to="/admin/orders"
-            class="flex items-center gap-3 overflow-hidden cursor-pointer"
+            class="flex items-center gap-3 overflow-hidden cursor-pointer min-w-0"
           >
             <div
               class="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/70 p-1.5 flex items-center justify-center shrink-0 border border-orange-100 shadow-sm shadow-orange-500/10"
@@ -219,18 +226,6 @@ const navigate = (path: string) => {
               </span>
             </div>
           </router-link>
-
-          <button
-            v-if="!isCollapsed"
-            @click="isCollapsed = !isCollapsed"
-            type="button"
-            class="w-8 h-8 inline-flex items-center justify-center text-slate-400 hover:text-[#ee4d2d] rounded-xl hover:bg-orange-50 transition-colors cursor-pointer"
-          >
-            <component
-              :is="isCollapsed ? MenuUnfoldOutlined : MenuFoldOutlined"
-              class="text-base"
-            />
-          </button>
         </div>
 
         <!-- Sidebar Navigation Menu -->
@@ -279,16 +274,7 @@ const navigate = (path: string) => {
       </div>
 
       <!-- Sidebar Bottom Profile / Logout -->
-      <div class="p-3 border-t border-slate-100 space-y-2 bg-slate-50/60">
-        <button
-          v-if="isCollapsed"
-          type="button"
-          class="w-full h-10 inline-flex items-center justify-center rounded-xl text-slate-400 hover:text-[#ee4d2d] hover:bg-orange-50 transition-colors cursor-pointer"
-          title="Mở rộng sidebar"
-          @click="isCollapsed = false"
-        >
-          <MenuUnfoldOutlined class="text-base" />
-        </button>
+      <div class="p-3 border-t border-slate-100 bg-slate-50/60">
         <button
           @click="handleLogout"
           type="button"
@@ -304,6 +290,97 @@ const navigate = (path: string) => {
       </div>
     </aside>
 
+    <!-- Mobile Navigation Drawer (< 1024px) -->
+    <a-drawer
+      :open="isMobileMenuOpen"
+      placement="left"
+      :closable="false"
+      @close="isMobileMenuOpen = false"
+      width="280px"
+      :body-style="{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#ffffff' }"
+    >
+      <div class="flex flex-col justify-between h-full bg-white">
+        <div>
+          <!-- Drawer Brand Header -->
+          <div class="h-[72px] px-4 flex items-center justify-between border-b border-slate-100">
+            <router-link
+              to="/admin/orders"
+              class="flex items-center gap-3 overflow-hidden cursor-pointer"
+              @click="isMobileMenuOpen = false"
+            >
+              <div
+                class="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/70 p-1.5 flex items-center justify-center shrink-0 border border-orange-100 shadow-sm"
+              >
+                <img
+                  src="/logo/shopee.png"
+                  class="w-full h-full object-contain"
+                  alt="ZeplaoBot Logo"
+                />
+              </div>
+              <div class="flex flex-col text-left min-w-0">
+                <span class="font-black text-sm text-slate-900 tracking-tight truncate">
+                  ZeplaoBot Admin
+                </span>
+                <span class="text-[10px] font-bold text-[#ee4d2d] tracking-wider uppercase truncate">
+                  Shopee Workspace
+                </span>
+              </div>
+            </router-link>
+
+            <button
+              type="button"
+              @click="isMobileMenuOpen = false"
+              class="w-8 h-8 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <CloseOutlined class="text-base" />
+            </button>
+          </div>
+
+          <!-- Drawer Navigation Menu -->
+          <nav class="p-3 pt-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-160px)]">
+            <div class="px-3 pb-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.16em] text-left">
+              Quản lý hệ thống
+            </div>
+
+            <button
+              v-for="item in menuItems"
+              :key="item.key"
+              @click="navigate(item.key)"
+              :class="[
+                'w-full flex items-center gap-3 px-3.5 h-11 rounded-xl text-[13px] font-bold transition-all duration-200 cursor-pointer group',
+                isActive(item.key)
+                  ? 'bg-[#fff1ed] !text-[#ee4d2d] shadow-sm shadow-orange-500/5'
+                  : 'text-slate-600 hover:text-[#ee4d2d] hover:bg-orange-50/70',
+              ]"
+            >
+              <component
+                :is="item.icon"
+                :class="[
+                  'text-[17px] shrink-0 transition-colors',
+                  isActive(item.key) ? '!text-[#ee4d2d]' : 'text-slate-400 group-hover:text-[#ee4d2d]',
+                ]"
+              />
+              <span :class="['truncate text-left', isActive(item.key) ? '!text-[#ee4d2d]' : '']">
+                {{ item.title }}
+              </span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Drawer Bottom Logout -->
+        <div class="p-3 border-t border-slate-100 bg-slate-50/60">
+          <button
+            @click="handleLogout"
+            type="button"
+            class="w-full h-11 flex items-center gap-3 px-3.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+          >
+            <LogoutOutlined class="text-base text-rose-600 shrink-0" />
+            <span class="truncate">Đăng xuất Admin</span>
+          </button>
+        </div>
+      </div>
+    </a-drawer>
+
     <!-- Main Content Layout Area -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
       <div
@@ -315,30 +392,52 @@ const navigate = (path: string) => {
           class="admin-loading-bar h-full bg-[#ee4d2d]"
         ></div>
       </div>
+
       <!-- Top Header Bar -->
       <header
-        class="h-[72px] bg-white/95 backdrop-blur border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20"
+        class="h-[72px] bg-white/95 backdrop-blur border-b border-slate-200/80 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20"
       >
-        <div class="flex items-center gap-3">
-          <h2 class="text-base font-extrabold text-slate-900 tracking-tight">
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+          <!-- Mobile Hamburger Toggle Button (< 1024px) -->
+          <button
+            type="button"
+            @click="isMobileMenuOpen = true"
+            class="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+            title="Mở menu quản trị"
+          >
+            <MenuOutlined class="text-lg" />
+          </button>
+
+          <!-- Desktop Sidebar Toggle Button (>= 1024px) -->
+          <button
+            type="button"
+            @click="isCollapsed = !isCollapsed"
+            class="hidden lg:inline-flex p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+            :title="isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
+          >
+            <component :is="isCollapsed ? MenuUnfoldOutlined : MenuFoldOutlined" class="text-base" />
+          </button>
+
+          <h2 class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight truncate">
             ZeplaoBot Admin
           </h2>
         </div>
 
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 sm:gap-4 shrink-0">
           <div
             :class="[
-              'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border',
+              'flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold border transition-colors',
               botStatusClasses,
             ]"
           >
-            <span :class="['w-2 h-2 rounded-full', botStatusDotClass]"></span>
-            <span>{{ botStatusLabel }}</span>
+            <span :class="['w-2 h-2 rounded-full shrink-0', botStatusDotClass]"></span>
+            <span class="truncate max-w-[120px] sm:max-w-none">{{ botStatusLabel }}</span>
           </div>
 
           <button
             type="button"
             class="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+            title="Thông báo"
           >
             <BellOutlined class="text-base" />
           </button>
@@ -347,7 +446,7 @@ const navigate = (path: string) => {
 
       <!-- Main Page Router View -->
       <main
-        class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-slate-100 flex flex-col justify-between"
+        class="flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto bg-slate-100 flex flex-col justify-between"
       >
         <div>
           <router-view />

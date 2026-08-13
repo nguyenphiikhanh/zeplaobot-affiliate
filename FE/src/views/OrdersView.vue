@@ -504,7 +504,7 @@ const confirmUpload = async () => {
     </div>
 
     <a-row :gutter="[16, 16]">
-      <a-col :xs="12"
+      <a-col :xs="24" :sm="12"
         ><a-card size="small" :bordered="false"
           ><a-skeleton-button
             v-if="loading && !orders.length"
@@ -514,7 +514,7 @@ const confirmUpload = async () => {
             title="Tổng đơn hàng"
             :value="totalOrders" /></a-card
       ></a-col>
-      <a-col :xs="12"
+      <a-col :xs="24" :sm="12"
         ><a-card size="small" :bordered="false"
           ><a-skeleton-button
             v-if="loading && !orders.length"
@@ -528,15 +528,15 @@ const confirmUpload = async () => {
     </a-row>
 
     <a-card :bordered="false" :body-style="{ padding: 0 }">
-      <div class="p-4 border-b border-slate-100 flex flex-col gap-3">
+      <div class="p-3 sm:p-4 border-b border-slate-100 flex flex-col gap-3">
         <div
           class="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
         >
-          <div class="flex flex-wrap items-center gap-3">
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3">
             <a-select
               v-model:value="selectedStatus"
               :options="statusOptions"
-              style="width: 180px"
+              class="w-full sm:w-[180px]"
             />
             <a-select
               v-model:value="limit"
@@ -545,7 +545,7 @@ const confirmUpload = async () => {
                 { label: '50 / trang', value: 50 },
                 { label: '100 / trang', value: 100 },
               ]"
-              style="width: 120px"
+              class="w-full sm:w-[120px]"
             />
 
             <button
@@ -570,7 +570,7 @@ const confirmUpload = async () => {
 
           <button
             type="button"
-            class="btn-action-primary shrink-0"
+            class="btn-action-primary shrink-0 w-full sm:w-auto"
             :disabled="loading"
             @click="fetchOrders"
           >
@@ -581,20 +581,20 @@ const confirmUpload = async () => {
 
         <div
           v-if="isFilterExpanded"
-          class="flex flex-wrap items-center gap-4 pt-3 border-t border-slate-100 border-dashed"
+          class="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100 border-dashed"
         >
-          <span class="text-xs font-semibold text-slate-500 uppercase"
+          <span class="text-xs font-semibold text-slate-500 uppercase w-full sm:w-auto"
             >Tìm theo Order ID:</span
           >
           <!-- Unified Order ID Search Pill -->
           <div
-            class="flex items-center rounded-xl border border-slate-200 bg-white p-1 focus-within:border-[#ee4d2d] focus-within:ring-2 focus-within:ring-orange-100 transition-all shadow-sm"
+            class="flex items-center rounded-xl border border-slate-200 bg-white p-1 focus-within:border-[#ee4d2d] focus-within:ring-2 focus-within:ring-orange-100 transition-all shadow-sm w-full sm:w-auto"
           >
             <SearchOutlined class="text-slate-400 ml-2.5 text-xs" />
             <input
               v-model="orderIdInput"
               placeholder="Nhập mã đơn hàng..."
-              class="w-44 sm:w-52 h-7 pl-2 pr-2 text-xs text-slate-700 placeholder-slate-400 bg-transparent focus:outline-none"
+              class="w-full sm:w-52 h-7 pl-2 pr-2 text-xs text-slate-700 placeholder-slate-400 bg-transparent focus:outline-none"
               @keyup.enter="applyOrderSearch()"
             />
             <button
@@ -618,20 +618,22 @@ const confirmUpload = async () => {
             </button>
           </div>
 
-          <span class="text-xs font-semibold text-slate-500 uppercase"
+          <span class="text-xs font-semibold text-slate-500 uppercase w-full sm:w-auto"
             >Người dùng:</span
           >
           <button
             type="button"
-            class="btn-action-secondary"
+            class="btn-action-secondary w-full sm:w-auto justify-between"
             @click="openUserModal"
           >
-            <UserOutlined />
-            <span class="max-w-[150px] truncate">{{
-              selectedUser
-                ? selectedUser.name || selectedUser.id
-                : "Tìm người dùng"
-            }}</span>
+            <span class="flex items-center gap-2">
+              <UserOutlined />
+              <span class="max-w-[180px] truncate">{{
+                selectedUser
+                  ? selectedUser.name || selectedUser.id
+                  : "Tìm người dùng"
+              }}</span>
+            </span>
             <CloseOutlined
               v-if="selectedUserId"
               class="ml-1 text-slate-400 hover:text-rose-500"
@@ -647,7 +649,7 @@ const confirmUpload = async () => {
         :row-key="(r: OrderItem) => r.order_id || r.id"
         :pagination="false"
         :loading="loading"
-        :scroll="{ x: 'max-content' }"
+        :scroll="{ x: 1100 }"
         :custom-row="(record: OrderItem) => ({onClick:()=>selectedOrder=record,class:'cursor-pointer'})"
       >
         <template #bodyCell="{ column, record }">

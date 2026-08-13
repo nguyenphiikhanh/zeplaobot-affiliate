@@ -71,17 +71,17 @@ watch(searchInput, (newVal) => {
     </div>
 
     <a-card :bordered="false" :body-style="{ padding: 0 }" class="overflow-hidden !rounded-2xl">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 p-4">
-        <div class="flex flex-wrap items-center gap-3">
-          <a-select v-model:value="limit" :options="[{label:'10 / trang',value:10},{label:'20 / trang',value:20},{label:'50 / trang',value:50},{label:'100 / trang',value:100}]" style="width:120px" />
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 p-3 sm:p-4">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <a-select v-model:value="limit" :options="[{label:'10 / trang',value:10},{label:'20 / trang',value:20},{label:'50 / trang',value:50},{label:'100 / trang',value:100}]" class="w-full sm:w-[120px]" />
           
           <!-- Unified Search Pill -->
-          <div class="flex items-center rounded-xl border border-slate-200 bg-white p-1 focus-within:border-[#ee4d2d] focus-within:ring-2 focus-within:ring-orange-100 transition-all shadow-sm">
+          <div class="flex items-center rounded-xl border border-slate-200 bg-white p-1 focus-within:border-[#ee4d2d] focus-within:ring-2 focus-within:ring-orange-100 transition-all shadow-sm w-full sm:w-auto">
             <SearchOutlined class="text-slate-400 ml-2.5 text-xs" />
             <input
               v-model="searchInput"
               placeholder="Tìm theo tên hoặc Zalo UID..."
-              class="w-56 sm:w-64 h-7 pl-2 pr-2 text-xs text-slate-700 placeholder-slate-400 bg-transparent focus:outline-none"
+              class="w-full sm:w-64 h-7 pl-2 pr-2 text-xs text-slate-700 placeholder-slate-400 bg-transparent focus:outline-none"
               @keyup.enter="applySearch"
             />
             <button
@@ -115,7 +115,7 @@ watch(searchInput, (newVal) => {
 
         <button
           type="button"
-          class="btn-action-primary shrink-0"
+          class="btn-action-primary shrink-0 w-full sm:w-auto"
           :disabled="loading"
           @click="fetchUsers"
         >
@@ -142,10 +142,10 @@ watch(searchInput, (newVal) => {
         </template>
       </a-table>
 
-      <div class="flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row"><span class="text-xs text-slate-500">Hiển thị {{users.length}} / Tổng {{total}} người dùng</span><a-pagination v-if="totalPages>1" :current="page" :total="total" :page-size="limit" show-less-items @change="(value:number)=>{page=value;fetchUsers()}" /></div>
+      <div class="flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row"><span class="text-xs text-slate-500 text-center sm:text-left">Hiển thị {{users.length}} / Tổng {{total}} người dùng</span><a-pagination v-if="totalPages>1" :current="page" :total="total" :page-size="limit" show-less-items @change="(value:number)=>{page=value;fetchUsers()}" /></div>
     </a-card>
 
-    <a-drawer :open="!!selectedUser" title="Hồ sơ người dùng" width="430" @close="selectedUser=null">
+    <a-drawer :open="!!selectedUser" title="Hồ sơ người dùng" root-class-name="max-w-full" :width="430" @close="selectedUser=null">
       <div v-if="selectedUser" class="flex flex-col gap-5">
         <div class="flex flex-col items-center text-center">
           <div class="h-24 w-24 overflow-hidden rounded-full border-4 border-orange-50 bg-orange-50 shadow-sm"><img v-if="selectedUser.image" :src="selectedUser.image" referrerpolicy="no-referrer" class="h-full w-full object-cover" /><div v-else class="flex h-full w-full items-center justify-center text-3xl font-black text-[#ee4d2d]"><UserOutlined /></div></div>

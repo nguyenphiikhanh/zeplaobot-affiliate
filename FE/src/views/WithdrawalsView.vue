@@ -139,7 +139,7 @@ const columns = [
         Kiểm tra và xử lý yêu cầu rút tiền của người dùng.
       </p>
     </div>
-    <div class="grid gap-4 sm:grid-cols-3">
+    <div class="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
       <div
         v-for="x in [
           { l: 'Tổng yêu cầu', v: stats.total },
@@ -147,7 +147,7 @@ const columns = [
           { l: 'Tổng tiền đang chờ', v: money(stats.pending_amount) },
         ]"
         :key="x.l"
-        class="rounded-2xl bg-white p-5 shadow-sm"
+        class="rounded-2xl bg-white p-4 sm:p-5 shadow-sm"
       >
         <a-skeleton-button
           v-if="loading && !rows.length"
@@ -155,7 +155,7 @@ const columns = [
           block
         /><template v-else
           ><div class="text-xs font-bold text-slate-500">{{ x.l }}</div>
-          <div class="mt-2 text-2xl font-black text-slate-800">
+          <div class="mt-2 text-xl sm:text-2xl font-black text-slate-800">
             {{ x.v }}
           </div></template
         >
@@ -166,14 +166,14 @@ const columns = [
       :body-style="{ padding: 0 }"
       class="overflow-hidden !rounded-2xl"
       ><div
-        class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4"
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 p-3 sm:p-4"
       >
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
           <a-input
             v-model:value="search"
             allow-clear
             placeholder="Tìm theo mã giao dịch..."
-            class="w-64"
+            class="w-full sm:w-64"
             @press-enter="
               page = 1;
               fetchData();
@@ -181,7 +181,7 @@ const columns = [
             ><template #prefix><SearchOutlined /></template></a-input
           ><a-select
             v-model:value="status"
-            class="w-44"
+            class="w-full sm:w-44"
             :options="[
               { label: 'Tất cả trạng thái', value: '' },
               { label: 'Chờ xử lý', value: 'pending' },
@@ -192,7 +192,7 @@ const columns = [
         </div>
         <button
           type="button"
-          class="btn-action-primary"
+          class="btn-action-primary shrink-0 w-full sm:w-auto"
           @click="fetchData"
         >
           <ReloadOutlined />
@@ -240,7 +240,7 @@ const columns = [
           ></template
         ></a-table
       >
-      <div class="flex justify-end border-t border-slate-100 p-4">
+      <div class="flex justify-center sm:justify-end border-t border-slate-100 p-4">
         <a-pagination
           :current="page"
           :total="total"
@@ -251,6 +251,7 @@ const columns = [
     <a-drawer
       :open="!!selected"
       title="Chi tiết yêu cầu rút tiền"
+      root-class-name="max-w-full"
       width="440"
       @close="selected = null"
       ><div v-if="selected" class="space-y-4">

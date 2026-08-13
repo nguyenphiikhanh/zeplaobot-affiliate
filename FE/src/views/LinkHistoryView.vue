@@ -161,18 +161,18 @@ const copyText = async (value: string, label = 'Nội dung') => {
     </div>
 
     <a-card :bordered="false" :body-style="{ padding: 0 }" class="overflow-hidden !rounded-2xl">
-      <div class="p-4 border-b border-slate-100 flex flex-col gap-3">
+      <div class="p-3 sm:p-4 border-b border-slate-100 flex flex-col gap-3">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="flex flex-wrap items-center gap-3">
-            <a-select v-model:value="limit" :options="[{label:'10 / trang',value:10},{label:'20 / trang',value:20},{label:'50 / trang',value:50},{label:'100 / trang',value:100}]" style="width:120px" />
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <a-select v-model:value="limit" :options="[{label:'10 / trang',value:10},{label:'20 / trang',value:20},{label:'50 / trang',value:50},{label:'100 / trang',value:100}]" class="w-full sm:w-[120px]" />
             
             <!-- Unified Sub ID Search Pill -->
-            <div class="flex items-center rounded-xl border border-slate-200 bg-white p-1 focus-within:border-[#ee4d2d] focus-within:ring-2 focus-within:ring-orange-100 transition-all shadow-sm">
+            <div class="flex items-center rounded-xl border border-slate-200 bg-white p-1 focus-within:border-[#ee4d2d] focus-within:ring-2 focus-within:ring-orange-100 transition-all shadow-sm w-full sm:w-auto">
               <SearchOutlined class="text-slate-400 ml-2.5 text-xs" />
               <input
                 v-model="subIdInput"
                 placeholder="Tìm theo Sub ID..."
-                class="w-48 sm:w-56 h-7 pl-2 pr-2 text-xs text-slate-700 placeholder-slate-400 bg-transparent focus:outline-none"
+                class="w-full sm:w-56 h-7 pl-2 pr-2 text-xs text-slate-700 placeholder-slate-400 bg-transparent focus:outline-none"
                 @keyup.enter="searchSubId(subIdInput)"
               />
               <button
@@ -195,11 +195,13 @@ const copyText = async (value: string, label = 'Nội dung') => {
 
             <button
               type="button"
-              class="btn-action-secondary"
+              class="btn-action-secondary w-full sm:w-auto justify-between"
               @click="openUserModal"
             >
-              <UserOutlined />
-              <span class="max-w-[150px] truncate">{{ selectedUser ? (selectedUser.name || selectedUser.id) : 'Tìm người dùng' }}</span>
+              <span class="flex items-center gap-2">
+                <UserOutlined />
+                <span class="max-w-[160px] truncate">{{ selectedUser ? (selectedUser.name || selectedUser.id) : 'Tìm người dùng' }}</span>
+              </span>
               <CloseOutlined v-if="userId" class="ml-1 text-slate-400 hover:text-rose-500" @click.stop="clearUserFilter" />
             </button>
 
@@ -216,7 +218,7 @@ const copyText = async (value: string, label = 'Nội dung') => {
 
           <button
             type="button"
-            class="btn-action-primary shrink-0"
+            class="btn-action-primary shrink-0 w-full sm:w-auto"
             :disabled="loading"
             @click="fetchHistory"
           >
@@ -226,7 +228,7 @@ const copyText = async (value: string, label = 'Nội dung') => {
         </div>
       </div>
 
-      <a-table :columns="columns" :data-source="links" :row-key="(record: LinkHistoryItem) => record.id" :pagination="false" :loading="loading" :scroll="{x:'max-content'}" :custom-row="(record: LinkHistoryItem) => ({onClick:()=>selectedItem=record,class:'cursor-pointer'})">
+      <a-table :columns="columns" :data-source="links" :row-key="(record: LinkHistoryItem) => record.id" :pagination="false" :loading="loading" :scroll="{x: 1000}" :custom-row="(record: LinkHistoryItem) => ({onClick:()=>selectedItem=record,class:'cursor-pointer'})">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'created_at'"><div class="text-xs font-bold text-slate-700">{{ new Date(record.created_at).toLocaleDateString('vi-VN') }}</div><div class="text-[10px] text-slate-400 mt-0.5">{{ new Date(record.created_at).toLocaleTimeString('vi-VN') }}</div></template>
           <template v-else-if="column.key === 'user'"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full overflow-hidden bg-orange-50 border border-orange-100 flex items-center justify-center text-[#ee4d2d] text-xs font-black shrink-0"><img v-if="record.user?.image" :src="record.user.image" :alt="record.user.name || 'Người dùng Zalo'" referrerpolicy="no-referrer" loading="lazy" class="w-full h-full object-cover" /><span v-else>{{ record.user?.name?.charAt(0)?.toUpperCase() || 'U' }}</span></div><div class="flex flex-col"><span class="text-xs font-bold text-slate-800">{{ record.user?.name || 'Người dùng hệ thống' }}</span><span class="text-[10px] font-mono text-slate-500">{{ record.user_id }}</span></div></div></template>
@@ -237,10 +239,10 @@ const copyText = async (value: string, label = 'Nội dung') => {
         </template>
       </a-table>
 
-      <div class="px-4 py-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3"><span class="text-xs text-slate-500">{{ paginationText }}</span><a-pagination v-if="totalPages > 1" class="orange-pagination" :current="page" :total="total" :page-size="limit" show-less-items @change="changePage" /></div>
+      <div class="px-4 py-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3"><span class="text-xs text-slate-500 text-center sm:text-left">{{ paginationText }}</span><a-pagination v-if="totalPages > 1" class="orange-pagination" :current="page" :total="total" :page-size="limit" show-less-items @change="changePage" /></div>
     </a-card>
 
-    <a-drawer :open="!!selectedItem" placement="right" width="480" :closable="false" @close="selectedItem=null">
+    <a-drawer :open="!!selectedItem" placement="right" width="480" root-class-name="max-w-full" :closable="false" @close="selectedItem=null">
       <template #title><div class="flex items-center justify-between gap-3"><div><span class="inline-flex px-2 py-0.5 rounded-md bg-orange-50 text-[#ee4d2d] border border-orange-100 text-[10px] font-black">SHOPEE LINK</span><h3 class="text-base font-bold mt-2">Chi tiết lịch sử tạo link</h3></div><button type="button" class="btn-action-secondary !w-8 !h-8 !p-0" @click="selectedItem=null"><CloseOutlined /></button></div></template>
       <div v-if="selectedItem" class="flex flex-col gap-4">
         <div v-for="item in [{label:'Sub ID',value:selectedItem.sub_id},{label:'Link gốc',value:selectedItem.origin_link},{label:'Affiliate Link',value:selectedItem.affiliate_link}]" :key="item.label" class="rounded-xl border border-slate-200 bg-slate-50 p-4"><div class="flex items-center justify-between mb-2"><span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">{{ item.label }}</span><button type="button" class="btn-action-primary !h-7 !px-2 text-xs" @click="copyText(item.value,item.label)"><CopyOutlined /><span>Copy</span></button></div><p class="m-0 text-xs font-mono text-slate-700 break-all">{{ item.value }}</p></div>
@@ -249,7 +251,7 @@ const copyText = async (value: string, label = 'Nội dung') => {
     </a-drawer>
 
     <!-- User Selection Modal -->
-    <a-modal v-model:open="showUserModal" title="Chọn người dùng" :footer="null" width="560px" @after-close="userSearch=''">
+    <a-modal v-model:open="showUserModal" title="Chọn người dùng" :footer="null" class="max-w-[95vw] sm:max-w-[560px]" @after-close="userSearch=''">
       <a-input v-model:value="userSearch" allow-clear placeholder="Tìm theo tên hoặc Zalo UID..." class="mb-4" autofocus>
         <template #prefix><SearchOutlined class="text-slate-400" /></template>
       </a-input>
