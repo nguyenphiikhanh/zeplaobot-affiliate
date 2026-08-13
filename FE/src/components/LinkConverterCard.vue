@@ -323,7 +323,7 @@ function openAffiliateLink() {
             class="mt-3 text-[11px] sm:text-xs text-slate-400 text-center leading-relaxed font-medium"
           >
             * Thông tin hoa hồng ước tính(đã trừ thuế trước khi hoàn cho bạn),
-            hoa hồng thực tế do shopee ghi nhận.
+            hoa hồng thực tế do sàn ghi nhận.
           </p>
 
           <div class="mt-3 grid grid-cols-2 gap-2">

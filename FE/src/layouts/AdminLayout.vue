@@ -31,6 +31,7 @@ import {
   BellOutlined,
   ShoppingOutlined,
   LogoutOutlined,
+  GlobalOutlined,
 } from "@ant-design/icons-vue";
 
 const route = useRoute();
@@ -154,6 +155,11 @@ const menuItems = [
     key: "/admin/settings",
     title: "Cấu hình Bot Zalo",
     icon: SettingOutlined,
+  },
+  {
+    key: "/admin/general-config",
+    title: "Cấu hình chung",
+    icon: GlobalOutlined,
   },
 ];
 

@@ -69,6 +69,11 @@ const routes = [
         name: 'settings',
         component: () => import('../views/ZaloConfigView.vue'),
       },
+      {
+        path: 'general-config',
+        name: 'general-config',
+        component: () => import('../views/GeneralConfigView.vue'),
+      },
     ],
   },
   {

@@ -2,6 +2,7 @@ import { db, poolConnection } from './index.js'
 import { systemConfigs } from './schema.js'
 import { defaultShopeeSettings } from '../services/shopee-config.service.js'
 import { defaultZaloBotSettings } from '../services/zalo-config.service.js'
+import { defaultSiteSettings } from '../services/site-config.service.js'
 
 const defaultConfigs = [
   {
@@ -17,6 +18,11 @@ const defaultConfigs = [
     key: 'zalo_bot_settings',
     value: JSON.stringify(defaultZaloBotSettings),
     description: 'Cấu hình Bot Zalo',
+  },
+  {
+    key: 'site_settings',
+    value: JSON.stringify(defaultSiteSettings),
+    description: 'Cấu hình chung website & SEO',
   },
 ]
 
