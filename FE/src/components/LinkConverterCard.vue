@@ -15,6 +15,8 @@ type ProductInfo = {
   productLink?: string;
   imageUrl?: string;
   commission?: number;
+  user_commission?: number;
+  userCommission?: number;
   rating?: number | string;
   sold?: number | string;
   sales?: number | string;

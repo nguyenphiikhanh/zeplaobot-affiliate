@@ -7,7 +7,7 @@ onMounted(async () => {
     const res = await api.get<{ data?: { meta_title?: string; site_name?: string; meta_description?: string } }>('/api/site-config')
     const config = res.data?.data
     if (config?.meta_title || config?.site_name) {
-      document.title = config.meta_title || config.site_name
+      document.title = (config.meta_title || config.site_name) ?? ''
     }
     if (config?.meta_description) {
       let metaDesc = document.querySelector('meta[name="description"]')

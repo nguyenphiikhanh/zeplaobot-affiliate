@@ -6,7 +6,6 @@ import {
   SaveOutlined,
   ReloadOutlined,
   SearchOutlined,
-  CheckCircleOutlined,
 } from "@ant-design/icons-vue";
 import { api, type ApiResponse } from "../services/api";
 
