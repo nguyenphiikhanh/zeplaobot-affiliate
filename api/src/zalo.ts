@@ -2,9 +2,10 @@ import { type GroupEvent, GroupEventType, LoginQRCallbackEventType, type Message
 import { config, type TargetThreadType } from './config.js'
 import { shopeeService } from './services/shopee.service.js'
 import { getZaloBotSettings, renderZaloTemplate } from './services/zalo-config.service.js'
+import { getShopeeSettings } from './services/shopee-config.service.js'
 import { registerZaloNotificationApi, unregisterZaloNotificationApi } from './services/zalo-notification.service.js'
 import { ensureZaloUser, getZaloUser, regenerateTrackingCode } from './services/user.service.js'
-import { formatWalletBalance, getOrdersUrl, getZaloCommandUser, withdrawAllZaloBalance } from './services/zalo-command.service.js'
+import { formatWalletBalance, getOrdersUrl, getWalletsUrl, getZaloCommandUser, withdrawAllZaloBalance } from './services/zalo-command.service.js'
 
 type ZaloApi = Awaited<ReturnType<Zalo['loginQR']>>
 
@@ -166,7 +167,10 @@ async function handleIncomingMessage(
     if (normalizedMessage === `#${commands.wallet.command}`) {
         const user = await getZaloCommandUser(message.data.uidFrom)
         await sendTaggedGroupMessage(loggedInApi, message, renderZaloTemplate(commands.wallet.response, {
-            total_balance: formatWalletBalance(user.availableBalance), uid: user.uid,
+            total_balance: formatWalletBalance(user.availableBalance),
+            pending_balance: formatWalletBalance(user.pendingBalance),
+            total_paid: formatWalletBalance(user.totalPaid),
+            uid: user.uid,
         }))
         return
     }
@@ -176,10 +180,25 @@ async function handleIncomingMessage(
             const template = result.withdrawn ? commands.withdraw.response : commands.withdraw.insufficient_response
             await sendTaggedGroupMessage(loggedInApi, message, renderZaloTemplate(template, {
                 total_balance: formatWalletBalance(result.user.availableBalance),
+                url: getWalletsUrl(),
             }))
         } catch (error) {
-            const content = error instanceof Error ? error.message : 'Không thể tạo yêu cầu rút tiền.'
-            await sendTaggedGroupMessage(loggedInApi, message, `⚠️ ${content}`)
+            const errorMsg = error instanceof Error ? error.message : ''
+            if (errorMsg.includes('ngân hàng')) {
+                let userBalance = ''
+                try {
+                    const user = await getZaloCommandUser(message.data.uidFrom)
+                    userBalance = formatWalletBalance(user.availableBalance)
+                } catch {}
+                const template = commands.withdraw.no_bank_response || '⚠️ Bạn chưa cấu hình tài khoản ngân hàng. Vui lòng truy cập {url} để cập nhật thông tin trước khi rút tiền.'
+                await sendTaggedGroupMessage(loggedInApi, message, renderZaloTemplate(template, {
+                    url: getWalletsUrl(),
+                    total_balance: userBalance,
+                }))
+            } else {
+                const content = errorMsg || 'Không thể tạo yêu cầu rút tiền.'
+                await sendTaggedGroupMessage(loggedInApi, message, `⚠️ ${content}`)
+            }
         }
         return
     }
@@ -231,10 +250,19 @@ async function handleIncomingMessage(
         await sendTaggedGroupMessage(loggedInApi, message, errorResponse)
         return
     }
+    const shopeeSettings = await getShopeeSettings()
     const rawCommission = result.productInfo?.commission
-    const commission = typeof rawCommission === 'number' && Number.isFinite(rawCommission)
-        ? `${rawCommission.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}đ`
-        : 'Chưa xác định'
+    let commission = 'Chưa xác định'
+    let userCommissionStr = 'Chưa xác định'
+    if (typeof rawCommission === 'number' && Number.isFinite(rawCommission)) {
+        commission = `${rawCommission.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}đ`
+        const serviceFeeRate = Number(shopeeSettings.service_fee_rate) || 0
+        const taxRate = Number(shopeeSettings.tax_rate) || 0
+        const userSharePercentage = Number(shopeeSettings.user_share_percentage) || 0
+        const netCommission = rawCommission - (rawCommission * (serviceFeeRate + taxRate)) / 100
+        const userCommission = Math.round((netCommission * userSharePercentage) / 100)
+        userCommissionStr = `${userCommission.toLocaleString('vi-VN')}đ`
+    }
     const rawCommissionRate = result.productInfo?.rating
     const normalizedRate = rawCommissionRate === undefined || rawCommissionRate === null
         ? ''
@@ -244,11 +272,13 @@ async function handleIncomingMessage(
     const template = botConfig.link_convert_template
         .replace(/\{commission\}đ/g, '{commission}')
         .replace(/\{commission_rate\}%/g, '{commission_rate}')
+        .replace(/\{user_commission\}đ/g, '{user_commission}')
     const response = renderZaloTemplate(template, {
         affiliate_link: result.affiliateLink,
         product_name: result.productInfo?.productName || 'Sản phẩm Shopee',
         commission,
         commission_rate: commissionRate,
+        user_commission: userCommissionStr,
     })
     await sendTaggedGroupMessage(loggedInApi, message, response)
 }

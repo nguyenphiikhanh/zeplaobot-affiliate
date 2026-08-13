@@ -9,6 +9,8 @@ export async function getZaloCommandUser(userId: string) {
     uid: users.id,
     trackingCode: users.trackingCode,
     availableBalance: wallets.availableBalance,
+    pendingBalance: wallets.pendingBalance,
+    totalPaid: wallets.totalPaid,
   }).from(users).innerJoin(wallets, eq(wallets.userId, users.id)).where(eq(users.id, userId)).limit(1)
   if (!record) throw new Error('Không tìm thấy người dùng hoặc ví')
   return record
@@ -16,6 +18,7 @@ export async function getZaloCommandUser(userId: string) {
 
 export const formatWalletBalance = (amount: number) => `${Number(amount || 0).toLocaleString('vi-VN')}đ`
 export const getOrdersUrl = () => `${config.appUrl}/orders`
+export const getWalletsUrl = () => `${config.appUrl}/wallets`
 
 export async function withdrawAllZaloBalance(userId: string) {
   const user = await getZaloCommandUser(userId)
