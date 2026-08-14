@@ -183,10 +183,12 @@ export function useZaloConfig() {
   const commandText = (value: string) => value.replace(/^#+/, '').replace(/\s+/g, '').toLowerCase();
 
   onMounted(() => {
-    if (!initialized) {
-      initialized = true;
-      Promise.all([loadConfig(), checkBotStatus()]);
-    }
+    loadConfig();
+    checkBotStatus(true);
+  });
+
+  onUnmounted(() => {
+    stopStatusPolling();
   });
 
   const addGroupInput = () => {
@@ -335,5 +337,6 @@ export function useZaloConfig() {
     savePrivateCommands,
     checkBotStatus,
     startQrLogin,
+    stopStatusPolling,
   };
 }
