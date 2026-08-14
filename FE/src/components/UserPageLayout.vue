@@ -9,7 +9,6 @@ import {
   FileTextOutlined,
   UserOutlined,
   LogoutOutlined,
-  CopyOutlined,
   DownOutlined,
 } from '@ant-design/icons-vue'
 import { api, clearAuthTokens, getSessionUser, type ApiResponse, type SessionUser } from '../services/api'
@@ -86,19 +85,6 @@ const siteName = computed(() => {
   return siteConfig.value?.site_name?.trim() || 'Affiliate - Hoàn tiền'
 })
 
-const siteSubtitle = computed(() => {
-  return siteConfig.value?.site_description?.trim() || 'Hoàn tiền affiliate'
-})
-
-const siteInitials = computed(() => {
-  const name = siteName.value.replace(/[^a-zA-Z0-9\s]/g, '').trim()
-  const words = name.split(/\s+/).filter(Boolean)
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase()
-  }
-  return (name.slice(0, 2) || 'SH').toUpperCase()
-})
-
 const displayName = computed(() => {
   if (!user.value) return 'Tài khoản'
   if (user.value.name && user.value.name.trim()) return user.value.name.trim()
@@ -110,13 +96,6 @@ const avatarInitials = computed(() => {
   return (user.value.name?.trim().charAt(0) || user.value.id.charAt(0) || 'U').toUpperCase()
 })
 const avatarUrl = computed(() => (!avatarFailed.value ? user.value?.image?.trim() || '' : ''))
-
-const copyTrackingCode = () => {
-  if (user.value?.tracking_code) {
-    navigator.clipboard.writeText(user.value.tracking_code)
-    message.success('Đã sao chép mã theo dõi!')
-  }
-}
 
 const handleLogout = () => {
   clearAuthTokens()
@@ -149,7 +128,9 @@ const handleLogout = () => {
             <span class="font-extrabold text-sm tracking-tight leading-none truncate">
               {{ siteName }}
             </span>
-            <span class="text-[11px] text-orange-100 font-medium tracking-normal mt-0.5 truncate">Hoàn tiền Affiliate</span>
+            <span class="text-[11px] text-orange-100 font-medium tracking-normal mt-0.5 truncate">
+              Hoàn tiền Affiliate
+            </span>
           </div>
         </router-link>
 
@@ -173,7 +154,9 @@ const handleLogout = () => {
           <h1 class="text-base sm:text-lg font-black text-slate-900 mt-0.5 tracking-tight truncate" style="-webkit-text-stroke: 0.15px currentColor; font-weight: 900;">
             Xin chào, <span class="text-[#ee4d2d]" style="-webkit-text-stroke: 0.15px #ee4d2d;">{{ user?.name || 'Khách hàng' }}</span>
           </h1>
-          <p class="text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 truncate">Chúc bạn có trải nghiệm tốt khi sử dụng hệ thống</p>
+          <p class="text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 truncate">
+            Chúc bạn có trải nghiệm tốt khi sử dụng hệ thống
+          </p>
         </div>
       </div>
     </header>
@@ -200,7 +183,9 @@ const handleLogout = () => {
             <span class="text-lg font-black tracking-tight text-slate-900 leading-none">
               {{ siteName }}
             </span>
-            <span class="text-xs font-bold text-[#ee4d2d] tracking-normal mt-0.5 max-w-[240px] truncate">Hoàn tiền Affiliate</span>
+            <span class="text-xs font-bold text-[#ee4d2d] tracking-normal mt-0.5 max-w-[240px] truncate">
+              Hoàn tiền Affiliate
+            </span>
           </div>
         </router-link>
 
@@ -253,8 +238,8 @@ const handleLogout = () => {
             </button>
 
             <template #overlay>
-              <div class="w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 space-y-2 mt-2">
-                <div class="p-3 bg-gradient-to-br from-orange-50/80 to-rose-50/60 rounded-xl space-y-1.5 text-left">
+              <div class="w-56 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 space-y-2 mt-2">
+                <div class="p-3 bg-gradient-to-br from-orange-50/80 to-rose-50/60 rounded-xl space-y-1 text-left">
                   <div class="flex items-center gap-2.5">
                     <div class="w-10 h-10 rounded-full bg-[#ee4d2d] text-white flex items-center justify-center font-black text-sm shrink-0 overflow-hidden">
                       <img v-if="avatarUrl" :src="avatarUrl" :alt="displayName" class="w-full h-full object-cover" referrerpolicy="no-referrer" @error="avatarFailed = true" />
@@ -264,25 +249,10 @@ const handleLogout = () => {
                       <div class="text-sm font-bold text-slate-900 truncate">
                         {{ displayName }}
                       </div>
-                      <div class="text-xs font-mono text-slate-500 truncate">
-                        ID: {{ user?.id }}
+                      <div class="text-xs font-mono font-medium text-slate-500 truncate">
+                        UID: {{ user?.id || '---' }}
                       </div>
                     </div>
-                  </div>
-
-                  <div
-                    v-if="user?.tracking_code"
-                    @click="copyTrackingCode"
-                    class="flex items-center justify-between bg-white border border-orange-200/80 rounded-lg px-2.5 py-1.5 cursor-pointer transition-all text-xs text-slate-700 font-medium hover:border-orange-300"
-                    title="Bấm để sao chép mã theo dõi"
-                  >
-                    <span class="font-mono font-bold text-[#ee4d2d] text-[11px]">
-                      #{{ user.tracking_code }}
-                    </span>
-                    <span class="text-[10px] text-slate-400 flex items-center gap-1">
-                      <CopyOutlined class="text-[10px]" />
-                      <span>Copy</span>
-                    </span>
                   </div>
                 </div>
 

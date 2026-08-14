@@ -17,7 +17,7 @@ type ProductInfo = {
   commission?: number;
   user_commission?: number;
   userCommission?: number;
-  rating?: number | string;
+  totalRatePercent?: number | string;
   sold?: number | string;
   sales?: number | string;
 };
@@ -51,7 +51,7 @@ const commission = computed(() => {
     : "Chưa xác định";
 });
 const commissionRate = computed(() => {
-  const value = String(product.value?.rating ?? "")
+  const value = String(product.value?.totalRatePercent ?? "")
     .replace("%", "")
     .trim();
   return value && Number.isFinite(Number(value))

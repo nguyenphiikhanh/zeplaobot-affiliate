@@ -3,9 +3,6 @@ import { onMounted, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   FileTextOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
   RightOutlined,
   SearchOutlined,
   ReloadOutlined,
@@ -23,6 +20,7 @@ interface Order {
   actualCommission: number | null
   userCommission: number | null
   subId: string | null
+  imgCode?: string | null
 }
 
 const rows = ref<Order[]>([])
@@ -93,8 +91,6 @@ const getStatusBadge = (status: string | null) => {
             <FileTextOutlined class="text-base" />
           </div>
           <h2 class="text-base sm:text-lg font-black text-slate-900 leading-none m-0">Tra Cứu Đơn Hàng</h2>
-        </div>
-          <h2>Tra Cứu Đơn Hàng</h2>
         </div>
         <p class="text-xs text-slate-500 leading-relaxed">
           Theo dõi tiến trình ghi nhận hoa hồng và trạng thái duyệt đơn Shopee của bạn.
@@ -195,10 +191,16 @@ const getStatusBadge = (status: string | null) => {
           @click="selected = item"
           class="py-3 sm:py-4 flex items-center justify-between gap-3 hover:bg-slate-50/80 rounded-xl px-2 sm:px-3 transition-colors cursor-pointer group"
         >
-          <!-- Left info: Shopee Logo + Product & ID -->
+          <!-- Left info: Product image / Shopee Logo + Product & ID -->
           <div class="flex items-center gap-3 min-w-0 flex-1">
-            <div class="w-10 h-10 rounded-xl bg-orange-50/80 border border-orange-100 flex items-center justify-center shrink-0 p-1.5">
-              <img src="/logo/shopee.png" alt="Shopee" class="w-full h-full object-contain" />
+            <div class="w-11 h-11 rounded-xl bg-orange-50/80 border border-orange-100 flex items-center justify-center shrink-0 p-1 overflow-hidden">
+              <img
+                v-if="item.imgCode"
+                :src="`https://down-vn.img.susercontent.com/file/${item.imgCode}`"
+                :alt="item.productName || 'Shopee'"
+                class="w-full h-full object-cover rounded-lg"
+              />
+              <img v-else src="/logo/shopee.png" alt="Shopee" class="w-full h-full object-contain p-0.5" />
             </div>
 
             <div class="min-w-0 flex-1 space-y-0.5">

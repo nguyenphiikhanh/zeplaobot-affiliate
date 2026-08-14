@@ -1,0 +1,1 @@
+ALTER TABLE `orders` ADD `img_code` text;

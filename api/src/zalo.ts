@@ -189,7 +189,7 @@ async function handleIncomingMessage(
                 try {
                     const user = await getZaloCommandUser(message.data.uidFrom)
                     userBalance = formatWalletBalance(user.availableBalance)
-                } catch {}
+                } catch { }
                 const template = commands.withdraw.no_bank_response || '⚠️ Bạn chưa cấu hình tài khoản ngân hàng. Vui lòng truy cập {url} để cập nhật thông tin trước khi rút tiền.'
                 await sendTaggedGroupMessage(loggedInApi, message, renderZaloTemplate(template, {
                     url: getWalletsUrl(),
@@ -263,7 +263,7 @@ async function handleIncomingMessage(
         const userCommission = Math.round((netCommission * userSharePercentage) / 100)
         userCommissionStr = `${userCommission.toLocaleString('vi-VN')}đ`
     }
-    const rawCommissionRate = result.productInfo?.rating
+    const rawCommissionRate = result.productInfo?.totalRatePercent
     const normalizedRate = rawCommissionRate === undefined || rawCommissionRate === null
         ? ''
         : String(rawCommissionRate).trim().replace(/%$/, '')

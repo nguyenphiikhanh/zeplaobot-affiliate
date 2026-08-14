@@ -88,7 +88,8 @@ interface ShopeeOrderImport {
   qty?: unknown
   purchaseValue?: unknown
   totalOrderCommission?: unknown
-  subId1?: unknown
+  subId1?: unknown,
+  imgCode?: unknown
 }
 
 const asText = (value: unknown) => value == null ? null : String(value).trim() || null
@@ -148,6 +149,7 @@ export const uploadShopeeCsvService = async (input: unknown[]) => {
       productId: asText(row.itemId),
       productName: asText(row.itemName),
       quantity: Math.round(asNumber(row.qty) || 1),
+      imgCode: asText(row.imgCode),
       purchaseValue: Math.round(asNumber(row.purchaseValue)),
       actualCommission: totalCommission,
       serviceFeeRate,
@@ -408,6 +410,7 @@ const runBackgroundSyncProcess = async (dates: string[], cookie: string) => {
             itemName: productInfo.item_name || null,
             qty: 1,
             purchaseValue: (Number(totalPrice) || 0) / 100000,
+            imgCode: productInfo.image_code
           })
         }
 

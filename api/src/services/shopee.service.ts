@@ -10,7 +10,7 @@ export interface ProductInfo {
   productName?: string;
   imageUrl?: string;
   commission?: number;
-  rating?: number | string;
+  totalRatePercent?: number | string;
   [key: string]: any;
 }
 

@@ -49,6 +49,7 @@ export const orders = mysqlTable('orders', {
   shopName: varchar('shop_name', { length: 255 }),
   productId: varchar('product_id', { length: 255 }),
   productName: text('product_name'),
+  imgCode: text('img_code'),
   quantity: int('quantity').default(0),
   currency: varchar('currency', { length: 16 }).default('VND'),
   purchaseValue: bigint('purchase_value', { mode: 'number' }),
