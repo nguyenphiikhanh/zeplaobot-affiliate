@@ -10,6 +10,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   DownOutlined,
+  GiftOutlined,
 } from '@ant-design/icons-vue'
 import { api, clearAuthTokens, getSessionUser, type ApiResponse, type SessionUser } from '../services/api'
 
@@ -113,16 +114,8 @@ const handleLogout = () => {
       <div class="max-w-md mx-auto px-3.5 h-12 flex items-center justify-between">
         <!-- Mobile Brand Info -->
         <router-link to="/" class="flex items-center gap-2.5 overflow-hidden text-left cursor-pointer">
-          <div class="w-8 h-8 rounded-xl bg-white text-[#ee4d2d] font-black text-xs flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
-            <img
-              v-if="avatarUrl"
-              :src="avatarUrl"
-              :alt="displayName"
-              class="w-full h-full object-cover"
-              referrerpolicy="no-referrer"
-              @error="avatarFailed = true"
-            />
-            <span v-else class="text-[#ee4d2d] font-black text-sm">{{ avatarInitials }}</span>
+          <div class="w-8 h-8 rounded-xl bg-white text-[#ee4d2d] font-black text-sm flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
+            <GiftOutlined class="text-base text-[#ee4d2d]" />
           </div>
           <div class="flex flex-col min-w-0">
             <span class="font-extrabold text-sm tracking-tight leading-none truncate">
@@ -168,16 +161,8 @@ const handleLogout = () => {
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
         <!-- Desktop Brand Logo -->
         <router-link to="/" class="flex items-center gap-3 cursor-pointer group">
-          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#ee4d2d] to-[#ff5722] text-white font-black text-base flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform overflow-hidden shrink-0">
-            <img
-              v-if="avatarUrl"
-              :src="avatarUrl"
-              :alt="displayName"
-              class="w-full h-full object-cover"
-              referrerpolicy="no-referrer"
-              @error="avatarFailed = true"
-            />
-            <span v-else class="text-white font-black text-base">{{ avatarInitials }}</span>
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#ee4d2d] to-[#ff5722] text-white font-black text-lg flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform overflow-hidden shrink-0">
+            <GiftOutlined class="text-xl text-white" />
           </div>
           <div class="flex flex-col text-left">
             <span class="text-lg font-black tracking-tight text-slate-900 leading-none">
