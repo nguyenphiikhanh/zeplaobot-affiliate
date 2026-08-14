@@ -6,8 +6,7 @@ export const config = {
     appUrl: (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, ''),
     shortLinkBaseUrl: (process.env.SHORT_LINK_BASE_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, ''),
     port: Number(process.env.PORT || 3000),
-    adminPassCode: process.env.ADMIN_PASS_CODE || '',
-    authTokenSecret: process.env.AUTH_TOKEN_SECRET || process.env.ADMIN_PASS_CODE || '',
+
     db: {
         host: process.env.DB_HOST || '127.0.0.1',
         port: Number(process.env.DB_PORT || 3306),

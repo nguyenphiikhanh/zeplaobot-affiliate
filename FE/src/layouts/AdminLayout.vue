@@ -26,6 +26,7 @@ import {
   HistoryOutlined,
   LinkOutlined,
   SettingOutlined,
+  RobotOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MenuOutlined,
@@ -157,14 +158,14 @@ const menuItems = [
     icon: ShoppingOutlined,
   },
   {
-    key: "/admin/settings",
-    title: "Cấu hình Bot Zalo",
-    icon: SettingOutlined,
+    key: '/admin/settings',
+    title: 'Cấu hình Bot Zalo',
+    icon: RobotOutlined,
   },
   {
-    key: "/admin/general-config",
-    title: "Cấu hình chung",
-    icon: GlobalOutlined,
+    key: '/admin/general-config',
+    title: 'Cấu hình hệ thống',
+    icon: SettingOutlined,
   },
 ];
 

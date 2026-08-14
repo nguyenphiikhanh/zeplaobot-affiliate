@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import {
+  changeAdminPasswordService,
   getSessionUserService,
   loginAdminService,
   loginUserService,
@@ -27,6 +28,40 @@ authRoutes.post('/admin/login', async (c) => {
   } catch (err: unknown) {
     const error = err as { status?: number; message?: string }
     return c.json(sendError(error.message || 'Login failed'), (error.status || 500) as any)
+  }
+})
+
+authRoutes.post('/admin/change-password', async (c) => {
+  const authorization = c.req.header('Authorization') || ''
+  try {
+    const userInfo = await getSessionUserService(authorization)
+    if (userInfo.role !== 'admin') {
+      return c.json(sendError('Unauthorized - Quyền quản trị viên yêu cầu'), 403)
+    }
+  } catch {
+    return c.json(sendError('Unauthorized'), 401)
+  }
+
+  let body: { current_password?: unknown; new_password?: unknown }
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json(sendError('Invalid request body'), 400)
+  }
+
+  const currentPass = typeof body.current_password === 'string' ? body.current_password : ''
+  const newPass = typeof body.new_password === 'string' ? body.new_password : ''
+
+  if (!currentPass || !newPass) {
+    return c.json(sendError('Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới'), 400)
+  }
+
+  try {
+    await changeAdminPasswordService(currentPass, newPass)
+    return c.json(sendResponse(null, 'Đổi mật khẩu quản trị thành công'))
+  } catch (err: unknown) {
+    const error = err as { status?: number; message?: string }
+    return c.json(sendError(error.message || 'Đổi mật khẩu thất bại'), (error.status || 400) as any)
   }
 })
 
@@ -98,3 +133,4 @@ authRoutes.get('/admin/session', async (c) => {
     return c.json(sendError(error.message || 'Unauthorized'), (error.status || 401) as any)
   }
 })
+

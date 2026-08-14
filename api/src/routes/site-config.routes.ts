@@ -29,10 +29,10 @@ siteConfigRoutes.use('/admin/site-config/*', requireAdmin)
 
 siteConfigRoutes.get('/admin/site-config', async (c) => {
   try {
-    return c.json(sendResponse(await getSiteSettings(), 'Đã tải cấu hình chung'))
+    return c.json(sendResponse(await getSiteSettings(), 'Đã tải cấu hình hệ thống'))
   } catch (error) {
     console.error('[Site Config] Load failed:', error)
-    return c.json(sendError('Không thể tải cấu hình chung'), 500)
+    return c.json(sendError('Không thể tải cấu hình hệ thống'), 500)
   }
 })
 
@@ -40,9 +40,9 @@ siteConfigRoutes.put('/admin/site-config', async (c) => {
   try {
     const body = await c.req.json()
     const updated = await saveSiteSettings(body)
-    return c.json(sendResponse(updated, 'Lưu cấu hình chung thành công'))
+    return c.json(sendResponse(updated, 'Lưu cấu hình hệ thống thành công'))
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Không thể lưu cấu hình chung'
+    const message = error instanceof Error ? error.message : 'Không thể lưu cấu hình hệ thống'
     return c.json(sendError(message), 400)
   }
 })

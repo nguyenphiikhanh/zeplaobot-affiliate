@@ -1,9 +1,8 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
-import { config } from '../config.js'
 import { db } from '../db/index.js'
-import { users } from '../db/schema.js'
+import { systemConfigs, users } from '../db/schema.js'
 
 export const ADMIN_ACCESS_TOKEN_TTL_SECONDS = 15 * 60
 export const ADMIN_REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60
@@ -17,9 +16,96 @@ export type AuthToken = {
   exp: number
 }
 
-export const signAuthToken = (payload: AuthToken): string => {
+let cachedAuthSecret: string | null = null
+
+export const getAuthTokenSecret = async (): Promise<string> => {
+  if (cachedAuthSecret) return cachedAuthSecret
+
+  try {
+    const [record] = await db
+      .select({ value: systemConfigs.value })
+      .from(systemConfigs)
+      .where(eq(systemConfigs.key, 'auth_token_secret'))
+      .limit(1)
+
+    if (record?.value) {
+      cachedAuthSecret = record.value
+      return cachedAuthSecret
+    }
+
+    const newSecret = randomBytes(32).toString('hex')
+    await db
+      .insert(systemConfigs)
+      .values({
+        key: 'auth_token_secret',
+        value: newSecret,
+        description: 'Secret key dùng để ký Auth Token',
+      })
+      .onDuplicateKeyUpdate({ set: { value: newSecret, updatedAt: new Date() } })
+
+    cachedAuthSecret = newSecret
+    return cachedAuthSecret
+  } catch (error) {
+    console.error('[Auth] Failed to load/generate auth_token_secret from DB:', error)
+    if (!cachedAuthSecret) {
+      cachedAuthSecret = 'fallback_secret_' + randomBytes(16).toString('hex')
+    }
+    return cachedAuthSecret
+  }
+}
+
+export const getAdminPasscodeHash = async (): Promise<string | null> => {
+  const [record] = await db
+    .select({ value: systemConfigs.value })
+    .from(systemConfigs)
+    .where(eq(systemConfigs.key, 'admin_passcode'))
+    .limit(1)
+
+  return record?.value || null
+}
+
+export const setAdminPasscode = async (newPasscode: string): Promise<void> => {
+  const hash = await bcrypt.hash(newPasscode, 10)
+  await db
+    .insert(systemConfigs)
+    .values({
+      key: 'admin_passcode',
+      value: hash,
+      description: 'Mật khẩu đăng nhập quản trị (bcrypt hash)',
+    })
+    .onDuplicateKeyUpdate({
+      set: {
+        value: hash,
+        description: 'Mật khẩu đăng nhập quản trị (bcrypt hash)',
+        updatedAt: new Date(),
+      },
+    })
+}
+
+export const changeAdminPasswordService = async (currentPass: string, newPass: string) => {
+  let currentHash = await getAdminPasscodeHash()
+  if (!currentHash) {
+    // If not seeded yet, seed 'KhanhNT'
+    await setAdminPasscode('KhanhNT')
+    currentHash = await getAdminPasscodeHash()
+  }
+
+  const isValid = currentHash ? await bcrypt.compare(currentPass, currentHash) : false
+  if (!isValid) {
+    throw { status: 400, message: 'Mật khẩu hiện tại không chính xác' }
+  }
+
+  const cleanPass = String(newPass || '').trim()
+  if (!cleanPass || cleanPass.length < 6) {
+    throw { status: 400, message: 'Mật khẩu mới phải có ít nhất 6 ký tự' }
+  }
+
+  await setAdminPasscode(cleanPass)
+}
+
+export const signAuthToken = (payload: AuthToken, secret: string): string => {
   const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url')
-  const signature = createHmac('sha256', config.authTokenSecret)
+  const signature = createHmac('sha256', secret)
     .update(encodedPayload)
     .digest('base64url')
 
@@ -29,13 +115,14 @@ export const signAuthToken = (payload: AuthToken): string => {
 export const verifyAuthToken = (
   token: string,
   expectedType: AuthToken['type'],
+  secret: string,
 ): AuthToken | null => {
-  if (!config.authTokenSecret) return null
+  if (!secret) return null
 
   const [encodedPayload, signature, extra] = token.split('.')
   if (!encodedPayload || !signature || extra) return null
 
-  const expectedSignature = createHmac('sha256', config.authTokenSecret)
+  const expectedSignature = createHmac('sha256', secret)
     .update(encodedPayload)
     .digest()
 
@@ -71,36 +158,46 @@ export const verifyAuthToken = (
   }
 }
 
-export const createAuthTokens = (sub: string, role: AuthRole) => {
+export const createAuthTokens = async (sub: string, role: AuthRole) => {
+  const secret = await getAuthTokenSecret()
   const now = Math.floor(Date.now() / 1000)
   return {
-    access_token: signAuthToken({
-      sub,
-      role,
-      type: 'access',
-      exp: now + ADMIN_ACCESS_TOKEN_TTL_SECONDS,
-    }),
-    refresh_token: signAuthToken({
-      sub,
-      role,
-      type: 'refresh',
-      exp: now + ADMIN_REFRESH_TOKEN_TTL_SECONDS,
-    }),
+    access_token: signAuthToken(
+      {
+        sub,
+        role,
+        type: 'access',
+        exp: now + ADMIN_ACCESS_TOKEN_TTL_SECONDS,
+      },
+      secret,
+    ),
+    refresh_token: signAuthToken(
+      {
+        sub,
+        role,
+        type: 'refresh',
+        exp: now + ADMIN_REFRESH_TOKEN_TTL_SECONDS,
+      },
+      secret,
+    ),
     expires_in: ADMIN_ACCESS_TOKEN_TTL_SECONDS,
   }
 }
 
 export const loginAdminService = async (passcode: string) => {
-  if (!config.adminPassCode) {
-    throw { status: 503, message: 'Admin login is not configured' }
+  let adminPassHash = await getAdminPasscodeHash()
+  if (!adminPassHash) {
+    // If not seeded yet, seed 'KhanhNT'
+    await setAdminPasscode('KhanhNT')
+    adminPassHash = await getAdminPasscodeHash()
   }
 
-  const isValid = await bcrypt.compare(passcode, config.adminPassCode)
+  const isValid = adminPassHash ? await bcrypt.compare(passcode, adminPassHash) : false
   if (!isValid) {
-    throw { status: 401, message: 'Passcode is incorrect' }
+    throw { status: 401, message: 'Mật khẩu quản trị không chính xác' }
   }
 
-  return createAuthTokens('admin', 'admin')
+  return await createAuthTokens('admin', 'admin')
 }
 
 export const loginUserService = async (trackingCode: string) => {
@@ -120,8 +217,9 @@ export const loginUserService = async (trackingCode: string) => {
   }
 
   const role: AuthRole = 'user'
+  const tokens = await createAuthTokens(user.id, role)
   return {
-    ...createAuthTokens(user.id, role),
+    ...tokens,
     user: {
       id: user.id,
       name: user.name,
@@ -133,25 +231,30 @@ export const loginUserService = async (trackingCode: string) => {
 }
 
 export const refreshAccessTokenService = async (refreshToken: string) => {
-  const refreshPayload = verifyAuthToken(refreshToken, 'refresh')
+  const secret = await getAuthTokenSecret()
+  const refreshPayload = verifyAuthToken(refreshToken, 'refresh', secret)
   if (!refreshPayload) {
     throw { status: 401, message: 'Invalid or expired refresh token' }
   }
 
   return {
-    access_token: signAuthToken({
-      sub: refreshPayload.sub,
-      role: refreshPayload.role,
-      type: 'access',
-      exp: Math.floor(Date.now() / 1000) + ADMIN_ACCESS_TOKEN_TTL_SECONDS,
-    }),
+    access_token: signAuthToken(
+      {
+        sub: refreshPayload.sub,
+        role: refreshPayload.role,
+        type: 'access',
+        exp: Math.floor(Date.now() / 1000) + ADMIN_ACCESS_TOKEN_TTL_SECONDS,
+      },
+      secret,
+    ),
     expires_in: ADMIN_ACCESS_TOKEN_TTL_SECONDS,
   }
 }
 
 export const getSessionUserService = async (authorization: string) => {
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
-  const payload = verifyAuthToken(token, 'access')
+  const secret = await getAuthTokenSecret()
+  const payload = verifyAuthToken(token, 'access', secret)
 
   if (!payload) {
     throw { status: 401, message: 'Unauthorized' }

@@ -48,6 +48,6 @@ export const saveSiteSettings = async (input: Partial<SiteSettings>): Promise<Si
     keywords: String(input.keywords ?? current.keywords ?? '').trim(),
   }
 
-  await writeJson(SETTINGS_KEY, updated, 'Cấu hình chung website & SEO')
+  await writeJson(SETTINGS_KEY, updated, 'Cấu hình hệ thống website & SEO')
   return updated
 }
