@@ -1,6 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import UserPageLayout from '../components/UserPageLayout.vue'
+import HomeView from '../views/HomeView.vue'
+import UserGenerateLinkView from '../views/UserGenerateLinkView.vue'
+import UserWalletView from '../views/UserWalletView.vue'
+import UserOrdersView from '../views/UserOrdersView.vue'
+import UserProfileView from '../views/UserProfileView.vue'
 import { getSessionUser } from '../services/api'
 import { saveUserRedirectPath } from '../services/user-redirect'
 
@@ -10,11 +15,11 @@ const routes = [
     component: UserPageLayout,
     meta: { requiresAuth: true },
     children: [
-      { path: '', name: 'home', component: () => import('../views/HomeView.vue') },
-      { path: 'generate-link', name: 'user-generate-link', component: () => import('../views/UserGenerateLinkView.vue') },
-      { path: 'wallet', name: 'user-wallet', component: () => import('../views/UserWalletView.vue') },
-      { path: 'orders', name: 'user-orders', component: () => import('../views/UserOrdersView.vue') },
-      { path: 'profile', name: 'user-profile', component: () => import('../views/UserProfileView.vue') },
+      { path: '', name: 'home', component: HomeView },
+      { path: 'generate-link', name: 'user-generate-link', component: UserGenerateLinkView },
+      { path: 'wallet', name: 'user-wallet', component: UserWalletView },
+      { path: 'orders', name: 'user-orders', component: UserOrdersView },
+      { path: 'profile', name: 'user-profile', component: UserProfileView },
     ],
   },
   {
@@ -87,6 +92,18 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    }
+    return { top: 0, left: 0 }
+  },
+})
+
+router.afterEach(() => {
+  window.scrollTo(0, 0)
+  document.documentElement.scrollTop = 0
+  document.body.scrollTop = 0
 })
 
 // Navigation Guard for Admin & User Routes with Strict Role Isolation

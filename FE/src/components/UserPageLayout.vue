@@ -108,20 +108,20 @@ const handleLogout = () => {
 <template>
   <div class="min-h-screen bg-slate-100 flex flex-col justify-between selection:bg-orange-500 selection:text-white">
     <!-- ============================================== -->
-    <!-- 1. MOBILE TOP HEADER (< md)                   -->
+    <!-- 1. MOBILE TOP HEADER (< md) - NOT FIXED (SCROLLABLE) -->
     <!-- ============================================== -->
-    <header class="md:hidden bg-gradient-to-r from-[#ee4d2d] via-[#f05330] to-[#ff5722] text-white shadow-md sticky top-0 z-30 pb-5 rounded-b-2xl sm:rounded-b-3xl">
-      <div class="max-w-md mx-auto px-3.5 h-12 flex items-center justify-between">
+    <header class="md:hidden bg-gradient-to-r from-[#ee4d2d] via-[#f05330] to-[#ff5722] text-white shadow-md relative z-30 pb-5 rounded-b-2xl sm:rounded-b-3xl">
+      <div class="max-w-md mx-auto px-3.5 h-13 flex items-center justify-between">
         <!-- Mobile Brand Info -->
         <router-link to="/" class="flex items-center gap-2.5 overflow-hidden text-left cursor-pointer">
-          <div class="w-8 h-8 rounded-xl bg-white text-[#ee4d2d] font-black text-sm flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
-            <GiftOutlined class="text-base text-[#ee4d2d]" />
+          <div class="w-9 h-9 rounded-xl bg-white text-[#ee4d2d] font-black text-sm flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
+            <GiftOutlined class="text-lg text-[#ee4d2d]" />
           </div>
           <div class="flex flex-col min-w-0">
-            <span class="font-extrabold text-sm tracking-tight leading-none truncate">
+            <span class="font-extrabold text-base tracking-tight leading-none truncate">
               {{ siteName }}
             </span>
-            <span class="text-[11px] text-orange-100 font-medium tracking-normal mt-0.5 truncate">
+            <span class="text-xs text-orange-100 font-medium tracking-normal mt-0.5 truncate">
               Hoàn tiền Affiliate
             </span>
           </div>
@@ -131,23 +131,23 @@ const handleLogout = () => {
         <button
           type="button"
           @click="handleLogout"
-          class="h-7 px-2.5 rounded-full border border-white/40 bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-[11px] font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+          class="h-8 px-3 rounded-full border border-white/40 bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
         >
-          <LogoutOutlined class="text-[10px]" />
+          <LogoutOutlined class="text-xs" />
           <span>Đăng xuất</span>
         </button>
       </div>
 
       <!-- 50% Vertical Overlap Floating Greeting Card on Mobile Header -->
       <div class="max-w-md mx-auto px-3 -mb-10 pt-0.5 relative z-10">
-        <div class="bg-white rounded-xl sm:rounded-2xl px-3 py-2 sm:p-3.5 border border-slate-200/90 shadow-sm text-left">
-          <div class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+        <div class="bg-white rounded-xl sm:rounded-2xl px-3.5 py-3 sm:p-4 border border-slate-200/90 shadow-sm text-left">
+          <div class="text-xs sm:text-sm font-black text-slate-500 uppercase tracking-wider">
             {{ currentMenuLabel }}
           </div>
-          <h1 class="text-base sm:text-lg font-black text-slate-900 mt-0.5 tracking-tight truncate" style="-webkit-text-stroke: 0.15px currentColor; font-weight: 900;">
-            Xin chào, <span class="text-[#ee4d2d]" style="-webkit-text-stroke: 0.15px #ee4d2d;">{{ user?.name || 'Khách hàng' }}</span>
+          <h1 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 tracking-tight truncate" style="-webkit-text-stroke: 0.2px currentColor; font-weight: 900;">
+            Xin chào, <span class="text-[#ee4d2d]" style="-webkit-text-stroke: 0.2px #ee4d2d;">{{ user?.name || 'Khách hàng' }}</span>
           </h1>
-          <p class="text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 truncate">
+          <p class="text-sm sm:text-base text-slate-600 font-bold mt-1 truncate leading-snug">
             Chúc bạn có trải nghiệm tốt khi sử dụng hệ thống
           </p>
         </div>
@@ -261,7 +261,7 @@ const handleLogout = () => {
     <!-- ============================================== -->
     <!-- 3. MAIN CONTENT (Responsive Mobile / Desktop)  -->
     <!-- ============================================== -->
-    <main class="flex-1 w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto p-2.5 sm:p-4 md:p-6 pt-6 md:pt-6 pb-20 md:pb-12 space-y-2 sm:space-y-4">
+    <main class="flex-1 w-full max-w-md md:max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 pt-12 sm:pt-14 md:pt-6 pb-20 md:pb-12 space-y-3 sm:space-y-4 min-h-[calc(100vh-140px)]">
       <router-view />
     </main>
 
@@ -301,8 +301,8 @@ const handleLogout = () => {
           </div>
           <span
             :class="[
-              'text-[10px] mt-0.5 tracking-tight truncate max-w-[64px] transition-colors',
-              isActive(item.path) ? 'text-[#ee4d2d] font-black' : 'text-slate-500',
+              'text-[11px] mt-0.5 tracking-tight truncate max-w-[68px] transition-colors',
+              isActive(item.path) ? 'text-[#ee4d2d] font-black' : 'text-slate-500 font-bold',
             ]"
           >
             {{ item.mobileLabel }}

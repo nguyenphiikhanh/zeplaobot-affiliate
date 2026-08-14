@@ -237,6 +237,7 @@ export class ShopeeService {
         const userSharePercentage = Number(settings.user_share_percentage) || 0;
         const netCommission = productData.commission - (productData.commission * (serviceFeeRate + taxRate)) / 100;
         productData.user_commission = Math.round((netCommission * userSharePercentage) / 100);
+        productData.userSharePercentage = userSharePercentage;
       }
     } catch (err) {
       console.warn('[ShopeeService] Product info resolution skipped/failed:', err);

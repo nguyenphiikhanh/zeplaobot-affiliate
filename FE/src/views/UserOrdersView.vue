@@ -15,6 +15,11 @@ import {
   type ApiResponse,
   type SessionUser,
 } from "../services/api";
+import viVN from "ant-design-vue/es/locale/vi_VN";
+import dayjs from "dayjs";
+import "dayjs/locale/vi";
+
+dayjs.locale("vi");
 
 const router = useRouter();
 const user = ref<SessionUser | null>(null);
@@ -115,7 +120,11 @@ onMounted(() => {
   fetchOrders();
 });
 
-watch([selectedMonth], () => {
+watch(selectedMonth, (newVal) => {
+  if (!newVal) {
+    selectedMonth.value = getCurrentMonthString();
+    return;
+  }
   page.value = 1;
   fetchOrders();
 });
@@ -187,58 +196,45 @@ const getOrderCalc = (item: Order) => {
 
 <template>
   <div class="w-full space-y-3 sm:space-y-4 text-left">
-    <!-- Top Greeting Card (Xin chào, Thùy Trang & CHƯA NHẬN / ƯỚC NHẬN) -->
-    <div
-      class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs space-y-3"
-    >
-      <div class="space-y-0.5">
+    <!-- Top Stats Bar: 2 Summary Cards (ĐƠN CHƯA NHẬN & ƯỚC TÍNH NHẬN) -->
+    <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
+      <!-- Card 1: ĐƠN CHƯA NHẬN -->
+      <div
+        class="bg-white rounded-2xl p-3.5 sm:p-4.5 border border-slate-200/80 shadow-2xs flex flex-col justify-between"
+      >
         <div
-          class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+          class="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider"
         >
-          ĐƠN HÀNG
+          ĐƠN CHƯA NHẬN
         </div>
-        <h1
-          class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight m-0"
-        >
-          Xin chào, {{ user?.name || "Khách hàng" }}
-        </h1>
+        <div v-if="loading" class="h-7 w-20 bg-slate-200 rounded-md animate-pulse mt-1"></div>
+        <div v-else class="text-xl sm:text-2xl font-black text-slate-900 mt-1">
+          {{ unreceivedCount }} <span class="text-sm font-extrabold text-slate-500">đơn</span>
+        </div>
       </div>
 
-      <!-- 2 Summary Cards (CHƯA NHẬN & ƯỚC NHẬN) -->
-      <div class="grid grid-cols-2 gap-3 pt-1">
+      <!-- Card 2: ƯỚC TÍNH NHẬN -->
+      <div
+        class="bg-white rounded-2xl p-3.5 sm:p-4.5 border border-slate-200/80 shadow-2xs flex flex-col justify-between"
+      >
         <div
-          class="bg-slate-50/90 rounded-xl p-3 sm:p-3.5 border border-slate-200/60 flex flex-col justify-center"
+          class="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider"
         >
-          <span
-            class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
-            >ĐƠN CHƯA NHẬN</span
-          >
-          <span class="text-base sm:text-lg font-black text-slate-900 mt-0.5"
-            >{{ unreceivedCount }} đơn</span
-          >
+          ƯỚC TÍNH NHẬN
         </div>
-
-        <div
-          class="bg-slate-50/90 rounded-xl p-3 sm:p-3.5 border border-slate-200/60 flex flex-col justify-center"
-        >
-          <span
-            class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
-            >ƯỚC TÍNH NHẬN</span
-          >
-          <span class="text-base sm:text-lg font-black text-[#00b087] mt-0.5">{{
-            formatMoney(estimatedCommission)
-          }}</span>
+        <div v-if="loading" class="h-7 w-28 bg-slate-200 rounded-md animate-pulse mt-1"></div>
+        <div v-else class="text-xl sm:text-2xl font-black text-[#00b087] mt-1 truncate">
+          {{ formatMoney(estimatedCommission) }}
         </div>
       </div>
     </div>
 
-    <!-- Filter & Month Select Bar -->
-    <div
-      class="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-2xs flex items-center justify-between gap-3"
-    >
-      <!-- Month Calendar Picker (Orange Theme & Custom Icon) -->
+    <!-- Month Selector Bar & Reload Button -->
+    <div class="flex items-center gap-2">
+      <!-- Orange Month DatePicker Component -->
       <div class="relative flex-1">
         <a-config-provider
+          :locale="viVN"
           :theme="{
             token: {
               colorPrimary: '#ee4d2d',
@@ -254,7 +250,7 @@ const getOrderCalc = (item: Order) => {
             placeholder="Chọn tháng xem đơn..."
             format="[Tháng] MM/YYYY"
             value-format="YYYY-MM"
-            class="orange-month-picker w-full !h-10 !rounded-xl !bg-orange-50/60 !border-orange-200/80 !text-xs sm:!text-sm font-extrabold shadow-2xs hover:!border-[#ee4d2d] transition-all"
+            class="orange-month-picker w-full !h-10.5 !rounded-xl !bg-orange-50/60 !border-orange-200/80 !text-sm font-extrabold shadow-2xs hover:!border-[#ee4d2d] transition-all"
             :allow-clear="true"
           >
             <template #suffixIcon>
@@ -269,7 +265,7 @@ const getOrderCalc = (item: Order) => {
         type="button"
         @click="fetchOrders"
         :disabled="loading"
-        class="h-9.5 px-4 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100/60 text-xs sm:text-sm font-bold text-[#ee4d2d] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 transition-all shrink-0"
+        class="h-10.5 px-4.5 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100/60 text-sm font-bold text-[#ee4d2d] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 transition-all shrink-0"
       >
         <ReloadOutlined :class="{ 'animate-spin': loading }" />
         <span>Tải lại</span>
@@ -286,10 +282,10 @@ const getOrderCalc = (item: Order) => {
           @keyup.enter="handleSearch"
           type="text"
           placeholder="Tìm theo mã đơn hàng hoặc tên sản phẩm..."
-          class="w-full h-10 pl-9 pr-8 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#ee4d2d] focus:bg-white focus:ring-2 focus:ring-orange-500/10 transition-all placeholder:text-slate-400"
+          class="w-full h-10.5 pl-9 pr-8 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#ee4d2d] focus:bg-white focus:ring-2 focus:ring-orange-500/10 transition-all placeholder:text-slate-400"
         />
         <SearchOutlined
-          class="absolute left-3 top-1/2 -translate-y-1/2 text-orange-500 text-sm pointer-events-none"
+          class="absolute left-3 top-1/2 -translate-y-1/2 text-orange-500 text-base pointer-events-none"
         />
         <button
           v-if="searchQuery"
@@ -298,30 +294,36 @@ const getOrderCalc = (item: Order) => {
           class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold bg-slate-200/60 w-4.5 h-4.5 rounded-full flex items-center justify-center cursor-pointer border-0"
           title="Xóa tìm kiếm"
         >
-          ✕
+          <CloseOutlined class="text-[10px]" />
         </button>
       </div>
 
       <button
         type="button"
         @click="handleSearch"
-        class="h-10 px-4 sm:px-5 rounded-xl bg-gradient-to-r from-[#ee4d2d] to-orange-500 hover:from-[#d83d1e] hover:to-orange-600 active:scale-95 text-white text-xs sm:text-sm font-black transition-all cursor-pointer shadow-sm shadow-orange-500/20 flex items-center justify-center shrink-0 border-0"
+        class="h-10.5 px-4 sm:px-5 rounded-xl bg-gradient-to-r from-[#ee4d2d] to-orange-500 hover:from-[#d83d1e] hover:to-orange-600 active:scale-95 text-white text-xs sm:text-sm font-black transition-all cursor-pointer shadow-sm shadow-orange-500/20 flex items-center justify-center shrink-0 border-0"
       >
         <span>Tìm kiếm</span>
       </button>
     </div>
 
-    <!-- Orders Cards List -->
-    <div
-      v-if="loading"
-      class="bg-white rounded-2xl p-12 text-center border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center gap-3"
-    >
+    <!-- Skeleton Loading Cards -->
+    <div v-if="loading" class="space-y-3 sm:space-y-4">
       <div
-        class="w-8 h-8 rounded-full border-3 border-orange-100 border-t-[#ee4d2d] animate-spin"
-      ></div>
-      <span class="text-xs font-bold text-slate-400"
-        >Đang tải danh sách đơn hàng...</span
+        v-for="n in 4"
+        :key="n"
+        class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-3 animate-pulse"
       >
+        <div class="flex items-start gap-3">
+          <div class="w-16 h-16 rounded-xl bg-slate-100 shrink-0"></div>
+          <div class="flex-1 space-y-2 pt-0.5">
+            <div class="h-4 bg-slate-100 rounded-md w-3/4"></div>
+            <div class="h-3 bg-slate-100 rounded-md w-1/3"></div>
+            <div class="h-3 bg-slate-100 rounded-md w-1/2"></div>
+          </div>
+        </div>
+        <div class="h-10 bg-slate-50 rounded-xl w-full"></div>
+      </div>
     </div>
 
     <div v-else-if="rows.length" class="space-y-3 sm:space-y-4">
@@ -335,7 +337,7 @@ const getOrderCalc = (item: Order) => {
         <div class="p-3.5 sm:p-4 flex items-start gap-3">
           <!-- Product Image -->
           <div
-            class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-1"
+            class="w-15 h-15 sm:w-16 sm:h-16 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-1"
           >
             <img
               v-if="item.imgCode"
@@ -355,21 +357,22 @@ const getOrderCalc = (item: Order) => {
           <div class="min-w-0 flex-1 space-y-1">
             <!-- Product Title -->
             <h3
-              class="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2 leading-tight m-0"
+              class="text-base sm:text-lg font-black text-slate-950 line-clamp-2 leading-snug m-0 tracking-tight"
+              style="font-weight: 900;"
             >
               {{ item.productName || "Sản phẩm Shopee" }}
             </h3>
 
-            <!-- Badges Row: Shopee + Status (NO status thanh toan per request) -->
+            <!-- Badges Row: Shopee + Status -->
             <div class="flex items-center gap-1.5 pt-0.5 flex-wrap">
               <span
-                class="px-2 py-0.5 rounded-md bg-[#ee4d2d] text-white font-extrabold text-[10px] leading-tight"
+                class="px-2 py-0.5 rounded-md bg-[#ee4d2d] text-white font-extrabold text-xs leading-tight"
               >
                 Shopee
               </span>
               <span
                 :class="[
-                  'px-2 py-0.5 rounded-md text-[10px] font-bold leading-tight',
+                  'px-2 py-0.5 rounded-md text-xs font-bold leading-tight',
                   getStatusBadge(item.orderStatus).class,
                 ]"
               >
@@ -378,9 +381,9 @@ const getOrderCalc = (item: Order) => {
             </div>
 
             <!-- Shop name & Price -->
-            <div class="text-[11px] text-slate-400 font-medium pt-0.5 truncate">
+            <div class="text-xs sm:text-sm text-slate-500 font-bold pt-0.5 truncate">
               {{ item.shopName || "shopee" }} ·
-              {{ formatMoney(item.purchaseValue) }}
+              <span class="text-slate-800 font-extrabold">{{ formatMoney(item.purchaseValue) }}</span>
             </div>
           </div>
         </div>
@@ -393,11 +396,11 @@ const getOrderCalc = (item: Order) => {
           <button
             type="button"
             @click="copyOrderId(item.orderId)"
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/80 text-slate-700 font-mono font-bold text-[11px] transition-colors cursor-pointer border-0"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/80 text-slate-700 font-mono font-bold text-xs transition-colors cursor-pointer border-0"
             title="Bấm để sao chép mã đơn"
           >
             <span>{{ item.orderId }}</span>
-            <CopyOutlined class="text-[11px] text-slate-400" />
+            <CopyOutlined class="text-xs text-slate-400" />
           </button>
 
           <!-- Order Date -->
@@ -413,7 +416,7 @@ const getOrderCalc = (item: Order) => {
           <!-- Col 1: HH ĐƠN -->
           <div class="space-y-0.5 px-1">
             <div
-              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+              class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
             >
               HH ĐƠN
             </div>
@@ -425,7 +428,7 @@ const getOrderCalc = (item: Order) => {
           <!-- Col 2: SAU THUẾ -->
           <div class="space-y-0.5 px-1">
             <div
-              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+              class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
             >
               SAU THUẾ
             </div>
@@ -437,7 +440,7 @@ const getOrderCalc = (item: Order) => {
           <!-- Col 3: % NHẬN -->
           <div class="space-y-0.5 px-1">
             <div
-              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+              class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
             >
               % NHẬN
             </div>
@@ -449,7 +452,7 @@ const getOrderCalc = (item: Order) => {
           <!-- Col 4: NHẬN VỀ -->
           <div class="space-y-0.5 px-1">
             <div
-              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+              class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
             >
               NHẬN VỀ
             </div>
@@ -498,12 +501,12 @@ const getOrderCalc = (item: Order) => {
             Đừng bỏ lỡ hoa hồng!
           </h3>
           <p
-            class="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xs mx-auto font-medium m-0"
+            class="text-sm sm:text-base text-slate-700 leading-relaxed max-w-sm mx-auto font-bold m-0"
           >
             Dán link Shopee vào trang
             <router-link
               to="/generate-link"
-              class="font-extrabold text-[#ee4d2d] hover:underline decoration-orange-400"
+              class="font-black text-[#ee4d2d] hover:underline decoration-orange-400"
               >Tạo link</router-link
             >
             để mua sắm và nhận hoa hồng hoàn tiền tự động nhé!

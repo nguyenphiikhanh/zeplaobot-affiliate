@@ -58,6 +58,7 @@ export const getOrdersListService = async (params: GetOrdersParams) => {
     user_name: users.name,
     user_tracking_code: users.trackingCode,
     type: linkGenerations.type,
+    img_code: orders.imgCode,
     is_paid: orders.isPaid,
     created_at: orders.createdAt,
   }).from(orders)
@@ -383,6 +384,7 @@ const runBackgroundSyncProcess = async (dates: string[], cookie: string) => {
 
           const totalPrice = items.reduce((sum: number, it: any) => sum + (Number(it.actual_amount) || 0), 0)
           const rawStatus = orderInfo.display_order_status
+          console.log(orderInfo);
           const orderStatus = SHOPEE_ORDER_STATUS[rawStatus] || 'Pending'
 
           const utmContent = item.utm_content || ''

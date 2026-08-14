@@ -17,9 +17,8 @@ type ProductInfo = {
   commission?: number;
   user_commission?: number;
   userCommission?: number;
+  userSharePercentage?: number;
   totalRatePercent?: number | string;
-  sold?: number | string;
-  sales?: number | string;
 };
 type ConvertResult = {
   originalLink: string;
@@ -44,35 +43,43 @@ function clearInput() {
 }
 
 const product = computed(() => result.value?.productInfo);
-const commission = computed(() => {
+
+const grossCommissionText = computed(() => {
   const value = Number(product.value?.commission);
   return Number.isFinite(value) && value > 0
-    ? `${new Intl.NumberFormat("vi-VN").format(value)}đ`
+    ? `${new Intl.NumberFormat("vi-VN").format(Math.round(value))}đ`
     : "Chưa xác định";
 });
-const commissionRate = computed(() => {
-  const value = String(product.value?.totalRatePercent ?? "")
-    .replace("%", "")
-    .trim();
-  return value && Number.isFinite(Number(value))
-    ? `${Number(value).toLocaleString("vi-VN")}%`
-    : "3-10%";
+
+const afterTaxText = computed(() => {
+  const value = Number(product.value?.commission);
+  return Number.isFinite(value) && value > 0
+    ? `${new Intl.NumberFormat("vi-VN").format(Math.round(value * 0.89))}đ`
+    : "Chưa xác định";
 });
-const userCommission = computed(() => {
+
+const shareRateText = computed(() => {
+  const rate = Number(product.value?.userSharePercentage ?? 80);
+  if (Number.isFinite(rate) && rate > 0 && product.value?.commission) {
+    return `${rate}%`;
+  }
+  return "Chưa xác định";
+});
+
+const userNetText = computed(() => {
   const userCommVal = Number(
     product.value?.user_commission ?? product.value?.userCommission
   );
   if (Number.isFinite(userCommVal) && userCommVal > 0) {
-    return `${new Intl.NumberFormat("vi-VN").format(userCommVal)}đ`;
+    return `${new Intl.NumberFormat("vi-VN").format(Math.round(userCommVal))}đ`;
   }
   const commVal = Number(product.value?.commission);
   if (Number.isFinite(commVal) && commVal > 0) {
-    const calculated = Math.round(commVal * 0.712);
+    const calculated = Math.round(commVal * 0.89 * 0.8);
     return `${new Intl.NumberFormat("vi-VN").format(calculated)}đ`;
   }
   return "Chưa xác định";
 });
-const sold = computed(() => product.value?.sold ?? product.value?.sales ?? 0);
 
 async function handlePaste() {
   try {
@@ -162,7 +169,7 @@ function openAffiliateLink() {
               v-model="inputLink"
               type="text"
               placeholder="🔗 Dán link sản phẩm Shopee..."
-              class="converter-link-input min-w-0 flex-1 border-0 bg-transparent py-2.5 pr-1 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none sm:text-base"
+              class="converter-link-input min-w-0 flex-1 border-0 bg-transparent py-2.5 pr-1 text-xs sm:text-base text-gray-800 placeholder:text-[12.5px] sm:placeholder:text-base focus:outline-none"
               @input="errorMessage = ''"
               @keydown.enter.prevent="handleConvert"
             />
@@ -191,7 +198,7 @@ function openAffiliateLink() {
             class="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#ff5733] px-6 py-3.5 text-base font-bold text-white shadow-md shadow-orange-500/20 transition hover:bg-[#e04725] active:scale-98 disabled:cursor-wait disabled:opacity-70 cursor-pointer"
             @click="handleConvert"
           >
-            <span class="text-white">Chuyển đổi link</span>
+            <span class="text-white">Tạo link hoàn tiền</span>
           </button>
         </div>
       </div>
@@ -290,60 +297,100 @@ function openAffiliateLink() {
             </div>
             <div class="min-w-0 flex-1">
               <div
-                class="line-clamp-2 text-sm font-bold leading-5 text-slate-800"
+                class="line-clamp-2 text-base sm:text-lg font-black leading-snug text-slate-950 tracking-tight"
+                style="font-weight: 900"
               >
                 {{ product?.productName || "Sản phẩm Shopee" }}
               </div>
-              <div class="mt-1.5 text-xs text-slate-400">
-                · {{ sold }} đã bán
-              </div>
             </div>
           </div>
-          <div class="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
-            <div
-              class="rounded-xl border border-slate-200 px-3 py-4 text-center"
-            >
-              <div class="text-lg font-black text-[#e85a43]">
-                {{ commission }}
+          <!-- 4-Column Financial Metric Grid (HH ĐƠN, SAU THUẾ, % NHẬN, NHẬN VỀ) -->
+          <div
+            class="mt-4 grid grid-cols-4 bg-[#f8fbfb] border border-slate-200/80 rounded-2xl divide-x divide-slate-100 text-center py-3 px-1"
+          >
+            <!-- Col 1: HH ĐƠN -->
+            <div class="space-y-1 px-1">
+              <div
+                class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >
+                HH ĐƠN
               </div>
-              <div class="mt-1 text-[10px] text-slate-400">Hoa hồng</div>
+              <div
+                class="text-xs sm:text-base font-extrabold text-slate-900 truncate"
+              >
+                {{ grossCommissionText }}
+              </div>
             </div>
-            <div
-              class="rounded-xl border border-slate-200 px-3 py-4 text-center"
-            >
-              <div class="text-lg font-black text-[#e85a43]">
-                {{ userCommission }}
+
+            <!-- Col 2: SAU THUẾ -->
+            <div class="space-y-1 px-1">
+              <div
+                class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >
+                SAU THUẾ
               </div>
-              <div class="mt-1 text-[10px] text-slate-400">
-                Bạn dự kiến nhận
+              <div
+                class="text-xs sm:text-base font-extrabold text-slate-900 truncate"
+              >
+                {{ afterTaxText }}
+              </div>
+            </div>
+
+            <!-- Col 3: % NHẬN -->
+            <div class="space-y-1 px-1">
+              <div
+                class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >
+                % NHẬN
+              </div>
+              <div
+                class="text-xs sm:text-base font-extrabold text-slate-900 truncate"
+              >
+                {{ shareRateText }}
+              </div>
+            </div>
+
+            <!-- Col 4: NHẬN VỀ -->
+            <div class="space-y-1 px-1">
+              <div
+                class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >
+                NHẬN VỀ
+              </div>
+              <div
+                class="text-xs sm:text-base font-black text-[#00b087] truncate"
+              >
+                {{ userNetText }}
               </div>
             </div>
           </div>
 
           <!-- Note disclaimer above action buttons -->
           <p
-            class="mt-3 text-[11px] sm:text-xs text-slate-400 text-center leading-relaxed font-medium"
+            class="mt-3 text-xs sm:text-sm text-slate-500 text-center leading-relaxed font-semibold"
           >
-            * Thông tin hoa hồng ước tính(đã trừ thuế trước khi hoàn cho bạn),
-            hoa hồng thực tế do sàn ghi nhận.
+            * Thông tin hoa hồng chỉ là ước tính (đã trừ thuế trước khi hoàn cho
+            bạn), hoa hồng thực tế do sàn ghi nhận.
           </p>
 
-          <div class="mt-3 grid grid-cols-2 gap-2">
+          <div class="mt-3.5 grid grid-cols-2 gap-2">
             <button
               type="button"
-              class="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+              class="flex h-10 sm:h-11 items-center justify-center gap-1 px-1.5 sm:px-3 rounded-xl bg-slate-100 text-[11px] sm:text-xs font-extrabold text-slate-700 transition hover:bg-slate-200 cursor-pointer whitespace-nowrap overflow-hidden"
               @click="copyLink"
             >
-              <component :is="copied ? CheckOutlined : CopyOutlined" /><span>{{
-                copied ? "Đã sao chép" : "Copy link"
+              <component :is="copied ? CheckOutlined : CopyOutlined" class="text-xs shrink-0" />
+              <span class="whitespace-nowrap truncate">{{
+                copied ? "Đã sao chép" : "Sao chép link"
               }}</span>
             </button>
             <button
               type="button"
-              class="buy-now-button flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-bold transition"
+              class="buy-now-button flex h-10 sm:h-11 items-center justify-center gap-1 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-extrabold transition cursor-pointer whitespace-nowrap overflow-hidden"
               @click="openAffiliateLink"
             >
-              <ShoppingCartOutlined /><span>Mua ngay</span>
+              <ShoppingCartOutlined class="text-xs shrink-0" />
+              <span class="whitespace-nowrap truncate">Mua với Shopee</span>
             </button>
           </div>
         </div>
@@ -365,20 +412,20 @@ function openAffiliateLink() {
 
 .buy-now-button {
   border: 0;
-  background: #e85a4f;
-  color: #fff;
-  box-shadow: 0 6px 14px rgb(232 90 79 / 20%);
+  background: linear-gradient(135deg, #ee4d2d 0%, #ff5722 100%);
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(238, 77, 45, 0.25);
 }
 
 .buy-now-button:hover {
-  background: #d94a40;
-  color: #fff;
+  background: linear-gradient(135deg, #d83d1e 0%, #f04814 100%);
+  color: #ffffff !important;
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgb(232 90 79 / 28%);
+  box-shadow: 0 8px 20px rgba(238, 77, 45, 0.35);
 }
 
 .buy-now-button :deep(.anticon),
 .buy-now-button span {
-  color: #fff;
+  color: #ffffff !important;
 }
 </style>

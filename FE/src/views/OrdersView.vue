@@ -13,6 +13,7 @@ import {
   SyncOutlined,
   UploadOutlined,
   UserOutlined,
+  CopyOutlined,
 } from "@ant-design/icons-vue";
 import { api, type ApiResponse } from "../services/api";
 
@@ -31,6 +32,8 @@ interface OrderItem {
   user_name?: string | null;
   user_tracking_code?: string | null;
   type?: number | null;
+  img_code?: string | null;
+  imgCode?: string | null;
 }
 
 type CsvRow = Record<string, string | null>;
@@ -329,6 +332,50 @@ const getStatusLabel = (status?: string | null) => {
 const formatMoney = (value?: number | null) =>
   `${Math.round(Number(value) || 0).toLocaleString("vi-VN")}đ`;
 
+const getAdminOrderCalc = (order: OrderItem) => {
+  const actualComm = Number(order.actual_commission) || 0;
+  const userComm = Number(order.user_commission) || 0;
+  const afterTax = Math.round(actualComm * 0.89);
+
+  const grossProfit = actualComm - userComm;
+  const netProfit = afterTax - userComm;
+  const marginPercent =
+    actualComm > 0 ? Math.round((netProfit / actualComm) * 100) : 0;
+
+  return {
+    actualComm,
+    afterTax,
+    userComm,
+    grossProfit,
+    netProfit,
+    marginPercent,
+  };
+};
+
+const copyText = (text?: string | null, label = "nội dung") => {
+  if (!text) return;
+  navigator.clipboard.writeText(text);
+  message.success(`Đã sao chép ${label}: ${text}`);
+};
+
+const getAdminStatusBadge = (status?: string | null) => {
+  const st = (status || "").toLowerCase();
+  if (st === "completed" || st === "hoàn thành" || st === "success")
+    return {
+      label: "Hoàn thành",
+      class: "bg-[#e6f7f3] text-[#00b087] border border-[#b2ebe0]/50",
+    };
+  if (st === "cancelled" || st === "đã hủy" || st === "invalid")
+    return {
+      label: "Đã hủy",
+      class: "bg-rose-50 text-rose-600 border border-rose-200/50",
+    };
+  return {
+    label: "Chờ duyệt",
+    class: "bg-amber-50 text-amber-600 border border-amber-200/50",
+  };
+};
+
 const triggerFileInput = () => fileInput.value?.click();
 const chooseFile = (file?: File) => {
   if (!file) return;
@@ -583,7 +630,8 @@ const confirmUpload = async () => {
           v-if="isFilterExpanded"
           class="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100 border-dashed"
         >
-          <span class="text-xs font-semibold text-slate-500 uppercase w-full sm:w-auto"
+          <span
+            class="text-xs font-semibold text-slate-500 uppercase w-full sm:w-auto"
             >Tìm theo Order ID:</span
           >
           <!-- Unified Order ID Search Pill -->
@@ -618,7 +666,8 @@ const confirmUpload = async () => {
             </button>
           </div>
 
-          <span class="text-xs font-semibold text-slate-500 uppercase w-full sm:w-auto"
+          <span
+            class="text-xs font-semibold text-slate-500 uppercase w-full sm:w-auto"
             >Người dùng:</span
           >
           <button
@@ -676,14 +725,34 @@ const confirmUpload = async () => {
               >Không rõ</span
             ></template
           >
-          <template v-else-if="column.key === 'product_name'"
-            ><div
-              class="font-semibold text-slate-700 text-[13px] truncate max-w-[200px]"
-              :title="record.product_name"
-            >
-              {{ record.product_name || "Sản phẩm từ Shopee" }}
-            </div></template
-          >
+          <template v-else-if="column.key === 'product_name'">
+            <div class="flex items-center gap-2.5">
+              <div
+                class="w-9 h-9 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-0.5"
+              >
+                <img
+                  v-if="record.img_code || record.imgCode"
+                  :src="`https://down-tx-vn.img.susercontent.com/${
+                    record.img_code || record.imgCode
+                  }.webp`"
+                  :alt="record.product_name || 'Shopee'"
+                  class="w-full h-full object-cover rounded-md"
+                />
+                <img
+                  v-else
+                  src="/logo/shopee.png"
+                  alt="Shopee"
+                  class="w-full h-full object-contain p-0.5"
+                />
+              </div>
+              <div
+                class="font-semibold text-slate-700 text-[13px] truncate max-w-[180px]"
+                :title="record.product_name"
+              >
+                {{ record.product_name || "Sản phẩm từ Shopee" }}
+              </div>
+            </div>
+          </template>
           <template v-else-if="column.key === 'order_time'"
             ><span class="text-xs text-slate-500">{{
               record.order_time
@@ -801,26 +870,232 @@ const confirmUpload = async () => {
       </div>
     </a-modal>
 
+    <!-- Admin Order Detail Drawer (Enhanced with Profit Calculation & User Card Style) -->
     <a-drawer
       :open="!!selectedOrder"
       placement="right"
-      width="450"
-      title="Chi tiết đơn hàng"
+      width="460"
+      title="Chi tiết đơn hàng (Admin)"
       @close="selectedOrder = null"
-      ><div v-if="selectedOrder" class="space-y-4 text-sm">
-        <p>
-          <b>#{{ selectedOrder.order_id }}</b>
-        </p>
-        <p>Shop: {{ selectedOrder.shop_name || "N/A" }}</p>
-        <p>Sản phẩm: {{ selectedOrder.product_name || "N/A" }}</p>
-        <p>Sub ID: {{ selectedOrder.sub_id || "N/A" }}</p>
-        <p>Giá trị đơn: {{ formatMoney(selectedOrder.purchase_value) }}</p>
-        <p>Hoa hồng Sàn: {{ formatMoney(selectedOrder.actual_commission) }}</p>
-        <p class="text-emerald-600 font-bold">
-          Hoa hồng User: {{ formatMoney(selectedOrder.user_commission) }}
-        </p>
-      </div></a-drawer
     >
+      <div v-if="selectedOrder" class="space-y-4 text-left font-sans">
+        <!-- 1. Header Profit Spotlight Banner -->
+        <div
+          class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-4 sm:p-5 text-white shadow-md border border-slate-700/60 space-y-3"
+        >
+          <!-- Background decorative glow -->
+          <div
+            class="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"
+          ></div>
+
+          <div class="flex items-center justify-between gap-2 relative z-10">
+            <div class="space-y-0.5">
+              <span
+                class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider"
+                >LỢI NHUẬN ADMIN (RÒNG)</span
+              >
+              <div
+                class="text-2xl sm:text-3xl font-black text-[#00b087] tracking-tight"
+              >
+                +{{ formatMoney(getAdminOrderCalc(selectedOrder).netProfit) }}
+              </div>
+            </div>
+
+            <span
+              :class="[
+                'px-2.5 py-1 rounded-full text-xs font-extrabold shrink-0',
+                getAdminStatusBadge(selectedOrder.order_status).class,
+              ]"
+            >
+              {{ getAdminStatusBadge(selectedOrder.order_status).label }}
+            </span>
+          </div>
+
+          <div
+            class="pt-2 border-t border-slate-700/60 grid grid-cols-2 gap-2 text-xs relative z-10"
+          >
+            <div>
+              <span class="text-slate-400 text-[11px] block"
+                >Lợi nhuận thô (Trước thuế):</span
+              >
+              <strong class="text-slate-200 font-bold"
+                >+{{
+                  formatMoney(getAdminOrderCalc(selectedOrder).grossProfit)
+                }}</strong
+              >
+            </div>
+            <div>
+              <span class="text-slate-400 text-[11px] block"
+                >Tỷ lệ giữ lại (Margin):</span
+              >
+              <strong class="text-emerald-400 font-bold"
+                >{{ getAdminOrderCalc(selectedOrder).marginPercent }}%</strong
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Order ID & Date Pill Card -->
+        <div
+          class="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-2xs space-y-2"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] font-bold uppercase text-slate-400"
+              >Mã đơn hàng Shopee</span
+            >
+            <span
+              class="text-xs text-slate-400 font-medium"
+              v-if="selectedOrder.order_time"
+            >
+              {{ new Date(selectedOrder.order_time).toLocaleString("vi-VN") }}
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              @click="copyText(selectedOrder.order_id, 'mã đơn')"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-900 font-mono font-bold text-xs transition-colors cursor-pointer border-0"
+              title="Bấm để sao chép mã đơn"
+            >
+              <span>#{{ selectedOrder.order_id }}</span>
+              <CopyOutlined class="text-xs text-slate-400" />
+            </button>
+
+            <span
+              v-if="selectedOrder.sub_id"
+              class="text-[11px] font-mono text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg"
+            >
+              SubID: {{ selectedOrder.sub_id }}
+            </span>
+          </div>
+        </div>
+
+        <!-- 3. Buyer / User Info Card -->
+        <div
+          class="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-2xs space-y-2"
+        >
+          <div class="text-[10px] font-bold uppercase text-slate-400">
+            Thông tin người mua hàng
+          </div>
+
+          <div class="flex items-center gap-3 pt-0.5">
+            <div
+              class="w-10 h-10 rounded-full bg-orange-100 text-[#ee4d2d] font-black text-sm flex items-center justify-center shrink-0 border border-orange-200"
+            >
+              {{ (selectedOrder.user_name || "U").charAt(0).toUpperCase() }}
+            </div>
+            <div class="min-w-0 flex-1 space-y-0.5">
+              <div class="text-xs font-bold text-slate-900 truncate">
+                {{ selectedOrder.user_name || "Người dùng Zalo" }}
+              </div>
+              <div
+                class="text-[11px] text-slate-400 font-mono flex items-center gap-2 truncate"
+              >
+                <span>UID: {{ selectedOrder.user_id || "N/A" }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Product Details Card -->
+        <div
+          class="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-2xs space-y-2.5"
+        >
+          <div class="text-[10px] font-bold uppercase text-slate-400">
+            Sản phẩm mua sắm
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div
+              class="w-14 h-14 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-1"
+            >
+              <img
+                v-if="selectedOrder.img_code || selectedOrder.imgCode"
+                :src="`https://down-tx-vn.img.susercontent.com/${
+                  selectedOrder.img_code || selectedOrder.imgCode
+                }.webp`"
+                :alt="selectedOrder.product_name || 'Shopee'"
+                class="w-full h-full object-cover rounded-lg"
+              />
+              <img
+                v-else
+                src="/logo/shopee.png"
+                alt="Shopee"
+                class="w-full h-full object-contain p-0.5"
+              />
+            </div>
+
+            <div class="min-w-0 flex-1 space-y-1">
+              <h4
+                class="text-xs font-bold text-slate-900 line-clamp-2 leading-snug m-0"
+              >
+                {{ selectedOrder.product_name || "Sản phẩm Shopee" }}
+              </h4>
+              <div class="text-[11px] text-slate-400 font-medium">
+                Shop: {{ selectedOrder.shop_name || "Shopee" }}
+              </div>
+              <div class="text-xs font-black text-slate-800">
+                Giá trị đơn: {{ formatMoney(selectedOrder.purchase_value) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Financial Breakdown Grid -->
+        <div
+          class="bg-white border border-slate-200/80 rounded-2xl shadow-2xs overflow-hidden space-y-0"
+        >
+          <div
+            class="p-3 bg-slate-50 border-b border-slate-100 text-[10px] font-bold uppercase text-slate-400"
+          >
+            Chi tiết phân bổ tài chính
+          </div>
+
+          <div class="divide-y divide-slate-100 text-xs">
+            <div class="p-3 flex items-center justify-between">
+              <span class="text-slate-500 font-medium"
+                >1. Hoa hồng Sàn (Shopee):</span
+              >
+              <strong class="text-slate-900 font-extrabold">{{
+                formatMoney(getAdminOrderCalc(selectedOrder).actualComm)
+              }}</strong>
+            </div>
+
+            <div class="p-3 flex items-center justify-between">
+              <span class="text-slate-500 font-medium"
+                >2. Ước tính Sau Thuế (~89%):</span
+              >
+              <strong class="text-slate-800 font-bold">{{
+                formatMoney(getAdminOrderCalc(selectedOrder).afterTax)
+              }}</strong>
+            </div>
+
+            <div class="p-3 flex items-center justify-between">
+              <span class="text-slate-500 font-medium"
+                >3. Hoa hồng trả User:</span
+              >
+              <strong class="text-rose-500 font-extrabold"
+                >-{{
+                  formatMoney(getAdminOrderCalc(selectedOrder).userComm)
+                }}</strong
+              >
+            </div>
+
+            <div class="p-3 bg-emerald-50/60 flex items-center justify-between">
+              <span class="text-emerald-800 font-bold"
+                >➔ Lợi nhuận ròng Admin:</span
+              >
+              <strong class="text-[#00b087] font-black text-sm"
+                >+{{
+                  formatMoney(getAdminOrderCalc(selectedOrder).netProfit)
+                }}</strong
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </a-drawer>
 
     <!-- User Selection Modal -->
     <a-modal
