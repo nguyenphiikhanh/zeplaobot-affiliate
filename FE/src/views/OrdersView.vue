@@ -892,7 +892,7 @@ const confirmUpload = async () => {
             <div class="space-y-0.5">
               <span
                 class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider"
-                >LỢI NHUẬN ADMIN (RÒNG)</span
+                >LỢI NHUẬN</span
               >
               <div
                 class="text-2xl sm:text-3xl font-black text-[#00b087] tracking-tight"
@@ -915,22 +915,10 @@ const confirmUpload = async () => {
             class="pt-2 border-t border-slate-700/60 grid grid-cols-2 gap-2 text-xs relative z-10"
           >
             <div>
-              <span class="text-slate-400 text-[11px] block"
-                >Lợi nhuận thô (Trước thuế):</span
-              >
-              <strong class="text-slate-200 font-bold"
-                >+{{
-                  formatMoney(getAdminOrderCalc(selectedOrder).grossProfit)
-                }}</strong
-              >
-            </div>
-            <div>
-              <span class="text-slate-400 text-[11px] block"
-                >Tỷ lệ giữ lại (Margin):</span
-              >
-              <strong class="text-emerald-400 font-bold"
-                >{{ getAdminOrderCalc(selectedOrder).marginPercent }}%</strong
-              >
+              <span class="text-slate-400 text-[11px] block">Trước thuế:</span>
+              <strong class="text-slate-200 font-bold">{{
+                formatMoney(getAdminOrderCalc(selectedOrder).grossProfit)
+              }}</strong>
             </div>
           </div>
         </div>
@@ -1054,9 +1042,7 @@ const confirmUpload = async () => {
 
           <div class="divide-y divide-slate-100 text-xs">
             <div class="p-3 flex items-center justify-between">
-              <span class="text-slate-500 font-medium"
-                >1. Hoa hồng Sàn (Shopee):</span
-              >
+              <span class="text-slate-500 font-medium">1. Hoa hồng Sàn:</span>
               <strong class="text-slate-900 font-extrabold">{{
                 formatMoney(getAdminOrderCalc(selectedOrder).actualComm)
               }}</strong>
@@ -1064,7 +1050,7 @@ const confirmUpload = async () => {
 
             <div class="p-3 flex items-center justify-between">
               <span class="text-slate-500 font-medium"
-                >2. Ước tính Sau Thuế (~89%):</span
+                >2. Hoa hồng Sau Thuế (89%):</span
               >
               <strong class="text-slate-800 font-bold">{{
                 formatMoney(getAdminOrderCalc(selectedOrder).afterTax)
@@ -1075,22 +1061,16 @@ const confirmUpload = async () => {
               <span class="text-slate-500 font-medium"
                 >3. Hoa hồng trả User:</span
               >
-              <strong class="text-rose-500 font-extrabold"
-                >-{{
-                  formatMoney(getAdminOrderCalc(selectedOrder).userComm)
-                }}</strong
-              >
+              <strong class="text-rose-500 font-extrabold">{{
+                formatMoney(getAdminOrderCalc(selectedOrder).userComm)
+              }}</strong>
             </div>
 
             <div class="p-3 bg-emerald-50/60 flex items-center justify-between">
-              <span class="text-emerald-800 font-bold"
-                >➔ Lợi nhuận ròng Admin:</span
-              >
-              <strong class="text-[#00b087] font-black text-sm"
-                >+{{
-                  formatMoney(getAdminOrderCalc(selectedOrder).netProfit)
-                }}</strong
-              >
+              <span class="text-emerald-800 font-bold">➔ Lợi nhuận:</span>
+              <strong class="text-[#00b087] font-black text-sm">{{
+                formatMoney(getAdminOrderCalc(selectedOrder).netProfit)
+              }}</strong>
             </div>
           </div>
         </div>
