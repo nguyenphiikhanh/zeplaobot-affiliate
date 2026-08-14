@@ -30,8 +30,8 @@ const {
         <span>1. ID Nhóm Zalo bot hoạt động</span>
       </h4>
       <p class="mt-1 mb-0 text-xs text-slate-500">
-        Khai báo danh sách ID nhóm Zalo để bot thực hiện chuyển đổi link và
-        phản hồi tin nhắn.
+        Khai báo danh sách ID nhóm Zalo để bot thực hiện chuyển đổi link và phản
+        hồi tin nhắn.
       </p>
     </div>
 
@@ -40,11 +40,15 @@ const {
       class="bg-amber-50/80 border border-amber-200/90 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2.5"
     >
       <InfoCircleOutlined class="text-amber-600 text-sm shrink-0 mt-0.5" />
-      <p class="m-0 leading-relaxed font-medium">
-        <strong>*Note:</strong> Vui lòng thêm tài khoản Bot vào nhóm Zalo
-        trước khi nhập ID nhóm bên dưới để đảm bảo bot có đủ quyền đọc và
-        phản hồi tin nhắn.
-      </p>
+      <div class="space-y-1 leading-relaxed font-medium">
+        <p class="m-0">
+          * Thêm tài khoản Bot vào nhóm Zalo trước khi nhập ID nhóm bên dưới để
+          đảm bảo bot có đủ quyền đọc và phản hồi tin nhắn.
+        </p>
+        <p class="m-0 text-amber-800">
+          * Mở <b>nhận tin nhắn từ người lạ</b> với tài khoản bot.
+        </p>
+      </div>
     </div>
 
     <!-- Dynamic Group ID Inputs List -->
@@ -108,7 +112,7 @@ const {
         @click="saveGroupIds"
         :disabled="savingGroups"
         type="button"
-        class="bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-70"
+        class="bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all disabled:opacity-70 w-full sm:w-auto"
       >
         <ReloadOutlined
           :spin="savingGroups"

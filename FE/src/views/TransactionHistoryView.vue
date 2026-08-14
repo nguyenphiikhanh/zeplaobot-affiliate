@@ -6,6 +6,10 @@ import {
   SearchOutlined,
   UserOutlined,
   WalletOutlined,
+  ClockCircleOutlined,
+  BankOutlined,
+  CheckCircleOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons-vue";
 import { api, type ApiResponse } from "../services/api";
 type User = { id: string; name: string | null; image: string | null };
@@ -134,11 +138,20 @@ const openUserModal = async () => {
 </script>
 <template>
   <div class="flex flex-col gap-6 pb-12">
-    <div>
-      <h2 class="text-lg font-bold text-slate-800">Lịch sử giao dịch</h2>
-      <p class="mt-1 text-[13px] text-slate-500">
-        Theo dõi giao dịch hoa hồng và rút tiền của người dùng.
-      </p>
+    <div
+      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs"
+    >
+      <div class="space-y-1 text-left">
+        <div
+          class="flex items-center gap-2 text-slate-800 font-extrabold text-base sm:text-xl tracking-tight"
+        >
+          <HistoryOutlined class="text-[#ee4d2d]" />
+          <h2 class="text-base sm:text-xl font-bold text-slate-800 tracking-tight">Lịch sử giao dịch</h2>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-500">
+          Theo dõi giao dịch hoa hồng và rút tiền của người dùng.
+        </p>
+      </div>
     </div>
     <a-card :bordered="false" class="!rounded-2xl"
       ><div
@@ -188,32 +201,91 @@ const openUserModal = async () => {
       </div></a-card
     >
     <template v-if="userId">
+      <!-- Top Stats Cards -->
       <div
         class="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
       >
+        <!-- Card 1: Số dư khả dụng -->
         <div
-          v-for="card in [
-            { l: 'Số dư khả dụng', v: money(overview?.available_balance || 0) },
-            { l: 'Đang chờ rút', v: money(overview?.pending_balance || 0) },
-            { l: 'Đã rút', v: money(overview?.total_paid || 0) },
-            { l: 'Đơn hoàn thành', v: String(overview?.completed_orders || 0) },
-          ]"
-          :key="card.l"
-          class="rounded-2xl bg-white p-4 sm:p-5 shadow-sm"
+          class="rounded-2xl bg-gradient-to-br from-emerald-50/90 via-white to-emerald-50/40 p-4 sm:p-5 border border-emerald-100/90 shadow-2xs relative overflow-hidden space-y-2"
         >
-          <a-skeleton-button
-            v-if="loading && !overview"
-            active
-            block
-          /><template v-else
-            ><WalletOutlined class="mb-3 text-xl !text-[#ee4d2d]" />
-            <div class="text-xs font-semibold text-slate-500">{{ card.l }}</div>
-            <div class="mt-1 text-xl font-black text-slate-800">
-              {{ card.v }}
-            </div></template
-          >
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-emerald-600/90 uppercase tracking-wider"
+              >Số dư khả dụng</span
+            >
+            <div
+              class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-xs shrink-0"
+            >
+              <WalletOutlined class="text-base" />
+            </div>
+          </div>
+          <a-skeleton-button v-if="loading && !overview" active block />
+          <div v-else class="text-2xl font-black text-emerald-600 tracking-tight">
+            {{ money(overview?.available_balance || 0) }}
+          </div>
+        </div>
+
+        <!-- Card 2: Đang chờ rút -->
+        <div
+          class="rounded-2xl bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 p-4 sm:p-5 border border-amber-100/90 shadow-2xs relative overflow-hidden space-y-2"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-amber-600/90 uppercase tracking-wider"
+              >Đang chờ rút</span
+            >
+            <div
+              class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0"
+            >
+              <ClockCircleOutlined class="text-base" />
+            </div>
+          </div>
+          <a-skeleton-button v-if="loading && !overview" active block />
+          <div v-else class="text-2xl font-black text-amber-600 tracking-tight">
+            {{ money(overview?.pending_balance || 0) }}
+          </div>
+        </div>
+
+        <!-- Card 3: Đã rút -->
+        <div
+          class="rounded-2xl bg-gradient-to-br from-blue-50/90 via-white to-blue-50/40 p-4 sm:p-5 border border-blue-100/90 shadow-2xs relative overflow-hidden space-y-2"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-blue-600/90 uppercase tracking-wider"
+              >Đã rút</span
+            >
+            <div
+              class="w-9 h-9 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-xs shrink-0"
+            >
+              <BankOutlined class="text-base" />
+            </div>
+          </div>
+          <a-skeleton-button v-if="loading && !overview" active block />
+          <div v-else class="text-2xl font-black text-blue-600 tracking-tight">
+            {{ money(overview?.total_paid || 0) }}
+          </div>
+        </div>
+
+        <!-- Card 4: Đơn hoàn thành -->
+        <div
+          class="rounded-2xl bg-gradient-to-br from-purple-50/90 via-white to-purple-50/40 p-4 sm:p-5 border border-purple-100/90 shadow-2xs relative overflow-hidden space-y-2"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-purple-600/90 uppercase tracking-wider"
+              >Đơn hoàn thành</span
+            >
+            <div
+              class="w-9 h-9 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-xs shrink-0"
+            >
+              <CheckCircleOutlined class="text-base" />
+            </div>
+          </div>
+          <a-skeleton-button v-if="loading && !overview" active block />
+          <div v-else class="text-2xl font-black text-purple-600 tracking-tight">
+            {{ overview?.completed_orders || 0 }} đơn
+          </div>
         </div>
       </div>
+
       <a-card
         :bordered="false"
         :body-style="{ padding: 0 }"
@@ -223,7 +295,7 @@ const openUserModal = async () => {
           class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 p-3 sm:p-4"
         >
           <div
-            class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto"
+            class="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 w-full sm:w-auto"
           >
             <a-select
               v-model:value="type"
@@ -246,55 +318,155 @@ const openUserModal = async () => {
             />
           </div>
         </div>
-        <a-table
-          :columns="columns"
-          :data-source="rows"
-          :loading="loading"
-          :pagination="false"
-          row-key="id"
-          :scroll="{ x: 900 }"
-          ><template #bodyCell="{ column, record }"
-            ><template v-if="column.key === 'time'"
-              ><b class="text-xs">{{
-                new Date(record.created_at).toLocaleDateString("vi-VN")
-              }}</b>
-              <div class="text-[10px] text-slate-400">
-                {{ new Date(record.created_at).toLocaleTimeString("vi-VN") }}
-              </div></template
-            ><template v-else-if="column.key === 'content'"
-              ><div class="text-xs font-bold">
-                {{ record.reference_id || "#" + record.id }}
+
+        <!-- ============================================== -->
+        <!-- MOBILE CARD LIST (< md)                        -->
+        <!-- ============================================== -->
+        <div class="md:hidden p-3 space-y-3 bg-slate-50/50">
+          <!-- Skeleton loading -->
+          <div v-if="loading && !rows.length" class="space-y-3">
+            <div
+              v-for="n in 3"
+              :key="n"
+              class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-3 animate-pulse"
+            >
+              <div class="flex items-center justify-between">
+                <div class="h-4 bg-slate-100 rounded-md w-1/3"></div>
+                <div class="h-4 bg-slate-100 rounded-md w-1/4"></div>
               </div>
-              <div class="mt-1 text-[11px] text-slate-500">
-                {{ record.description || "Không có mô tả" }}
-              </div></template
-            ><template v-else-if="column.key === 'type'"
-              ><span
-                class="rounded-full px-2.5 py-1 text-xs font-bold"
-                :class="
+              <div class="h-10 bg-slate-50 rounded-xl w-full"></div>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div
+            v-else-if="!rows.length"
+            class="p-8 text-center bg-white rounded-2xl border border-slate-100"
+          >
+            <p class="text-xs font-bold text-slate-400">Không tìm thấy giao dịch nào</p>
+          </div>
+
+          <!-- Card Item -->
+          <div
+            v-else
+            v-for="record in rows"
+            :key="record.id"
+            class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 space-y-2.5"
+          >
+            <!-- Top Bar: Ref ID (Left) & Type Badge (Right) -->
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100/80">
+              <span class="text-xs font-mono font-bold text-slate-800 truncate">
+                {{ record.reference_id || "#" + record.id }}
+              </span>
+              <span
+                :class="[
+                  'px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shrink-0',
                   record.type === 'commission'
-                    ? 'bg-orange-50 text-[#ee4d2d]'
-                    : 'bg-blue-50 text-blue-600'
-                "
-                >{{
-                  record.type === "commission" ? "Hoa hồng" : "Rút tiền"
-                }}</span
-              ></template
-            ><template v-else-if="column.key === 'amount'"
-              ><b
-                :class="
-                  record.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                "
-                >{{ record.amount >= 0 ? "+" : "-"
-                }}{{ money(record.amount) }}</b
-              ></template
-            ><template v-else-if="column.key === 'status'"
-              ><span class="text-xs font-bold">{{
-                statusMap[record.status] || record.status
-              }}</span></template
-            ></template
-          ></a-table
-        >
+                    ? 'bg-orange-50 text-[#ee4d2d] border border-orange-200/80'
+                    : 'bg-blue-50 text-blue-600 border border-blue-200/80',
+                ]"
+              >
+                {{ record.type === "commission" ? "Hoa hồng" : "Rút tiền" }}
+              </span>
+            </div>
+
+            <!-- Middle Box: Description & Amount -->
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-xs text-slate-500 line-clamp-2 leading-relaxed min-w-0 flex-1">
+                {{ record.description || "Không có mô tả" }}
+              </div>
+              <div class="text-right shrink-0">
+                <span
+                  :class="[
+                    'text-base font-black tracking-tight',
+                    record.amount >= 0 ? 'text-emerald-600' : 'text-rose-600',
+                  ]"
+                >
+                  {{ record.amount >= 0 ? "+" : "-" }}{{ money(record.amount) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Bottom Row: Date & Status -->
+            <div class="flex items-center justify-between pt-1.5 border-t border-slate-100/80 text-[11px]">
+              <span class="text-slate-400 font-medium">
+                {{ new Date(record.created_at).toLocaleDateString("vi-VN") }} {{ new Date(record.created_at).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }) }}
+              </span>
+              <span
+                :class="[
+                  'font-bold',
+                  record.status === 'pending'
+                    ? 'text-amber-600'
+                    : record.status === 'success'
+                    ? 'text-emerald-600'
+                    : 'text-rose-600',
+                ]"
+              >
+                {{ statusMap[record.status] || record.status }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- DESKTOP TABLE VIEW (>= md)                     -->
+        <!-- ============================================== -->
+        <div class="hidden md:block">
+          <a-table
+            :columns="columns"
+            :data-source="rows"
+            :loading="loading"
+            :pagination="false"
+            row-key="id"
+            :scroll="{ x: 900 }"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'time'">
+                <b class="text-xs">{{
+                  new Date(record.created_at).toLocaleDateString("vi-VN")
+                }}</b>
+                <div class="text-[10px] text-slate-400">
+                  {{ new Date(record.created_at).toLocaleTimeString("vi-VN") }}
+                </div>
+              </template>
+              <template v-else-if="column.key === 'content'">
+                <div class="text-xs font-bold">
+                  {{ record.reference_id || "#" + record.id }}
+                </div>
+                <div class="mt-1 text-[11px] text-slate-500">
+                  {{ record.description || "Không có mô tả" }}
+                </div>
+              </template>
+              <template v-else-if="column.key === 'type'">
+                <span
+                  class="rounded-full px-2.5 py-1 text-xs font-bold"
+                  :class="
+                    record.type === 'commission'
+                      ? 'bg-orange-50 text-[#ee4d2d]'
+                      : 'bg-blue-50 text-blue-600'
+                  "
+                >
+                  {{ record.type === "commission" ? "Hoa hồng" : "Rút tiền" }}
+                </span>
+              </template>
+              <template v-else-if="column.key === 'amount'">
+                <b
+                  :class="
+                    record.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                  "
+                >
+                  {{ record.amount >= 0 ? "+" : "-" }}{{ money(record.amount) }}
+                </b>
+              </template>
+              <template v-else-if="column.key === 'status'">
+                <span class="text-xs font-bold">{{
+                  statusMap[record.status] || record.status
+                }}</span>
+              </template>
+            </template>
+          </a-table>
+        </div>
+
         <div
           class="flex justify-center sm:justify-end border-t border-slate-100 p-4"
         >
@@ -303,8 +475,9 @@ const openUserModal = async () => {
             :total="total"
             :page-size="limit"
             @change="(p:number)=>{page=p;fetchData()}"
-          /></div
-      ></a-card>
+          />
+        </div>
+      </a-card>
     </template>
     <a-modal
       v-model:open="showUserModal"

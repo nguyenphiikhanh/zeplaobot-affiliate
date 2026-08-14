@@ -66,12 +66,12 @@ const {
         </div>
       </div>
 
-      <div class="flex items-center gap-2 self-start sm:self-auto">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
         <button
           v-if="!botStatus.connected"
           type="button"
           :disabled="startingQrLogin"
-          class="h-9 px-4 rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-sm shadow-orange-500/20 cursor-pointer disabled:opacity-60"
+          class="h-9 px-4 rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-sm shadow-orange-500/20 cursor-pointer disabled:opacity-60 w-full sm:w-auto"
           @click="startQrLogin"
         >
           <ReloadOutlined v-if="startingQrLogin" spin class="!text-white" />
@@ -81,11 +81,11 @@ const {
         <button
           type="button"
           :disabled="checkingBotStatus"
-          class="h-9 px-3 rounded-xl border border-slate-200 text-slate-500 hover:text-[#ee4d2d] hover:border-orange-200 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+          class="h-9 px-3.5 rounded-xl border border-slate-200 text-slate-600 hover:text-[#ee4d2d] hover:border-orange-200 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 w-full sm:w-auto"
           @click="checkBotStatus()"
         >
           <ReloadOutlined :spin="checkingBotStatus" />
-          <span>Kiểm tra</span>
+          <span>Kiểm tra trạng thái</span>
         </button>
       </div>
     </div>

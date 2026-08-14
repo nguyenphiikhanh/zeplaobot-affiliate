@@ -4,6 +4,7 @@ import {
   MessageOutlined,
   SettingOutlined,
   TeamOutlined,
+  RobotOutlined,
 } from "@ant-design/icons-vue";
 import { useZaloConfig } from "../composables/useZaloConfig";
 
@@ -22,18 +23,24 @@ const {
 </script>
 
 <template>
-  <section class="max-w-4xl mx-auto space-y-6 text-left">
+  <section class="max-w-4xl mx-auto space-y-6 text-left pb-12">
     <!-- Page Header -->
-    <div class="border-b border-slate-200 dark:border-slate-800 pb-5 text-left">
-      <h3
-        class="m-0 text-lg font-black text-slate-900 dark:text-white flex items-center gap-2"
-      >
-        <SettingOutlined class="text-[#ee4d2d]" />
-        <span>Cấu hình Zalo Bot & Lệnh Chat</span>
-      </h3>
-      <p class="mt-1 mb-0 text-xs text-slate-500">
-        Quản lý kết nối Bot Zalo, khai báo ID nhóm và thiết lập các câu lệnh tự động phản hồi.
-      </p>
+    <div
+      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs text-left"
+    >
+      <div class="space-y-1">
+        <div
+          class="flex items-center gap-2 text-slate-800 font-extrabold text-base sm:text-xl tracking-tight"
+        >
+          <RobotOutlined class="text-[#ee4d2d]" />
+          <h3 class="text-base sm:text-xl font-bold text-slate-800 tracking-tight m-0">
+            Cấu hình Zalo Bot & Lệnh Chat
+          </h3>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-500 m-0">
+          Quản lý kết nối Bot Zalo, khai báo ID nhóm và thiết lập các câu lệnh tự động phản hồi.
+        </p>
+      </div>
     </div>
 
     <!-- Navigation Menu Cards -->
@@ -41,7 +48,7 @@ const {
       <button
         type="button"
         :class="[
-          'flex items-center gap-3 rounded-2xl border p-4 text-left transition-all cursor-pointer',
+          'flex items-center gap-3 rounded-2xl border p-3.5 sm:p-4 text-left transition-all cursor-pointer',
           activeSettingsMenu === 'bot'
             ? 'border-orange-200 bg-orange-50/70 shadow-sm'
             : 'border-slate-200 bg-white hover:border-orange-100 hover:bg-orange-50/30',
@@ -49,12 +56,12 @@ const {
         @click="activeSettingsMenu = 'bot'"
       >
         <span :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', activeSettingsMenu === 'bot' ? 'bg-[#ee4d2d] text-white' : 'bg-slate-100 text-slate-500']"><SettingOutlined /></span>
-        <span><span class="block text-sm font-black text-slate-900">Thiết lập Bot</span><span class="mt-1 block text-[11px] text-slate-500">Trạng thái, nhóm và nội dung tự động</span></span>
+        <span><span class="block text-sm font-black text-slate-900">Thiết lập Bot</span><span class="mt-0.5 block text-[11px] text-slate-500">Trạng thái, nhóm và nội dung tự động</span></span>
       </button>
       <button
         type="button"
         :class="[
-          'flex items-center gap-3 rounded-2xl border p-4 text-left transition-all cursor-pointer',
+          'flex items-center gap-3 rounded-2xl border p-3.5 sm:p-4 text-left transition-all cursor-pointer',
           activeSettingsMenu === 'commands'
             ? 'border-orange-200 bg-orange-50/70 shadow-sm'
             : 'border-slate-200 bg-white hover:border-orange-100 hover:bg-orange-50/30',
@@ -62,7 +69,7 @@ const {
         @click="activeSettingsMenu = 'commands'"
       >
         <span :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', activeSettingsMenu === 'commands' ? 'bg-[#ee4d2d] text-white' : 'bg-slate-100 text-slate-500']"><CodeOutlined /></span>
-        <span><span class="block text-sm font-black text-slate-900">Thiết lập lệnh chat</span><span class="mt-1 block text-[11px] text-slate-500">Lệnh chat trong nhóm và chat riêng</span></span>
+        <span><span class="block text-sm font-black text-slate-900">Thiết lập lệnh chat</span><span class="mt-0.5 block text-[11px] text-slate-500">Lệnh chat trong nhóm và chat riêng</span></span>
       </button>
     </div>
 

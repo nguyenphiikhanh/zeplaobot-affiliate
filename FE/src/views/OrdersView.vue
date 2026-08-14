@@ -14,6 +14,7 @@ import {
   UploadOutlined,
   UserOutlined,
   CopyOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons-vue";
 import { api, type ApiResponse } from "../services/api";
 
@@ -273,6 +274,16 @@ const fetchOrders = async () => {
   }
 };
 
+const windowWidth = ref(
+  typeof window !== "undefined" ? window.innerWidth : 1024
+);
+const handleResize = () => {
+  windowWidth.value = window.innerWidth;
+};
+const drawerWidth = computed(() =>
+  windowWidth.value < 640 ? "100%" : "460px"
+);
+
 watch([selectedStatus, limit], () => {
   currentPage.value = 1;
   fetchOrders();
@@ -280,9 +291,11 @@ watch([selectedStatus, limit], () => {
 onMounted(() => {
   fetchOrders();
   checkSyncStatus();
+  window.addEventListener("resize", handleResize);
 });
 onUnmounted(() => {
   stopSyncPolling();
+  window.removeEventListener("resize", handleResize);
 });
 
 const clearAllFilters = () => {
@@ -484,33 +497,42 @@ const confirmUpload = async () => {
 <template>
   <div class="flex flex-col gap-6 pb-12">
     <div
-      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs"
     >
-      <div>
-        <h2 class="text-lg font-bold text-slate-800 tracking-tight">
-          Quản lý Đơn hàng
-        </h2>
-        <p class="text-[13px] text-slate-500 mt-1">
+      <div class="space-y-1 text-left">
+        <div
+          class="flex items-center gap-2 text-slate-800 font-extrabold text-base sm:text-xl tracking-tight"
+        >
+          <ShoppingCartOutlined class="text-[#ee4d2d]" />
+          <h2
+            class="text-base sm:text-xl font-bold text-slate-800 tracking-tight"
+          >
+            Quản lý Đơn hàng
+          </h2>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-500">
           Theo dõi, đối soát và upload dữ liệu đơn hàng từ mạng Affiliate.
         </p>
       </div>
-      <div class="flex items-center gap-2.5 flex-wrap">
-        <a-button
-          type="default"
-          class="!inline-flex !items-center !justify-center !gap-2 !h-9 !px-4 !rounded-xl !border-slate-200 hover:!border-[#ee4d2d] hover:!text-[#ee4d2d] font-semibold transition-colors shadow-sm"
-          :loading="isSyncing"
+      <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <button
+          type="button"
+          :disabled="isSyncing"
           @click="handleSync"
+          class="h-8 sm:h-9 px-3 sm:px-4 rounded-lg sm:rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-[#ee4d2d] hover:border-orange-200 text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-60"
         >
-          <template #icon><SyncOutlined v-if="!isSyncing" /></template>
-          <span>{{ isSyncing ? "Đang đồng bộ..." : "Đồng bộ" }}</span>
-        </a-button>
-        <a-button
-          type="primary"
-          class="!inline-flex !items-center !justify-center !gap-2 !h-9 !px-4 !rounded-xl !border-none !bg-[#ee4d2d] hover:!bg-[#d63d1e] !text-white font-semibold shadow-sm shadow-orange-500/20"
+          <SyncOutlined :spin="isSyncing" class="text-xs sm:text-sm" />
+          <span>{{ isSyncing ? "Đang đồng bộ..." : "Đồng bộ đơn" }}</span>
+        </button>
+
+        <button
+          type="button"
           @click="showUploadModal = true"
-          ><template #icon><UploadOutlined /></template
-          ><span>Upload CSV</span></a-button
+          class="h-8 sm:h-9 px-3 sm:px-4 rounded-lg sm:rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] text-white text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs shadow-orange-500/20 flex items-center justify-center gap-1.5"
         >
+          <UploadOutlined class="text-xs sm:text-sm" />
+          <span>Upload CSV</span>
+        </button>
       </div>
     </div>
 
@@ -549,30 +571,6 @@ const confirmUpload = async () => {
         }}%
       </div>
     </div>
-
-    <a-row :gutter="[16, 16]">
-      <a-col :xs="24" :sm="12"
-        ><a-card size="small" :bordered="false"
-          ><a-skeleton-button
-            v-if="loading && !orders.length"
-            active
-            block /><a-statistic
-            v-else
-            title="Tổng đơn hàng"
-            :value="totalOrders" /></a-card
-      ></a-col>
-      <a-col :xs="24" :sm="12"
-        ><a-card size="small" :bordered="false"
-          ><a-skeleton-button
-            v-if="loading && !orders.length"
-            active
-            block /><a-statistic
-            v-else
-            title="Chờ duyệt trên trang"
-            :value="pendingCount"
-            :value-style="{ color: '#f59e0b' }" /></a-card
-      ></a-col>
-    </a-row>
 
     <a-card :bordered="false" :body-style="{ padding: 0 }">
       <div class="p-3 sm:p-4 border-b border-slate-100 flex flex-col gap-3">
@@ -692,99 +690,257 @@ const confirmUpload = async () => {
         </div>
       </div>
 
-      <a-table
-        :columns="columns"
-        :data-source="orders"
-        :row-key="(r: OrderItem) => r.order_id || r.id"
-        :pagination="false"
-        :loading="loading"
-        :scroll="{ x: 1100 }"
-        :custom-row="(record: OrderItem) => ({onClick:()=>selectedOrder=record,class:'cursor-pointer'})"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'order_id'"
-            ><div class="flex items-center gap-2">
-              <span
-                class="px-2 py-0.5 rounded-md bg-[#ee4d2d] text-white font-extrabold text-[10px]"
-                >SHOPEE</span
-              ><span class="font-bold text-slate-700 text-xs"
-                >#{{ record.order_id }}</span
-              >
-            </div></template
+      <!-- ============================================== -->
+      <!-- MOBILE CARD LIST (< md)                        -->
+      <!-- ============================================== -->
+      <div class="md:hidden p-3 space-y-3 bg-slate-50/50">
+        <!-- Skeleton loading -->
+        <div v-if="loading && !orders.length" class="space-y-3">
+          <div
+            v-for="n in 4"
+            :key="n"
+            class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-3 animate-pulse"
           >
-          <template v-else-if="column.key === 'user'"
-            ><div v-if="record.user_id" class="flex flex-col">
-              <span class="font-bold text-slate-800 text-xs">{{
-                record.user_name || "Người dùng hệ thống"
-              }}</span
-              ><span class="text-[11px] font-mono text-slate-500"
-                >ID: {{ record.user_id }}</span
-              >
-            </div>
-            <span v-else class="text-xs text-slate-400 italic"
-              >Không rõ</span
-            ></template
-          >
-          <template v-else-if="column.key === 'product_name'">
-            <div class="flex items-center gap-2.5">
-              <div
-                class="w-9 h-9 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-0.5"
-              >
-                <img
-                  v-if="record.img_code || record.imgCode"
-                  :src="`https://down-tx-vn.img.susercontent.com/${
-                    record.img_code || record.imgCode
-                  }.webp`"
-                  :alt="record.product_name || 'Shopee'"
-                  class="w-full h-full object-cover rounded-md"
-                />
-                <img
-                  v-else
-                  src="/logo/shopee.png"
-                  alt="Shopee"
-                  class="w-full h-full object-contain p-0.5"
-                />
+            <div class="flex items-start gap-3">
+              <div class="w-14 h-14 rounded-xl bg-slate-100 shrink-0"></div>
+              <div class="flex-1 space-y-2 pt-0.5">
+                <div class="h-4 bg-slate-100 rounded-md w-3/4"></div>
+                <div class="h-3 bg-slate-100 rounded-md w-1/2"></div>
               </div>
-              <div
-                class="font-semibold text-slate-700 text-[13px] truncate max-w-[180px]"
-                :title="record.product_name"
+            </div>
+            <div class="h-10 bg-slate-50 rounded-xl w-full"></div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div
+          v-else-if="!orders.length"
+          class="p-8 text-center bg-white rounded-2xl border border-slate-100"
+        >
+          <p class="text-xs font-bold text-slate-400">
+            Không tìm thấy đơn hàng nào
+          </p>
+        </div>
+
+        <!-- Order Cards List -->
+        <div
+          v-else
+          v-for="record in orders"
+          :key="record.order_id || record.id"
+          @click="selectedOrder = record"
+          class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 space-y-3 cursor-pointer active:scale-[0.99] transition-all"
+        >
+          <!-- Top Card Bar: Shopee Tag + Order ID (Left) & Status Tag (Right) -->
+          <div
+            class="flex items-center justify-between pb-2 border-b border-slate-100/80"
+          >
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span
+                class="px-1.5 py-0.5 rounded-md bg-[#ee4d2d] text-white font-black text-[10px] shrink-0"
+              >
+                SHOPEE
+              </span>
+              <span class="text-xs font-mono font-bold text-slate-700 truncate">
+                #{{ record.order_id }}
+              </span>
+            </div>
+            <a-tag
+              :color="getStatusColor(record.order_status)"
+              class="!m-0 !text-[10px] !font-bold shrink-0"
+            >
+              {{ getStatusLabel(record.order_status) }}
+            </a-tag>
+          </div>
+
+          <!-- Product Image & Title -->
+          <div class="flex items-start gap-3 pt-0.5">
+            <div
+              class="w-14 h-14 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-0.5"
+            >
+              <img
+                v-if="record.img_code || record.imgCode"
+                :src="`https://down-tx-vn.img.susercontent.com/${
+                  record.img_code || record.imgCode
+                }.webp`"
+                :alt="record.product_name || 'Shopee'"
+                class="w-full h-full object-cover rounded-lg"
+              />
+              <img
+                v-else
+                src="/logo/shopee.png"
+                alt="Shopee"
+                class="w-full h-full object-contain p-0.5"
+              />
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <h3
+                class="text-xs sm:text-sm font-extrabold text-slate-900 line-clamp-2 leading-snug m-0"
               >
                 {{ record.product_name || "Sản phẩm từ Shopee" }}
+              </h3>
+            </div>
+          </div>
+
+          <!-- Middle Info Box: User, Date, Commission -->
+          <div
+            class="bg-slate-50/80 rounded-xl p-2.5 space-y-1.5 text-xs border border-slate-100"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500 font-medium">Người mua:</span>
+              <span class="font-bold text-slate-800 truncate max-w-[180px]">
+                {{
+                  record.user_name ||
+                  (record.user_id ? `ID: ${record.user_id}` : "Không rõ")
+                }}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500 font-medium">Ngày đặt:</span>
+              <span class="font-semibold text-slate-700">
+                {{
+                  record.order_time
+                    ? new Date(record.order_time).toLocaleDateString("vi-VN")
+                    : "—"
+                }}
+              </span>
+            </div>
+
+            <div
+              class="flex items-center justify-between pt-1.5 border-t border-slate-200/60"
+            >
+              <div class="flex items-center gap-1">
+                <span class="text-slate-500 font-medium">Hoa hồng HT:</span>
+                <span class="font-bold text-slate-900">{{
+                  formatMoney(record.actual_commission)
+                }}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-slate-500 font-medium">Chia User:</span>
+                <span class="font-extrabold text-emerald-600">{{
+                  formatMoney(record.user_commission)
+                }}</span>
               </div>
             </div>
-          </template>
-          <template v-else-if="column.key === 'order_time'"
-            ><span class="text-xs text-slate-500">{{
-              record.order_time
-                ? new Date(record.order_time).toLocaleDateString("vi-VN")
-                : "—"
-            }}</span></template
-          >
-          <template v-else-if="column.key === 'actual_commission'"
-            ><span class="font-bold text-slate-800 text-[13px]">{{
-              formatMoney(record.actual_commission)
-            }}</span></template
-          >
-          <template v-else-if="column.key === 'user_commission'"
-            ><span class="font-bold text-emerald-600 text-[13px]">{{
-              formatMoney(record.user_commission)
-            }}</span></template
-          >
-          <template v-else-if="column.key === 'order_status'"
-            ><a-tag :color="getStatusColor(record.order_status)">{{
-              getStatusLabel(record.order_status)
-            }}</a-tag></template
-          >
-          <template v-else-if="column.key === 'action'"
-            ><button
+          </div>
+
+          <!-- Bottom Action Button -->
+          <div class="flex items-center justify-between pt-0.5">
+            <span class="text-[11px] font-bold text-slate-400"
+              >Xem chi tiết đối soát</span
+            >
+            <button
               type="button"
-              class="btn-action-primary !h-7 !px-2.5 text-[11px]"
+              class="btn-action-primary !h-7 !px-3 text-[11px] !rounded-lg"
               @click.stop="selectedOrder = record"
             >
-              <span>Chi tiết</span><RightOutlined class="text-[10px]" /></button
-          ></template>
-        </template>
-      </a-table>
+              <span>Chi tiết</span>
+              <RightOutlined class="text-[10px]" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- DESKTOP TABLE VIEW (>= md)                     -->
+      <!-- ============================================== -->
+      <div class="hidden md:block">
+        <a-table
+          :columns="columns"
+          :data-source="orders"
+          :row-key="(r: OrderItem) => r.order_id || r.id"
+          :pagination="false"
+          :loading="loading"
+          :scroll="{ x: 1100 }"
+          :custom-row="(record: OrderItem) => ({onClick:()=>selectedOrder=record,class:'cursor-pointer'})"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'order_id'"
+              ><div class="flex items-center gap-2">
+                <span
+                  class="px-2 py-0.5 rounded-md bg-[#ee4d2d] text-white font-extrabold text-[10px]"
+                  >SHOPEE</span
+                ><span class="font-bold text-slate-700 text-xs"
+                  >#{{ record.order_id }}</span
+                >
+              </div></template
+            >
+            <template v-else-if="column.key === 'user'"
+              ><div v-if="record.user_id" class="flex flex-col">
+                <span class="font-bold text-slate-800 text-xs">{{
+                  record.user_name || "Người dùng hệ thống"
+                }}</span
+                ><span class="text-[11px] font-mono text-slate-500"
+                  >ID: {{ record.user_id }}</span
+                >
+              </div>
+              <span v-else class="text-xs text-slate-400 italic"
+                >Không rõ</span
+              ></template
+            >
+            <template v-else-if="column.key === 'product_name'">
+              <div class="flex items-center gap-2.5">
+                <div
+                  class="w-9 h-9 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-0.5"
+                >
+                  <img
+                    v-if="record.img_code || record.imgCode"
+                    :src="`https://down-tx-vn.img.susercontent.com/${
+                      record.img_code || record.imgCode
+                    }.webp`"
+                    :alt="record.product_name || 'Shopee'"
+                    class="w-full h-full object-cover rounded-md"
+                  />
+                  <img
+                    v-else
+                    src="/logo/shopee.png"
+                    alt="Shopee"
+                    class="w-full h-full object-contain p-0.5"
+                  />
+                </div>
+                <div
+                  class="font-semibold text-slate-700 text-[13px] truncate max-w-[180px]"
+                  :title="record.product_name"
+                >
+                  {{ record.product_name || "Sản phẩm từ Shopee" }}
+                </div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'order_time'"
+              ><span class="text-xs text-slate-500">{{
+                record.order_time
+                  ? new Date(record.order_time).toLocaleDateString("vi-VN")
+                  : "—"
+              }}</span></template
+            >
+            <template v-else-if="column.key === 'actual_commission'"
+              ><span class="font-bold text-slate-800 text-[13px]">{{
+                formatMoney(record.actual_commission)
+              }}</span></template
+            >
+            <template v-else-if="column.key === 'user_commission'"
+              ><span class="font-bold text-emerald-600 text-[13px]">{{
+                formatMoney(record.user_commission)
+              }}</span></template
+            >
+            <template v-else-if="column.key === 'order_status'"
+              ><a-tag :color="getStatusColor(record.order_status)">{{
+                getStatusLabel(record.order_status)
+              }}</a-tag></template
+            >
+            <template v-else-if="column.key === 'action'"
+              ><button
+                type="button"
+                class="btn-action-primary !h-7 !px-2.5 text-[11px]"
+                @click.stop="selectedOrder = record"
+              >
+                <span>Chi tiết</span
+                ><RightOutlined class="text-[10px]" /></button
+            ></template>
+          </template>
+        </a-table>
+      </div>
       <div
         class="px-4 py-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3"
       >
@@ -874,9 +1030,11 @@ const confirmUpload = async () => {
     <a-drawer
       :open="!!selectedOrder"
       placement="right"
-      width="460"
+      :width="drawerWidth"
       title="Chi tiết đơn hàng (Admin)"
       @close="selectedOrder = null"
+      :root-style="{ maxWidth: '100vw' }"
+      :body-style="{ padding: windowWidth < 640 ? '16px 12px' : '20px' }"
     >
       <div v-if="selectedOrder" class="space-y-4 text-left font-sans">
         <!-- 1. Header Profit Spotlight Banner -->

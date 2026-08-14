@@ -92,7 +92,7 @@ const {
         @click="saveLinkTemplate"
         :disabled="savingLinkTemplate"
         type="button"
-        class="bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-70"
+        class="bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all disabled:opacity-70 w-full sm:w-auto"
       >
         <ReloadOutlined
           :spin="savingLinkTemplate"

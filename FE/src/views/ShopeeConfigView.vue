@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { message } from "ant-design-vue";
 import axios from "axios";
@@ -12,6 +12,7 @@ import {
   PercentageOutlined,
   MessageOutlined,
   EditOutlined,
+  ShoppingOutlined,
 } from "@ant-design/icons-vue";
 
 // State variables matching PHP ShopeeSettings.vue
@@ -205,305 +206,268 @@ const saveCookie = async () => {
 </script>
 
 <template>
-  <section class="max-w-4xl mx-auto space-y-6 text-left">
+  <section class="max-w-4xl mx-auto space-y-6 text-left pb-12">
     <!-- Page Header -->
-    <div class="border-b border-slate-200 dark:border-slate-800 pb-5 text-left">
-      <h3 class="m-0 text-lg font-black text-slate-900 dark:text-white">
-        Cấu hình hoàn tiền Shopee
-      </h3>
-      <p class="mt-1 mb-0 text-xs text-slate-500">
-        Quản lý trạng thái và cookie vận hành Shopee.
-      </p>
+    <div
+      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs text-left"
+    >
+      <div class="space-y-1">
+        <div
+          class="flex items-center gap-2 text-slate-800 font-extrabold text-base sm:text-xl tracking-tight"
+        >
+          <ShoppingOutlined class="text-[#ee4d2d]" />
+          <h3 class="text-base sm:text-xl font-bold text-slate-800 tracking-tight m-0">
+            Cấu hình hoàn tiền Shopee
+          </h3>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-500 m-0">
+          Quản lý Affiliate ID, tỷ lệ hoàn tiền và Cookie vận hành Shopee.
+        </p>
+      </div>
     </div>
 
     <a-spin :spinning="loadingConfig" tip="Đang tải cấu hình Shopee...">
-    <div class="flex flex-col gap-5" :class="{ 'min-h-[360px]': loadingConfig }">
-      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4 dark:border-slate-800 dark:bg-slate-900">
-        <div>
-          <h4 class="m-0 flex items-center gap-2 text-sm font-black text-slate-900 dark:text-white"><KeyOutlined class="text-[#ee4d2d]"/><span>Affiliate ID</span><span class="text-rose-500">*</span></h4>
-          <p class="mb-0 mt-1 text-xs text-slate-500">Mã Affiliate ID dùng để tạo link tiếp thị Shopee. Đây là cấu hình bắt buộc.</p>
-        </div>
-        <input v-model="affiliateId" type="text" autocomplete="off" placeholder="Nhập Affiliate ID Shopee..." class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-3 text-xs font-bold text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"/>
-        <div class="flex justify-end pt-2"><button type="button" :disabled="savingStatus" class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#ee4d2d] px-5 py-2.5 text-xs font-bold !text-white shadow-xs disabled:opacity-70" @click="saveStatus"><ReloadOutlined v-if="savingStatus" spin class="!text-white"/><SaveOutlined v-else class="!text-white"/><span class="!text-white">Lưu Affiliate ID</span></button></div>
-      </div>
-
-      <!-- Commission Settings Card -->
-      <div
-        class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs"
-      >
-        <div>
-          <h4
-            class="m-0 text-sm font-black text-slate-900 dark:text-white flex items-center gap-2"
-          >
-            <PercentageOutlined class="text-[#ee4d2d]" />
-            <span>Tỷ lệ hoàn tiền Shopee</span>
-          </h4>
-          <p class="mt-1 mb-0 text-xs text-slate-500">
-            Cấu hình tỷ lệ phần trăm hoàn tiền và tỷ lệ chia sẻ cho khách hàng.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-          <!-- Phí dịch vụ (%) -->
-          <div class="space-y-1.5">
-            <label
-              class="block text-xs font-bold text-slate-700 dark:text-slate-300"
-              >Phí dịch vụ (%):</label
-            >
-            <div class="relative">
-              <input
-                v-model.number="serviceFeeRate"
-                type="number"
-                step="0.1"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs font-bold text-slate-800 dark:text-slate-100"
-              />
-              <span
-                class="absolute right-3 top-2.5 text-xs text-slate-400 font-bold"
-                >%</span
-              >
+      <div class="flex flex-col gap-5" :class="{ 'min-h-[360px]': loadingConfig }">
+        <!-- Affiliate ID Card -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs space-y-4 dark:border-slate-800 dark:bg-slate-900">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-orange-100 text-[#ee4d2d] flex items-center justify-center font-bold shrink-0">
+              <KeyOutlined />
+            </div>
+            <div>
+              <h4 class="m-0 text-sm font-black text-slate-900 dark:text-white flex items-center gap-1">
+                <span>Affiliate ID</span>
+                <span class="text-rose-500">*</span>
+              </h4>
+              <p class="mb-0 mt-0.5 text-xs text-slate-500">Mã Affiliate ID dùng để tạo link tiếp thị Shopee. Đây là cấu hình bắt buộc.</p>
             </div>
           </div>
-
-          <!-- Thuế (%) -->
-          <div class="space-y-1.5">
-            <label
-              class="block text-xs font-bold text-slate-700 dark:text-slate-300"
-              >Thuế (%):</label
-            >
-            <div class="relative">
-              <input
-                v-model.number="taxRate"
-                type="number"
-                step="1"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs font-bold text-slate-800 dark:text-slate-100"
-              />
-              <span
-                class="absolute right-3 top-2.5 text-xs text-slate-400 font-bold"
-                >%</span
-              >
-            </div>
-          </div>
-
-          <!-- Tỷ lệ chia sẻ người dùng (%) -->
-          <div class="space-y-1.5">
-            <label
-              class="block text-xs font-bold text-slate-700 dark:text-slate-300"
-              >Tỷ lệ chia sẻ người dùng (%):</label
-            >
-            <div class="relative">
-              <input
-                v-model.number="userSharePercentage"
-                type="number"
-                step="1"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs font-bold text-slate-800 dark:text-slate-100"
-              />
-              <span class="absolute right-3 top-2.5 text-slate-400 font-bold"
-                >%</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <!-- Save Button inside Card -->
-        <div class="flex justify-end pt-2">
-          <button
-            @click="saveStatus"
-            :disabled="savingStatus"
-            type="button"
-            class="bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-70"
-          >
-            <ReloadOutlined
-              :spin="savingStatus"
-              v-if="savingStatus"
-              class="!text-white"
-            />
-            <SaveOutlined v-else class="!text-white" />
-            <span class="!text-white">Lưu</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Zalo Bot Expired Notification Card -->
-      <div
-        class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs"
-      >
-        <div class="flex items-center justify-between gap-4">
-          <div>
-            <h4
-              class="m-0 text-sm font-black text-slate-900 dark:text-white flex items-center gap-2"
-            >
-              <MessageOutlined class="text-blue-500 text-base" />
-              <span>Gửi thông báo đến Zalo khi hết hạn Cookie</span>
-            </h4>
-            <p class="mt-1 mb-0 text-xs leading-5 text-slate-500">
-              Tự động gửi 1 tin nhắn cảnh báo qua Zalo khi Shopee Cookie hết hạn
-              hoặc không sử dụng được (Convert link, Lấy đơn hàng).
-            </p>
-          </div>
-          <a-switch
-            v-model:checked="zaloNotifyOnExpired"
-            :loading="savingZaloConfig"
-            @change="handleZaloNotifyToggle"
+          <input
+            v-model="affiliateId"
+            type="text"
+            autocomplete="off"
+            placeholder="Nhập Affiliate ID Shopee..."
+            class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           />
-        </div>
-
-        <!-- Conditional Zalo Notification Inputs (Visible when switch is ON) -->
-        <div
-          v-if="zaloNotifyOnExpired"
-          class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4 animate-fade-in text-left"
-        >
-          <!-- Input SDT Zalo -->
-          <div class="space-y-1.5">
-            <label
-              class="block text-xs font-bold text-slate-800 dark:text-slate-200"
-            >
-              Số điện thoại Zalo:
-            </label>
-            <input
-              v-model="zaloPhoneNumber"
-              type="text"
-              placeholder="Nhập số điện thoại Zalo..."
-              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold text-slate-800 dark:text-slate-100"
-            />
-            <p class="mt-2 text-[11px] leading-5 text-slate-400 font-medium">
-              💡 Số điện thoại của tài khoản Zalo để bot gửi tin nhắn khi Cookie
-              hết hạn
-            </p>
-          </div>
-
-          <!-- Input Nội dung gửi -->
-          <div class="space-y-1.5">
-            <label
-              class="block text-xs font-bold text-slate-800 dark:text-slate-200"
-            >
-              Nội dung gửi:
-            </label>
-            <textarea
-              v-model="zaloNotifyContent"
-              rows="3"
-              placeholder="Nhập nội dung tin nhắn gửi qua Zalo..."
-              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-100 resize-y"
-            ></textarea>
-          </div>
-
-          <div class="space-y-1.5">
-            <label
-              class="block text-xs font-bold text-slate-800 dark:text-slate-200"
-            >
-              Gửi lại cảnh báo sau:
-            </label>
-            <a-select
-              v-model:value="zaloNotifyRepeatHours"
-              :options="[
-                { label: '1 giờ', value: 1 },
-                { label: '3 giờ', value: 3 },
-                { label: '6 giờ', value: 6 },
-                { label: '24 giờ', value: 24 },
-              ]"
-              class="w-full max-w-[220px]"
-            />
-            <p class="mt-2 text-[11px] leading-5 text-slate-400 font-medium">
-              Nếu Cookie vẫn lỗi, hệ thống sẽ gửi lại cảnh báo sau thời gian đã
-              chọn.
-            </p>
-          </div>
-
-          <!-- Save Zalo Config Button -->
           <div class="flex justify-end pt-1">
             <button
-              @click="saveZaloNotifyConfig"
-              :disabled="savingZaloConfig"
               type="button"
-              class="bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-70"
+              :disabled="savingStatus"
+              class="btn-action-primary w-full sm:w-auto !h-9 !px-5 text-xs font-bold"
+              @click="saveStatus"
             >
-              <ReloadOutlined
-                :spin="savingZaloConfig"
-                v-if="savingZaloConfig"
-                class="!text-white"
-              />
-              <SaveOutlined v-else class="!text-white" />
-              <span class="!text-white">Lưu cấu hình Cảnh báo</span>
+              <ReloadOutlined v-if="savingStatus" spin />
+              <SaveOutlined v-else />
+              <span>Lưu Affiliate ID</span>
             </button>
           </div>
         </div>
-      </div>
 
-      <!-- Shopee Cookie Card (Matching php CookieCard.vue) -->
-      <div
-        class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs text-left"
-      >
-        <div
-          class="flex flex-col sm:flex-row sm:items-start justify-between gap-3"
-        >
-          <div>
-            <h4
-              class="m-0 text-sm font-black text-slate-900 dark:text-white flex items-center gap-2"
-            >
-              <KeyOutlined class="text-[#ee4d2d]" />
-              <span>Shopee Cookie</span>
-            </h4>
-            <p class="mt-1 mb-0 text-xs text-slate-500">
-              Cookie của tài khoản Shopee dùng cho tác vụ tự động.
-            </p>
+        <!-- Commission Settings Card -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+              <PercentageOutlined />
+            </div>
+            <div>
+              <h4 class="m-0 text-sm font-black text-slate-900 dark:text-white">Tỷ lệ hoàn tiền Shopee</h4>
+              <p class="mt-0.5 mb-0 text-xs text-slate-500">Cấu hình tỷ lệ phí dịch vụ, thuế và tỷ lệ chia sẻ hoa hồng cho người dùng.</p>
+            </div>
           </div>
 
-          <!-- Update Button (shown when NOT editing) -->
-          <button
-            v-if="!isEditingCookie"
-            @click="isEditingCookie = true"
-            type="button"
-            class="bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all self-start"
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+            <!-- Phí dịch vụ (%) -->
+            <div class="space-y-1.5 bg-slate-50/80 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-700/60">
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Phí dịch vụ (%):</label>
+              <div class="relative">
+                <input
+                  v-model.number="serviceFeeRate"
+                  type="number"
+                  step="0.1"
+                  class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs font-bold text-slate-800 dark:text-slate-100"
+                />
+                <span class="absolute right-3 top-2 text-xs text-slate-400 font-bold">%</span>
+              </div>
+            </div>
+
+            <!-- Thuế (%) -->
+            <div class="space-y-1.5 bg-slate-50/80 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-700/60">
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Thuế (%):</label>
+              <div class="relative">
+                <input
+                  v-model.number="taxRate"
+                  type="number"
+                  step="1"
+                  class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs font-bold text-slate-800 dark:text-slate-100"
+                />
+                <span class="absolute right-3 top-2 text-xs text-slate-400 font-bold">%</span>
+              </div>
+            </div>
+
+            <!-- Tỷ lệ chia sẻ người dùng (%) -->
+            <div class="space-y-1.5 bg-slate-50/80 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-700/60">
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Tỷ lệ chia sẻ người dùng (%):</label>
+              <div class="relative">
+                <input
+                  v-model.number="userSharePercentage"
+                  type="number"
+                  step="1"
+                  class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs font-bold text-slate-800 dark:text-slate-100"
+                />
+                <span class="absolute right-3 top-2 text-xs text-slate-400 font-bold">%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-1">
+            <button
+              @click="saveStatus"
+              :disabled="savingStatus"
+              type="button"
+              class="btn-action-primary w-full sm:w-auto !h-9 !px-5 text-xs font-bold"
+            >
+              <ReloadOutlined v-if="savingStatus" spin />
+              <SaveOutlined v-else />
+              <span>Lưu tỷ lệ hoàn tiền</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Zalo Bot Expired Notification Card -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0 mt-0.5">
+                <MessageOutlined />
+              </div>
+              <div>
+                <h4 class="m-0 text-sm font-black text-slate-900 dark:text-white">Gửi thông báo Zalo khi hết hạn Cookie</h4>
+                <p class="mt-0.5 mb-0 text-xs text-slate-500 leading-relaxed">Tự động gửi tin nhắn cảnh báo qua Zalo khi Shopee Cookie bị hết hạn.</p>
+              </div>
+            </div>
+            <a-switch
+              v-model:checked="zaloNotifyOnExpired"
+              :loading="savingZaloConfig"
+              @change="handleZaloNotifyToggle"
+            />
+          </div>
+
+          <div
+            v-if="zaloNotifyOnExpired"
+            class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3.5 animate-fade-in"
           >
-            <EditOutlined class="!text-white" />
-            <span class="!text-white">Cập nhật</span>
-          </button>
-        </div>
-
-        <!-- Status view box (shown when NOT editing) -->
-        <div
-          v-if="!isEditingCookie"
-          class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300 flex items-center gap-2"
-        >
-          <CheckCircleOutlined class="text-emerald-500 text-sm" />
-          <span>{{ cookieStatus }}</span>
-        </div>
-
-        <!-- Textarea & Action buttons (shown when editing) -->
-        <div v-else class="space-y-3 animate-fade-in">
-          <textarea
-            v-model="shopeeCookieInput"
-            rows="5"
-            placeholder="Dán Cookie tại đây..."
-            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-800 dark:text-slate-100 focus:border-[#ee4d2d] focus:ring-2 focus:ring-orange-100"
-          ></textarea>
-
-          <div class="flex justify-end gap-2">
-            <button
-              @click="cancelCookieEdit"
-              :disabled="savingCookie"
-              type="button"
-              class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 cursor-pointer transition-colors"
-            >
-              Hủy
-            </button>
-            <button
-              @click="saveCookie"
-              :disabled="savingCookie || !shopeeCookieInput.trim()"
-              type="button"
-              class="bg-[#ee4d2d] hover:bg-[#d63d1e] !text-white font-bold text-xs px-5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50"
-            >
-              <ReloadOutlined
-                :spin="savingCookie"
-                v-if="savingCookie"
-                class="!text-white"
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-800 dark:text-slate-200">Số điện thoại Zalo:</label>
+              <input
+                v-model="zaloPhoneNumber"
+                type="text"
+                placeholder="Nhập số điện thoại Zalo..."
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold text-slate-800 dark:text-slate-100"
               />
-              <SaveOutlined v-else class="!text-white" />
-              <span class="!text-white">Lưu Cookie</span>
+              <p class="mt-1 text-[11px] text-slate-400">💡 Số điện thoại tài khoản Zalo nhận tin nhắn cảnh báo</p>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-800 dark:text-slate-200">Nội dung tin nhắn:</label>
+              <textarea
+                v-model="zaloNotifyContent"
+                rows="3"
+                placeholder="Nhập nội dung tin nhắn..."
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-100 resize-y"
+              ></textarea>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-800 dark:text-slate-200">Gửi lại cảnh báo sau:</label>
+              <a-select
+                v-model:value="zaloNotifyRepeatHours"
+                :options="[
+                  { label: '1 giờ', value: 1 },
+                  { label: '3 giờ', value: 3 },
+                  { label: '6 giờ', value: 6 },
+                  { label: '24 giờ', value: 24 },
+                ]"
+                class="w-full sm:max-w-[220px]"
+              />
+            </div>
+
+            <div class="flex justify-end pt-1">
+              <button
+                @click="saveZaloNotifyConfig"
+                :disabled="savingZaloConfig"
+                type="button"
+                class="btn-action-primary w-full sm:w-auto !h-9 !px-5 text-xs font-bold"
+              >
+                <ReloadOutlined v-if="savingZaloConfig" spin />
+                <SaveOutlined v-else />
+                <span>Lưu cấu hình cảnh báo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shopee Cookie Card -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold shrink-0">
+                <KeyOutlined />
+              </div>
+              <div>
+                <h4 class="m-0 text-sm font-black text-slate-900 dark:text-white">Shopee Cookie</h4>
+                <p class="mt-0.5 mb-0 text-xs text-slate-500">Cookie tài khoản Shopee dùng cho các tác vụ tự động.</p>
+              </div>
+            </div>
+            <button
+              v-if="!isEditingCookie"
+              @click="isEditingCookie = true"
+              type="button"
+              class="btn-action-primary !h-8 !px-3.5 text-xs font-bold shrink-0"
+            >
+              <EditOutlined />
+              <span>Cập nhật</span>
             </button>
+          </div>
+
+          <div
+            v-if="!isEditingCookie"
+            class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300 flex items-center gap-2"
+          >
+            <CheckCircleOutlined class="text-emerald-500 text-sm shrink-0" />
+            <span class="truncate">{{ cookieStatus }}</span>
+          </div>
+
+          <div v-else class="space-y-3 animate-fade-in">
+            <textarea
+              v-model="shopeeCookieInput"
+              rows="5"
+              placeholder="Dán Cookie Shopee mới tại đây..."
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-800 dark:text-slate-100 focus:border-[#ee4d2d] focus:ring-2 focus:ring-orange-100"
+            ></textarea>
+
+            <div class="flex items-center justify-end gap-2">
+              <button
+                @click="cancelCookieEdit"
+                :disabled="savingCookie"
+                type="button"
+                class="btn-action-secondary !h-9 !px-4 text-xs font-bold"
+              >
+                Hủy
+              </button>
+              <button
+                @click="saveCookie"
+                :disabled="savingCookie || !shopeeCookieInput.trim()"
+                type="button"
+                class="btn-action-primary !h-9 !px-5 text-xs font-bold"
+              >
+                <ReloadOutlined v-if="savingCookie" spin />
+                <SaveOutlined v-else />
+                <span>Lưu Cookie</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </a-spin>
   </section>
 </template>

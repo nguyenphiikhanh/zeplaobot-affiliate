@@ -128,7 +128,7 @@ const {
       <button
         type="button"
         :disabled="savingGroupCommands"
-        class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#ee4d2d] px-5 py-2.5 text-xs font-bold !text-white shadow-sm disabled:opacity-60 cursor-pointer"
+        class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#ee4d2d] px-5 py-2.5 text-xs font-bold !text-white shadow-sm disabled:opacity-60 cursor-pointer w-full sm:w-auto"
         @click="saveGroupCommands"
       >
         <ReloadOutlined v-if="savingGroupCommands" spin class="!text-white" />

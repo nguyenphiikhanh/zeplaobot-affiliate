@@ -432,7 +432,7 @@ const runBackgroundSyncProcess = async (dates: string[], cookie: string) => {
 
   shopeeSyncState.isRunning = false
   shopeeSyncState.currentDate = null
-  shopeeSyncState.message = `Đã hoàn tất đồng bộ! Cập nhật ${shopeeSyncState.successCount} đơn hàng.`
+  shopeeSyncState.message = `Đã hoàn tất đồng bộ đơn hàng!`
 }
 
 export const syncShopeeOrdersDirectService = async () => {

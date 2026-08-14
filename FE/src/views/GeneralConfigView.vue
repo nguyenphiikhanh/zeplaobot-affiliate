@@ -150,30 +150,29 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="max-w-4xl mx-auto space-y-6">
+  <section class="max-w-4xl mx-auto space-y-6 pb-12">
     <!-- Header Section -->
     <div
-      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs"
+      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs"
     >
       <div class="space-y-1 text-left">
         <div
-          class="flex items-center gap-2 text-slate-800 font-extrabold text-lg sm:text-xl"
+          class="flex items-center gap-2 text-slate-800 font-extrabold text-base sm:text-xl tracking-tight"
         >
           <SettingOutlined class="text-[#ee4d2d]" />
-          <h1>Cấu hình hệ thống</h1>
+          <h1 class="text-base sm:text-xl font-bold tracking-tight text-slate-800">Cấu hình hệ thống</h1>
         </div>
         <p class="text-xs sm:text-sm text-slate-500">
-          Quản trị thông tin thương hiệu, tối ưu SEO và bảo mật tài khoản quản
-          trị.
+          Quản trị thông tin thương hiệu, tối ưu SEO và bảo mật tài khoản quản trị.
         </p>
       </div>
 
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2.5 w-full sm:w-auto">
         <button
           @click="loadSettings"
           :disabled="loading || saving"
           type="button"
-          class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-2"
+          class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-2"
         >
           <ReloadOutlined :spin="loading" />
           <span>Tải lại</span>
@@ -182,7 +181,7 @@ onMounted(() => {
           @click="handleSave"
           :disabled="loading || saving"
           type="button"
-          class="px-5 py-2.5 rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] text-white text-xs font-bold transition-all cursor-pointer shadow-md shadow-orange-900/10 flex items-center gap-2 disabled:opacity-60"
+          class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] text-white text-xs font-bold transition-all cursor-pointer shadow-md shadow-orange-900/10 flex items-center justify-center gap-2 disabled:opacity-60"
         >
           <ReloadOutlined v-if="saving" spin />
           <SaveOutlined v-else />
@@ -195,7 +194,7 @@ onMounted(() => {
       <div class="space-y-6">
         <!-- Card 1: Thông tin chung trang web -->
         <div
-          class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-7 space-y-5"
+          class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-7 space-y-5"
         >
           <div class="flex items-center gap-2 pb-3 border-b border-slate-100">
             <span class="text-sm font-extrabold text-slate-900"
@@ -213,7 +212,7 @@ onMounted(() => {
                 v-model="form.site_name"
                 type="text"
                 placeholder="VD: Affiliate - Hoàn tiền"
-                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
+                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
               />
               <p class="text-[11px] text-slate-400">
                 Tên thương hiệu chính hiển thị trên thanh điều hướng và chân
@@ -230,7 +229,7 @@ onMounted(() => {
                 v-model="form.site_description"
                 rows="3"
                 placeholder="Mô tả tóm tắt giới thiệu nền tảng hoàn tiền của bạn..."
-                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
+                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
               ></textarea>
               <p class="text-[11px] text-slate-400">
                 Giới thiệu ngắn gọn về dịch vụ trên trang chủ.
@@ -241,7 +240,7 @@ onMounted(() => {
 
         <!-- Card 2: Cấu hình SEO & Meta Tags -->
         <div
-          class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-7 space-y-5"
+          class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-7 space-y-5"
         >
           <div
             class="flex items-center justify-between pb-3 border-b border-slate-100"
@@ -261,7 +260,7 @@ onMounted(() => {
                 v-model="form.meta_title"
                 type="text"
                 placeholder="VD: Affiliate - Hoàn tiền Tự động"
-                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
+                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
               />
               <p class="text-[11px] text-slate-400">
                 Hiển thị làm thẻ <code>&lt;title&gt;</code> của trang web trên
@@ -279,7 +278,7 @@ onMounted(() => {
                 v-model="form.meta_description"
                 rows="3"
                 placeholder="Nhập đoạn mô tả cuốn hút hiển thị dưới link trên kết quả tìm kiếm..."
-                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
+                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
               ></textarea>
               <p class="text-[11px] text-slate-400">
                 Thẻ <code>meta description</code> giúp tăng tỷ lệ click (CTR) từ
@@ -296,7 +295,7 @@ onMounted(() => {
                 v-model="form.keywords"
                 type="text"
                 placeholder="hoàn tiền shopee, affiliate shopee, nhận hoa hồng shopee"
-                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
+                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
               />
               <p class="text-[11px] text-slate-400">
                 Các từ khóa cách nhau bởi dấu phẩy.
@@ -307,7 +306,7 @@ onMounted(() => {
 
         <!-- Card 3: Live Search Preview (Google Simulation) -->
         <div
-          class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-5 sm:p-7 space-y-3 shadow-md"
+          class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-4 sm:p-7 space-y-3 shadow-md"
         >
           <div class="flex items-center gap-2 text-xs font-bold text-slate-300">
             <SearchOutlined class="text-blue-400" />
@@ -315,7 +314,7 @@ onMounted(() => {
           </div>
 
           <div
-            class="bg-white rounded-xl p-4 text-left space-y-1 border border-slate-700"
+            class="bg-white rounded-xl p-3.5 sm:p-4 text-left space-y-1 border border-slate-700"
           >
             <div
               class="text-[11px] text-slate-500 truncate flex items-center gap-1"
@@ -338,7 +337,7 @@ onMounted(() => {
 
         <!-- Card 4: Đổi mật khẩu Quản trị -->
         <div
-          class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-7 space-y-5"
+          class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-7 space-y-5"
         >
           <div
             class="flex items-center justify-between pb-3 border-b border-slate-100"
@@ -362,7 +361,7 @@ onMounted(() => {
                   v-model="passwordForm.current_password"
                   :type="showCurrentPass ? 'text' : 'password'"
                   placeholder="Nhập mật khẩu hiện tại"
-                  class="w-full rounded-xl border border-slate-200 pl-3.5 pr-10 py-2.5 text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
+                  class="w-full rounded-xl border border-slate-200 pl-3.5 pr-10 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
                 />
                 <button
                   type="button"
@@ -387,7 +386,7 @@ onMounted(() => {
                   v-model="passwordForm.new_password"
                   :type="showNewPass ? 'text' : 'password'"
                   placeholder="Tối thiểu 6 ký tự"
-                  class="w-full rounded-xl border border-slate-200 pl-3.5 pr-10 py-2.5 text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
+                  class="w-full rounded-xl border border-slate-200 pl-3.5 pr-10 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
                 />
                 <button
                   type="button"
@@ -412,7 +411,7 @@ onMounted(() => {
                   v-model="passwordForm.confirm_password"
                   :type="showConfirmPass ? 'text' : 'password'"
                   placeholder="Nhập lại mật khẩu mới"
-                  class="w-full rounded-xl border border-slate-200 pl-3.5 pr-10 py-2.5 text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
+                  class="w-full rounded-xl border border-slate-200 pl-3.5 pr-10 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:border-[#ee4d2d] focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all bg-slate-50/50 focus:bg-white"
                 />
                 <button
                   type="button"
@@ -433,7 +432,7 @@ onMounted(() => {
               @click="handleChangePassword"
               :disabled="changingPassword"
               type="button"
-              class="px-5 py-2.5 rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] text-white text-xs font-bold transition-all cursor-pointer shadow-md shadow-orange-900/10 flex items-center gap-2 disabled:opacity-60"
+              class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#ee4d2d] hover:bg-[#d63d1e] text-white text-xs font-bold transition-all cursor-pointer shadow-md shadow-orange-900/10 flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <ReloadOutlined v-if="changingPassword" spin />
               <KeyOutlined v-else />

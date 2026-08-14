@@ -31,37 +31,23 @@ import {
   MenuUnfoldOutlined,
   MenuOutlined,
   CloseOutlined,
-  BellOutlined,
   ShoppingOutlined,
   LogoutOutlined,
   GlobalOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
 const isCollapsed = ref(false);
-const isMobileMenuOpen = ref(false);
+const showMoreDrawer = ref(false);
 const botStatus = ref(readZaloBotStatus());
 const apiLoading = ref(false);
 const affiliateConfigRequired = ref(false);
 
-const botStatusLabel = computed(() =>
-  botStatus.value.connected ? "Bot đang hoạt động" : "Bot chưa hoạt động"
-);
-const botStatusClasses = computed(() =>
-  botStatus.value.connected
-    ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-    : botStatus.value.connecting
-    ? "bg-amber-50 text-amber-600 border-amber-200"
-    : "bg-slate-100 text-slate-500 border-slate-200"
-);
-const botStatusDotClass = computed(() =>
-  botStatus.value.connected
-    ? "bg-emerald-500 animate-pulse"
-    : botStatus.value.connecting
-    ? "bg-amber-500 animate-pulse"
-    : "bg-slate-400"
-);
+const botStatusLabel = "Bot chưa hoạt động";
+const botStatusClasses = "bg-slate-100 text-slate-500 border-slate-200";
+const botStatusDotClass = "bg-slate-400";
 
 const handleBotStatusEvent = (event: Event) => {
   botStatus.value = (event as CustomEvent<ZaloBotStatus>).detail;
@@ -93,10 +79,13 @@ const checkAffiliateConfig = async () => {
   }
 };
 
-watch(() => route.path, () => {
-  checkAffiliateConfig();
-  isMobileMenuOpen.value = false;
-});
+watch(
+  () => route.path,
+  () => {
+    checkAffiliateConfig();
+    showMoreDrawer.value = false;
+  }
+);
 
 onMounted(async () => {
   window.addEventListener(ZALO_BOT_STATUS_EVENT, handleBotStatusEvent);
@@ -158,14 +147,52 @@ const menuItems = [
     icon: ShoppingOutlined,
   },
   {
-    key: '/admin/settings',
-    title: 'Cấu hình Bot Zalo',
+    key: "/admin/settings",
+    title: "Cấu hình Bot Zalo",
     icon: RobotOutlined,
   },
   {
-    key: '/admin/general-config',
-    title: 'Cấu hình hệ thống',
+    key: "/admin/general-config",
+    title: "Cấu hình hệ thống",
     icon: SettingOutlined,
+  },
+];
+
+const mobileNavItems = [
+  { key: "/admin/orders", label: "Đơn hàng", icon: ShoppingCartOutlined },
+  { key: "/admin/withdrawals", label: "Rút tiền", icon: WalletOutlined },
+  { key: "/admin/link-history", label: "Tạo link", icon: LinkOutlined },
+  { key: "/admin/users", label: "Người dùng", icon: TeamOutlined },
+];
+
+const drawerMenuItems = [
+  {
+    key: "/admin/transaction-history",
+    label: "Lịch sử giao dịch",
+    icon: HistoryOutlined,
+    bgColor: "bg-amber-100/80",
+    textColor: "text-amber-600",
+  },
+  {
+    key: "/admin/shopee-config",
+    label: "Cấu hình Shopee",
+    icon: ShoppingOutlined,
+    bgColor: "bg-blue-100/80",
+    textColor: "text-blue-600",
+  },
+  {
+    key: "/admin/settings",
+    label: "Cấu hình Bot Zalo",
+    icon: RobotOutlined,
+    bgColor: "bg-purple-100/80",
+    textColor: "text-purple-600",
+  },
+  {
+    key: "/admin/general-config",
+    label: "Cấu hình hệ thống",
+    icon: SettingOutlined,
+    bgColor: "bg-emerald-100/80",
+    textColor: "text-emerald-600",
   },
 ];
 
@@ -175,9 +202,13 @@ const isActive = (path: string) =>
   currentRouteKey.value === path ||
   currentRouteKey.value.startsWith(`${path}/`);
 
+const isDrawerRouteActive = computed(() => {
+  return drawerMenuItems.some((item) => isActive(item.key));
+});
+
 const navigate = (path: string) => {
   router.push(path);
-  isMobileMenuOpen.value = false;
+  showMoreDrawer.value = false;
 };
 </script>
 
@@ -217,7 +248,7 @@ const navigate = (path: string) => {
               <span
                 class="font-black text-sm leading-tight text-slate-900 tracking-tight truncate"
               >
-                ZeplaoBot Admin
+                Admin
               </span>
               <span
                 class="text-[10px] font-bold text-[#ee4d2d] tracking-wider uppercase truncate"
@@ -290,97 +321,6 @@ const navigate = (path: string) => {
       </div>
     </aside>
 
-    <!-- Mobile Navigation Drawer (< 1024px) -->
-    <a-drawer
-      :open="isMobileMenuOpen"
-      placement="left"
-      :closable="false"
-      @close="isMobileMenuOpen = false"
-      width="280px"
-      :body-style="{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#ffffff' }"
-    >
-      <div class="flex flex-col justify-between h-full bg-white">
-        <div>
-          <!-- Drawer Brand Header -->
-          <div class="h-[72px] px-4 flex items-center justify-between border-b border-slate-100">
-            <router-link
-              to="/admin/orders"
-              class="flex items-center gap-3 overflow-hidden cursor-pointer"
-              @click="isMobileMenuOpen = false"
-            >
-              <div
-                class="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/70 p-1.5 flex items-center justify-center shrink-0 border border-orange-100 shadow-sm"
-              >
-                <img
-                  src="/logo/shopee.png"
-                  class="w-full h-full object-contain"
-                  alt="ZeplaoBot Logo"
-                />
-              </div>
-              <div class="flex flex-col text-left min-w-0">
-                <span class="font-black text-sm text-slate-900 tracking-tight truncate">
-                  ZeplaoBot Admin
-                </span>
-                <span class="text-[10px] font-bold text-[#ee4d2d] tracking-wider uppercase truncate">
-                  Shopee Workspace
-                </span>
-              </div>
-            </router-link>
-
-            <button
-              type="button"
-              @click="isMobileMenuOpen = false"
-              class="w-8 h-8 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-            >
-              <CloseOutlined class="text-base" />
-            </button>
-          </div>
-
-          <!-- Drawer Navigation Menu -->
-          <nav class="p-3 pt-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-160px)]">
-            <div class="px-3 pb-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.16em] text-left">
-              Quản lý hệ thống
-            </div>
-
-            <button
-              v-for="item in menuItems"
-              :key="item.key"
-              @click="navigate(item.key)"
-              :class="[
-                'w-full flex items-center gap-3 px-3.5 h-11 rounded-xl text-[13px] font-bold transition-all duration-200 cursor-pointer group',
-                isActive(item.key)
-                  ? 'bg-[#fff1ed] !text-[#ee4d2d] shadow-sm shadow-orange-500/5'
-                  : 'text-slate-600 hover:text-[#ee4d2d] hover:bg-orange-50/70',
-              ]"
-            >
-              <component
-                :is="item.icon"
-                :class="[
-                  'text-[17px] shrink-0 transition-colors',
-                  isActive(item.key) ? '!text-[#ee4d2d]' : 'text-slate-400 group-hover:text-[#ee4d2d]',
-                ]"
-              />
-              <span :class="['truncate text-left', isActive(item.key) ? '!text-[#ee4d2d]' : '']">
-                {{ item.title }}
-              </span>
-            </button>
-          </nav>
-        </div>
-
-        <!-- Drawer Bottom Logout -->
-        <div class="p-3 border-t border-slate-100 bg-slate-50/60">
-          <button
-            @click="handleLogout"
-            type="button"
-            class="w-full h-11 flex items-center gap-3 px-3.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
-          >
-            <LogoutOutlined class="text-base text-rose-600 shrink-0" />
-            <span class="truncate">Đăng xuất Admin</span>
-          </button>
-        </div>
-      </div>
-    </a-drawer>
-
     <!-- Main Content Layout Area -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
       <div
@@ -398,16 +338,6 @@ const navigate = (path: string) => {
         class="h-[72px] bg-white/95 backdrop-blur border-b border-slate-200/80 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20"
       >
         <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-          <!-- Mobile Hamburger Toggle Button (< 1024px) -->
-          <button
-            type="button"
-            @click="isMobileMenuOpen = true"
-            class="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-            title="Mở menu quản trị"
-          >
-            <MenuOutlined class="text-lg" />
-          </button>
-
           <!-- Desktop Sidebar Toggle Button (>= 1024px) -->
           <button
             type="button"
@@ -415,11 +345,16 @@ const navigate = (path: string) => {
             class="hidden lg:inline-flex p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
             :title="isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
           >
-            <component :is="isCollapsed ? MenuUnfoldOutlined : MenuFoldOutlined" class="text-base" />
+            <component
+              :is="isCollapsed ? MenuUnfoldOutlined : MenuFoldOutlined"
+              class="text-base"
+            />
           </button>
 
-          <h2 class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight truncate">
-            ZeplaoBot Admin
+          <h2
+            class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight truncate"
+          >
+            Admin
           </h2>
         </div>
 
@@ -430,28 +365,191 @@ const navigate = (path: string) => {
               botStatusClasses,
             ]"
           >
-            <span :class="['w-2 h-2 rounded-full shrink-0', botStatusDotClass]"></span>
-            <span class="truncate max-w-[120px] sm:max-w-none">{{ botStatusLabel }}</span>
+            <span
+              :class="['w-2 h-2 rounded-full shrink-0', botStatusDotClass]"
+            ></span>
+            <span class="truncate max-w-[120px] sm:max-w-none">{{
+              botStatusLabel
+            }}</span>
           </div>
-
-          <button
-            type="button"
-            class="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-            title="Thông báo"
-          >
-            <BellOutlined class="text-base" />
-          </button>
         </div>
       </header>
 
       <!-- Main Page Router View -->
       <main
-        class="flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto bg-slate-100"
+        class="flex-1 p-3 sm:p-6 lg:p-8 pb-24 lg:pb-8 overflow-y-auto bg-slate-100"
       >
         <router-view />
       </main>
     </div>
   </div>
+
+  <!-- ============================================== -->
+  <!-- MOBILE iOS-STYLE SLIDING BOTTOM BAR (< lg)    -->
+  <!-- ============================================== -->
+  <nav
+    class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)]"
+  >
+    <div
+      class="relative max-w-md mx-auto h-16 px-1.5 flex items-center justify-around"
+    >
+      <!-- 4 Main Nav Items -->
+      <button
+        v-for="item in mobileNavItems"
+        :key="item.key"
+        type="button"
+        @click="navigate(item.key)"
+        class="flex-1 flex flex-col items-center justify-center py-1 relative z-10 cursor-pointer select-none"
+      >
+        <div
+          :class="[
+            'w-7 h-7 flex items-center justify-center transition-transform duration-200',
+            isActive(item.key) ? 'scale-110 text-[#ee4d2d]' : 'text-slate-500',
+          ]"
+        >
+          <component :is="item.icon" class="text-lg" />
+        </div>
+        <span
+          :class="[
+            'text-[11px] mt-0.5 tracking-tight truncate max-w-[68px] transition-colors',
+            isActive(item.key)
+              ? 'text-[#ee4d2d] font-black'
+              : 'text-slate-500 font-bold',
+          ]"
+        >
+          {{ item.label }}
+        </span>
+      </button>
+
+      <!-- "Thêm" Button -->
+      <button
+        type="button"
+        @click="showMoreDrawer = !showMoreDrawer"
+        class="flex-1 flex flex-col items-center justify-center py-1 relative z-10 cursor-pointer select-none"
+      >
+        <div
+          :class="[
+            'w-7 h-7 flex items-center justify-center transition-transform duration-200',
+            showMoreDrawer || isDrawerRouteActive
+              ? 'scale-110 text-[#ee4d2d]'
+              : 'text-slate-500',
+          ]"
+        >
+          <AppstoreOutlined class="text-lg" />
+        </div>
+        <span
+          :class="[
+            'text-[11px] mt-0.5 tracking-tight truncate max-w-[68px] transition-colors',
+            showMoreDrawer || isDrawerRouteActive
+              ? 'text-[#ee4d2d] font-black'
+              : 'text-slate-500 font-bold',
+          ]"
+        >
+          Thêm
+        </span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============================================== -->
+  <!-- iOS-STYLE BOTTOM SHEET DRAWER (TELEPORT TO BODY)-->
+  <!-- ============================================== -->
+  <teleport to="body">
+    <!-- Backdrop Overlay -->
+    <transition
+      enter-active-class="transition-opacity duration-300 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showMoreDrawer"
+        class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs cursor-pointer"
+        @click="showMoreDrawer = false"
+      ></div>
+    </transition>
+
+    <!-- iOS Bottom Sheet Panel -->
+    <transition
+      enter-active-class="transition-transform duration-300 cubic-bezier(0.25, 1, 0.5, 1)"
+      enter-from-class="translate-y-full"
+      enter-to-class="translate-y-0"
+      leave-active-class="transition-transform duration-200 ease-in"
+      leave-from-class="translate-y-0"
+      leave-to-class="translate-y-full"
+    >
+      <div
+        v-if="showMoreDrawer"
+        class="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl p-4 sm:p-5 max-w-md mx-auto pb-[calc(1.5rem+env(safe-area-inset-bottom))] border-t border-slate-100 text-left space-y-4"
+      >
+        <!-- iOS Handle Bar -->
+        <div
+          class="w-12 h-1.5 rounded-full bg-slate-300 mx-auto cursor-pointer"
+          @click="showMoreDrawer = false"
+        ></div>
+
+        <!-- Section Title -->
+        <div class="px-1 flex items-center justify-between">
+          <span
+            class="text-xs font-black uppercase text-slate-400 tracking-wider"
+            >Danh mục quản trị khác</span
+          >
+        </div>
+
+        <!-- Menu Items Grid (App Cards format like image) -->
+        <div class="grid grid-cols-4 gap-2 sm:gap-3 py-1">
+          <button
+            v-for="item in drawerMenuItems"
+            :key="item.key"
+            type="button"
+            @click="navigate(item.key)"
+            :class="[
+              'rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center text-center space-y-2 cursor-pointer transition-all active:scale-95 border select-none min-h-[92px]',
+              isActive(item.key)
+                ? 'bg-orange-50/90 border-orange-200 shadow-2xs'
+                : 'bg-slate-50/80 border-slate-100 hover:bg-slate-100/80',
+            ]"
+          >
+            <!-- Pastel Soft Icon Badge -->
+            <div
+              :class="[
+                'w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 transition-transform',
+                isActive(item.key)
+                  ? 'bg-[#ee4d2d] text-white shadow-xs'
+                  : `${item.bgColor} ${item.textColor}`,
+              ]"
+            >
+              <component :is="item.icon" />
+            </div>
+
+            <!-- Centered Label -->
+            <span
+              :class="[
+                'text-[11px] sm:text-xs font-bold leading-tight text-center tracking-tight line-clamp-2',
+                isActive(item.key) ? 'text-[#ee4d2d] font-black' : 'text-slate-700',
+              ]"
+            >
+              {{ item.label }}
+            </span>
+          </button>
+        </div>
+
+        <!-- Logout Action Button -->
+        <div class="pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            @click="handleLogout"
+            class="w-full h-11 rounded-2xl bg-rose-50 border border-rose-200/80 text-rose-600 hover:bg-rose-100/70 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
+          >
+            <LogoutOutlined class="text-sm" />
+            <span>Đăng xuất</span>
+          </button>
+        </div>
+      </div>
+    </transition>
+  </teleport>
 
   <a-modal
     :open="affiliateConfigRequired"
