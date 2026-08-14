@@ -483,25 +483,28 @@ const getOrderCalc = (item: Order) => {
     <!-- Empty State Option C (Mobile Responsive + Prominent CTA) -->
     <div
       v-else
-      class="py-6 sm:py-10 px-2 flex flex-col items-center justify-center"
+      class="py-2 sm:py-4 flex flex-col items-center justify-center w-full"
     >
       <div
-        class="w-full max-w-sm sm:max-w-md bg-gradient-to-br from-orange-50/80 via-amber-50/40 to-orange-100/30 border border-orange-200/70 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center space-y-3.5 shadow-xs relative overflow-hidden"
+        class="w-full bg-gradient-to-br from-orange-50/80 via-amber-50/40 to-orange-100/30 border border-orange-200/70 rounded-2xl sm:rounded-3xl p-6 sm:p-10 text-center space-y-4 shadow-xs relative overflow-hidden"
       >
         <div
-          class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-[#ee4d2d] to-amber-500 text-white flex items-center justify-center mx-auto text-2xl sm:text-3xl shadow-md shadow-orange-500/20 transform -rotate-3 transition-transform hover:rotate-0"
+          class="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-tr from-[#ee4d2d] to-amber-500 text-white flex items-center justify-center mx-auto text-3xl sm:text-4xl shadow-md shadow-orange-500/20 transform -rotate-3 transition-transform hover:rotate-0"
         >
           🎁
         </div>
 
-        <div class="space-y-1.5">
+        <div class="space-y-2">
+          <div class="inline-block px-3.5 py-1 rounded-full bg-orange-100/80 text-[#ee4d2d] text-xs sm:text-sm font-black tracking-wide uppercase">
+            Chưa có đơn hàng
+          </div>
           <h3
-            class="text-sm sm:text-base font-black text-slate-900 tracking-tight m-0"
+            class="text-base sm:text-xl font-black text-slate-900 tracking-tight m-0"
           >
-            Đừng bỏ lỡ hoa hồng!
+            Hiện tại bạn chưa có đơn hàng nào!
           </h3>
           <p
-            class="text-sm sm:text-base text-slate-700 leading-relaxed max-w-sm mx-auto font-bold m-0"
+            class="text-xs sm:text-base text-slate-600 leading-relaxed max-w-lg mx-auto font-semibold m-0"
           >
             Dán link Shopee vào trang
             <router-link
@@ -513,11 +516,11 @@ const getOrderCalc = (item: Order) => {
           </p>
         </div>
 
-        <div class="pt-1">
+        <div class="pt-2">
           <button
             type="button"
             @click="router.push('/generate-link')"
-            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-[#ee4d2d] to-orange-500 hover:from-[#d83d1e] hover:to-orange-600 text-white font-black text-xs sm:text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer border-0 group"
+            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-[#ee4d2d] to-orange-500 hover:from-[#d83d1e] hover:to-orange-600 text-white font-black text-xs sm:text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer border-0 group"
           >
             <span>🔥 Tạo link hoàn tiền ngay</span>
             <span
