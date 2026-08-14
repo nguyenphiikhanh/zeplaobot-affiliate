@@ -131,9 +131,9 @@ function openAffiliateLink() {
 </script>
 
 <template>
-  <div class="relative z-20 mx-auto max-w-3xl px-4 sm:px-6">
+  <div class="w-full">
     <div
-      class="relative z-10 rounded-3xl border border-gray-100 bg-white/95 p-6 shadow-xl shadow-gray-200/60 backdrop-blur-xl sm:p-8"
+      class="w-full rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-7 shadow-xs"
     >
       <div class="mb-6 flex items-center justify-center">
         <img

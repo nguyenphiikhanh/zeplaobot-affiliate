@@ -11,8 +11,10 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: '', name: 'home', component: () => import('../views/HomeView.vue') },
-      { path: 'orders', name: 'user-orders', component: () => import('../views/UserOrdersView.vue') },
+      { path: 'generate-link', name: 'user-generate-link', component: () => import('../views/UserGenerateLinkView.vue') },
       { path: 'wallet', name: 'user-wallet', component: () => import('../views/UserWalletView.vue') },
+      { path: 'orders', name: 'user-orders', component: () => import('../views/UserOrdersView.vue') },
+      { path: 'profile', name: 'user-profile', component: () => import('../views/UserProfileView.vue') },
     ],
   },
   {

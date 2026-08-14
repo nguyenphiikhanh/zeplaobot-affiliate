@@ -1,7 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import { db } from '../db/index.js'
-import { bankAccounts, orders, wallets, walletTransactions } from '../db/schema.js'
+import { bankAccounts, orders, users, wallets, walletTransactions } from '../db/schema.js'
 
 export async function getUserOrders(userId: string, input: { page: number; limit: number; status?: string }) {
   const page = Math.max(1, input.page || 1), limit = Math.max(1, Math.min(100, input.limit || 15))
@@ -61,3 +61,99 @@ export async function createUserWithdrawal(userId: string, amountInput: unknown)
     return { id: Number(result[0].insertId), reference_id: referenceId, amount: -amount, status: 'pending' }
   })
 }
+
+export async function getUserDashboardSummary(userId: string) {
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
+  const wallet = await getUserWallet(userId)
+
+  const userOrders = await db.select().from(orders).where(eq(orders.userId, userId))
+
+  const totalOrders = userOrders.length
+  let completedOrders = 0
+  let pendingOrders = 0
+  let paidOrders = 0
+
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
+  let currentMonthCommission = 0
+  let currentMonthCompletedOrders = 0
+
+  const monthlyData: { monthKey: string; monthLabel: string; year: number; month: number; amount: number; count: number }[] = []
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(currentYear, currentMonth - i, 1)
+    const m = d.getMonth() + 1
+    const y = d.getFullYear()
+    monthlyData.push({
+      monthKey: `T${m}`,
+      monthLabel: `Tháng ${m}/${y}`,
+      year: y,
+      month: m,
+      amount: 0,
+      count: 0,
+    })
+  }
+
+  for (const o of userOrders) {
+    const status = (o.orderStatus || '').toUpperCase()
+    const isCompleted = status === 'COMPLETED' || (o.userCommission && o.userCommission > 0)
+    const isPending = status === 'PENDING' || status === 'PROCESSING' || (!isCompleted && status !== 'CANCELLED' && status !== 'INVALID')
+
+    if (o.isPaid === 1) {
+      paidOrders++
+    } else if (isCompleted) {
+      completedOrders++
+    } else if (isPending) {
+      pendingOrders++
+    }
+
+    const oDate = o.orderTime ? new Date(o.orderTime) : (o.createdAt ? new Date(o.createdAt) : null)
+    if (oDate) {
+      const oMonth = oDate.getMonth() + 1
+      const oYear = oDate.getFullYear()
+
+      if (oMonth === currentMonth + 1 && oYear === currentYear && (o.userCommission || 0) > 0) {
+        currentMonthCommission += Number(o.userCommission || 0)
+        currentMonthCompletedOrders++
+      }
+
+      const matchMonth = monthlyData.find(m => m.month === oMonth && m.year === oYear)
+      if (matchMonth && (o.userCommission || 0) > 0) {
+        matchMonth.amount += Number(o.userCommission || 0)
+        matchMonth.count++
+      }
+    }
+  }
+
+  const highestMonth = monthlyData.reduce((max, cur) => cur.amount > max.amount ? cur : max, monthlyData[0] || { monthKey: 'T1', amount: 0 })
+  const total6Months = monthlyData.reduce((sum, cur) => sum + cur.amount, 0)
+
+  return {
+    user: {
+      id: user?.id || userId,
+      name: user?.name || 'Khách hàng',
+      tracking_code: user?.trackingCode || '',
+      image: user?.image || null,
+    },
+    wallet: {
+      availableBalance: wallet.availableBalance,
+      pendingBalance: wallet.pendingBalance,
+      totalPaid: wallet.totalPaid,
+    },
+    stats: {
+      total_orders: totalOrders,
+      completed_orders: completedOrders,
+      pending_orders: pendingOrders,
+      paid_orders: paidOrders,
+      current_month_commission: currentMonthCommission,
+      current_month_orders: currentMonthCompletedOrders,
+      current_month_label: `Tháng ${currentMonth + 1}/${currentYear}`,
+    },
+    chart: {
+      months: monthlyData,
+      highest_month: highestMonth,
+      total_6_months: total6Months,
+    },
+  }
+}
+
