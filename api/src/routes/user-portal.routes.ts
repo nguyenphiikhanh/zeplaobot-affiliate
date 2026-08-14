@@ -40,6 +40,8 @@ userPortalRoutes.get('/user/orders', async (c) =>
         page: Number(c.req.query('page') || 1),
         limit: Number(c.req.query('limit') || 15),
         status: c.req.query('status'),
+        search: c.req.query('search'),
+        month: c.req.query('month'),
       }),
       'Đã tải đơn hàng',
     ),

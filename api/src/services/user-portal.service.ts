@@ -1,17 +1,69 @@
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, lte, like, or, sql } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import { db } from '../db/index.js'
 import { bankAccounts, orders, users, wallets, walletTransactions } from '../db/schema.js'
 
-export async function getUserOrders(userId: string, input: { page: number; limit: number; status?: string }) {
+export async function getUserOrders(
+  userId: string,
+  input: { page: number; limit: number; status?: string; search?: string; month?: string }
+) {
   const page = Math.max(1, input.page || 1), limit = Math.max(1, Math.min(100, input.limit || 15))
   const conditions = [eq(orders.userId, userId)]
-  if (input.status) conditions.push(eq(orders.orderStatus, input.status))
+
+  if (input.status) {
+    conditions.push(eq(orders.orderStatus, input.status))
+  }
+
+  if (input.search && input.search.trim()) {
+    const q = `%${input.search.trim()}%`
+    conditions.push(
+      or(
+        like(orders.orderId, q),
+        like(orders.productName, q),
+        like(orders.shopName, q)
+      )!
+    )
+  }
+
+  if (input.month && /^\d{4}-\d{2}$/.test(input.month.trim())) {
+    const [yearStr, monthStr] = input.month.trim().split('-')
+    const year = parseInt(yearStr, 10)
+    const month = parseInt(monthStr, 10)
+    if (!isNaN(year) && !isNaN(month) && month >= 1 && month <= 12) {
+      const startOfMonth = new Date(year, month - 1, 1, 0, 0, 0, 0)
+      const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999)
+      conditions.push(gte(orders.orderTime, startOfMonth))
+      conditions.push(lte(orders.orderTime, endOfMonth))
+    }
+  }
+
   const where = and(...conditions)
   const records = await db.select().from(orders).where(where).orderBy(desc(orders.orderTime), desc(orders.id)).limit(limit).offset((page - 1) * limit)
-  const [count] = await db.select({ count: sql<number>`count(*)` }).from(orders).where(where)
-  const total = Number(count?.count || 0)
-  return { orders: records, total, page, limit, totalPages: Math.ceil(total / limit) }
+  
+  const [stats] = await db
+    .select({
+      total: sql<number>`count(*)`,
+      unreceivedCount: sql<number>`sum(case when order_status = 'Pending' or order_status = 'Unpaid' or order_status is null or lower(order_status) = 'pending' then 1 else 0 end)`,
+      estimatedCommission: sql<number>`sum(coalesce(user_commission, 0))`,
+    })
+    .from(orders)
+    .where(where)
+
+  const total = Number(stats?.total || 0)
+  const unreceivedCount = Number(stats?.unreceivedCount || 0)
+  const estimatedCommission = Number(stats?.estimatedCommission || 0)
+
+  return {
+    orders: records,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+    summary: {
+      unreceivedCount,
+      estimatedCommission,
+    },
+  }
 }
 
 export async function getUserWallet(userId: string) {
@@ -94,31 +146,39 @@ export async function getUserDashboardSummary(userId: string) {
     })
   }
 
+  let completedCommission = 0
+  let pendingCommission = 0
+
   for (const o of userOrders) {
-    const status = (o.orderStatus || '').toUpperCase()
-    const isCompleted = status === 'COMPLETED' || (o.userCommission && o.userCommission > 0)
-    const isPending = status === 'PENDING' || status === 'PROCESSING' || (!isCompleted && status !== 'CANCELLED' && status !== 'INVALID')
+    const status = (o.orderStatus || '').trim().toUpperCase()
+    const isCompleted = status === 'COMPLETED' || status === 'HOÀN THÀNH'
+    const isCancelled = status === 'CANCELLED' || status === 'ĐÃ HỦY' || status === 'INVALID'
+    const isPending = !isCompleted && !isCancelled
 
     if (o.isPaid === 1) {
       paidOrders++
-    } else if (isCompleted) {
+    }
+    
+    if (isCompleted) {
       completedOrders++
+      completedCommission += Number(o.userCommission || 0)
     } else if (isPending) {
       pendingOrders++
+      pendingCommission += Number(o.userCommission || 0)
     }
 
     const oDate = o.orderTime ? new Date(o.orderTime) : (o.createdAt ? new Date(o.createdAt) : null)
-    if (oDate) {
+    if (oDate && isCompleted) {
       const oMonth = oDate.getMonth() + 1
       const oYear = oDate.getFullYear()
 
-      if (oMonth === currentMonth + 1 && oYear === currentYear && (o.userCommission || 0) > 0) {
+      if (oMonth === currentMonth + 1 && oYear === currentYear) {
         currentMonthCommission += Number(o.userCommission || 0)
         currentMonthCompletedOrders++
       }
 
       const matchMonth = monthlyData.find(m => m.month === oMonth && m.year === oYear)
-      if (matchMonth && (o.userCommission || 0) > 0) {
+      if (matchMonth) {
         matchMonth.amount += Number(o.userCommission || 0)
         matchMonth.count++
       }
@@ -143,7 +203,9 @@ export async function getUserDashboardSummary(userId: string) {
     stats: {
       total_orders: totalOrders,
       completed_orders: completedOrders,
+      completed_commission: completedCommission,
       pending_orders: pendingOrders,
+      pending_commission: pendingCommission,
       paid_orders: paidOrders,
       current_month_commission: currentMonthCommission,
       current_month_orders: currentMonthCompletedOrders,

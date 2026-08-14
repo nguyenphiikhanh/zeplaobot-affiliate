@@ -24,7 +24,9 @@ interface DashboardData {
   stats: {
     total_orders: number
     completed_orders: number
+    completed_commission?: number
     pending_orders: number
+    pending_commission?: number
     paid_orders: number
     current_month_commission: number
     current_month_orders: number
@@ -182,39 +184,51 @@ onMounted(() => {
             {{ formatCurrency(data?.stats?.current_month_commission || 0) }}đ
           </div>
           <div class="text-[10px] sm:text-[11px] text-slate-400 font-medium">
-            {{ data?.stats?.current_month_orders || 0 }} đơn đã thanh toán
+            {{ data?.stats?.current_month_orders || 0 }} đơn đã hoàn thành
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 4. 4 Status Pill Boxes (2 Columns x 2 Rows on Mobile) -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-      <div class="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex items-center justify-between px-4 sm:flex-col sm:justify-center text-left sm:text-center">
-        <div class="text-xs font-bold text-slate-500">Tổng đơn</div>
-        <div class="text-lg sm:text-xl font-black text-rose-500 sm:mt-0.5">
-          {{ data?.stats?.total_orders || 0 }}
+    <!-- 4. 4 Status Cards (Text on TOP, Value in MIDDLE) -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+      <!-- Card 1: Tổng đơn -->
+      <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs flex flex-col justify-center text-left sm:text-center space-y-1">
+        <div class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Tổng đơn
+        </div>
+        <div class="text-base sm:text-lg font-black text-slate-900 truncate">
+          {{ data?.stats?.total_orders || 0 }} đơn
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex items-center justify-between px-4 sm:flex-col sm:justify-center text-left sm:text-center">
-        <div class="text-xs font-bold text-slate-500">Hoàn thành</div>
-        <div class="text-lg sm:text-xl font-black text-rose-500 sm:mt-0.5">
-          {{ data?.stats?.completed_orders || 0 }}
+      <!-- Card 2: Đơn hoàn thành -->
+      <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs flex flex-col justify-center text-left sm:text-center space-y-1">
+        <div class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Đơn hoàn thành
+        </div>
+        <div class="text-base sm:text-lg font-black text-[#00b087] truncate">
+          {{ data?.stats?.completed_orders || 0 }} đơn
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex items-center justify-between px-4 sm:flex-col sm:justify-center text-left sm:text-center">
-        <div class="text-xs font-bold text-slate-500">Đang xử lý</div>
-        <div class="text-lg sm:text-xl font-black text-rose-500 sm:mt-0.5">
-          {{ data?.stats?.pending_orders || 0 }}
+      <!-- Card 3: Đang xử lý -->
+      <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs flex flex-col justify-center text-left sm:text-center space-y-1">
+        <div class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Đang xử lý
+        </div>
+        <div class="text-base sm:text-lg font-black text-amber-500 truncate">
+          {{ formatCurrency(data?.stats?.pending_commission || 0) }}đ
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex items-center justify-between px-4 sm:flex-col sm:justify-center text-left sm:text-center">
-        <div class="text-xs font-bold text-slate-500">Đã trả</div>
-        <div class="text-lg sm:text-xl font-black text-rose-500 sm:mt-0.5">
-          {{ data?.stats?.paid_orders || 0 }}
+      <!-- Card 4: Đã trả -->
+      <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs flex flex-col justify-center text-left sm:text-center space-y-1">
+        <div class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Đã trả
+        </div>
+        <div class="text-base sm:text-lg font-black text-blue-600 truncate">
+          {{ formatCurrency(data?.stats?.completed_commission || 0) }}đ
         </div>
       </div>
     </div>

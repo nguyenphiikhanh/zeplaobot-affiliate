@@ -410,7 +410,7 @@ const runBackgroundSyncProcess = async (dates: string[], cookie: string) => {
             itemName: productInfo.item_name || null,
             qty: 1,
             purchaseValue: (Number(totalPrice) || 0) / 100000,
-            imgCode: productInfo.image_code
+            imgCode: productInfo.img_code
           })
         }
 
