@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useSlots } from 'vue'
 import Navbar from './Navbar.vue'
-import Footer from './Footer.vue'
 
 const slots = useSlots()
 </script>
@@ -13,6 +12,5 @@ const slots = useSlots()
   <div v-else class="flex min-h-screen flex-col bg-[#fafafd] selection:bg-orange-100 selection:text-orange-600">
     <Navbar />
     <div class="flex flex-1 flex-col"><RouterView /></div>
-    <Footer />
   </div>
 </template>

@@ -160,18 +160,5 @@ const copyCommand = () => {
         </div>
       </div>
     </div>
-
-    <!-- Footer Author Note -->
-    <div class="relative z-10 py-3 text-center">
-      <p class="text-xs text-slate-500 font-medium">
-        Made & Support by
-        <a
-          href="https://www.facebook.com/nguyenphiikhanh"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-slate-700 hover:text-[#d94f3d] font-bold transition-colors"
-        >KhanhNT</a> ❤️
-      </p>
-    </div>
   </div>
 </template>

@@ -43,7 +43,6 @@ const isMobileMenuOpen = ref(false);
 const botStatus = ref(readZaloBotStatus());
 const apiLoading = ref(false);
 const affiliateConfigRequired = ref(false);
-const year = new Date().getFullYear();
 
 const botStatusLabel = computed(() =>
   botStatus.value.connected ? "Bot đang hoạt động" : "Bot chưa hoạt động"
@@ -446,24 +445,9 @@ const navigate = (path: string) => {
 
       <!-- Main Page Router View -->
       <main
-        class="flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto bg-slate-100 flex flex-col justify-between"
+        class="flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto bg-slate-100"
       >
-        <div>
-          <router-view />
-        </div>
-
-        <footer class="mt-8 border-t border-slate-200/80 pt-6 pb-2 text-center">
-          <p class="text-xs text-slate-400 font-medium">
-            © {{ year }}. Made & Support by
-            <a
-              href="https://www.facebook.com/nguyenphiikhanh"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-600 hover:text-[#ee4d2d] font-semibold transition-colors"
-              >KhanhNT</a
-            >❤️
-          </p>
-        </footer>
+        <router-view />
       </main>
     </div>
   </div>
