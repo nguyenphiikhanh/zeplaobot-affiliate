@@ -45,9 +45,19 @@ const botStatus = ref(readZaloBotStatus());
 const apiLoading = ref(false);
 const affiliateConfigRequired = ref(false);
 
-const botStatusLabel = "Bot chưa hoạt động";
-const botStatusClasses = "bg-slate-100 text-slate-500 border-slate-200";
-const botStatusDotClass = "bg-slate-400";
+const botStatusLabel = computed(() => {
+  return botStatus.value?.connected ? "Bot đang hoạt động" : "Bot chưa hoạt động";
+});
+
+const botStatusClasses = computed(() => {
+  return botStatus.value?.connected
+    ? "bg-emerald-50 text-emerald-600 border-emerald-200/80"
+    : "bg-slate-100 text-slate-500 border-slate-200";
+});
+
+const botStatusDotClass = computed(() => {
+  return botStatus.value?.connected ? "bg-emerald-500" : "bg-slate-400";
+});
 
 const handleBotStatusEvent = (event: Event) => {
   botStatus.value = (event as CustomEvent<ZaloBotStatus>).detail;
