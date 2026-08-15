@@ -132,35 +132,10 @@ export const uploadShopeeCsvService = async (input: unknown[]) => {
     const status = asText(row.orderStatus)
     const totalCommission = Math.round(asNumber(row.totalOrderCommission))
 
-    const serviceFeeRate = Number(settings.service_fee_rate) || 0
-    const taxRate = Number(settings.tax_rate) || 0
-    const userSharePercentage = Number(settings.user_share_percentage) || 0
+    const defaultServiceFeeRate = Number(settings.service_fee_rate) || 0
+    const defaultTaxRate = Number(settings.tax_rate) || 0
+    const defaultUserSharePercentage = Number(settings.user_share_percentage) || 0
 
-    const netCommission = totalCommission - (totalCommission * (serviceFeeRate + taxRate)) / 100
-    const calculatedUserCommission = status?.toLowerCase() === 'cancelled'
-      ? 0
-      : Math.round((netCommission * userSharePercentage) / 100)
-
-    const values = {
-      orderStatus: status,
-      orderTime: asDate(row.orderTime),
-      completeTime: asDate(row.completeTime),
-      clickTime: asDate(row.clickTime),
-      shopName: asText(row.shopName),
-      productId: asText(row.itemId),
-      productName: asText(row.itemName),
-      quantity: Math.round(asNumber(row.qty) || 1),
-      imgCode: asText(row.imgCode),
-      purchaseValue: Math.round(asNumber(row.purchaseValue)),
-      actualCommission: totalCommission,
-      serviceFeeRate,
-      taxRate,
-      userSharePercentage,
-      userCommission: calculatedUserCommission,
-      userId: link.userId,
-      isPaid: status?.toLowerCase() === 'completed' ? 1 : 0,
-      updatedAt: new Date(),
-    }
     try {
       await db.transaction(async (tx) => {
         const [existing] = await tx.select({
@@ -175,7 +150,34 @@ export const uploadShopeeCsvService = async (input: unknown[]) => {
           .where(and(eq(orders.orderId, orderId), eq(orders.subId, subId)))
           .limit(1)
 
-        let payoutAmount = values.userCommission
+        const effectiveServiceFeeRate = existing?.serviceFeeRate != null ? Number(existing.serviceFeeRate) : defaultServiceFeeRate
+        const effectiveTaxRate = existing?.taxRate != null ? Number(existing.taxRate) : defaultTaxRate
+        const effectiveUserSharePercentage = existing?.userSharePercentage != null ? Number(existing.userSharePercentage) : defaultUserSharePercentage
+
+        const netCommission = totalCommission - (totalCommission * (effectiveServiceFeeRate + effectiveTaxRate)) / 100
+        const calculatedUserCommission = status?.toLowerCase() === 'cancelled'
+          ? 0
+          : Math.round((netCommission * effectiveUserSharePercentage) / 100)
+
+        const valuesToUpdate = {
+          orderStatus: status,
+          orderTime: asDate(row.orderTime),
+          completeTime: asDate(row.completeTime),
+          clickTime: asDate(row.clickTime),
+          shopName: asText(row.shopName),
+          productId: asText(row.itemId),
+          productName: asText(row.itemName),
+          quantity: Math.round(asNumber(row.qty) || 1),
+          imgCode: asText(row.imgCode),
+          purchaseValue: Math.round(asNumber(row.purchaseValue)),
+          actualCommission: totalCommission,
+          userCommission: calculatedUserCommission,
+          userId: link.userId,
+          isPaid: status?.toLowerCase() === 'completed' ? 1 : 0,
+          updatedAt: new Date(),
+        }
+
+        let payoutAmount = calculatedUserCommission
         if (existing?.isPaid === 1) {
           // Repair orders imported by the previous Node logic, which marked
           // is_paid without crediting the wallet. A matching transaction proves
@@ -196,12 +198,19 @@ export const uploadShopeeCsvService = async (input: unknown[]) => {
         }
 
         if (existing?.isPaid !== 1 && existing) {
-          await tx.update(orders).set(values).where(eq(orders.id, existing.id))
+          await tx.update(orders).set(valuesToUpdate).where(eq(orders.id, existing.id))
         } else if (!existing) {
-          await tx.insert(orders).values({ ...values, orderId, subId })
+          await tx.insert(orders).values({
+            ...valuesToUpdate,
+            orderId,
+            subId,
+            serviceFeeRate: defaultServiceFeeRate,
+            taxRate: defaultTaxRate,
+            userSharePercentage: defaultUserSharePercentage,
+          })
         }
 
-        if (existing?.isPaid !== 1 && values.isPaid !== 1) return
+        if (existing?.isPaid !== 1 && valuesToUpdate.isPaid !== 1) return
 
         // Keep the order update, wallet credit and transaction history atomic.
         // If any operation fails, is_paid is rolled back together with the money.
