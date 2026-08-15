@@ -98,9 +98,45 @@ const asNumber = (value: unknown) => {
   const number = Number(value)
   return Number.isFinite(number) ? number : 0
 }
-const asDate = (value: unknown) => {
+const asDate = (value: unknown): Date | null => {
+  if (value == null) return null
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value
+  }
   const text = asText(value)
-  if (!text) return null
+  if (!text || text === '0' || text.toLowerCase() === 'null' || text.toLowerCase() === 'undefined') {
+    return null
+  }
+
+  // 1. Pure numeric Unix timestamp (seconds or milliseconds)
+  if (/^\d+$/.test(text)) {
+    const num = Number(text)
+    if (Number.isFinite(num) && num > 0) {
+      const dateMs = num > 1e11 ? num : num * 1000
+      const date = new Date(dateMs)
+      return Number.isNaN(date.getTime()) ? null : date
+    }
+  }
+
+  // 2. YYYY-MM-DD HH:mm:ss or YYYY/MM/DD HH:mm:ss (common ISO CSV formats)
+  const isoMatch = text.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:[\sT]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
+  if (isoMatch) {
+    const [, year, month, day, hh = '00', mm = '00', ss = '00'] = isoMatch
+    const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hh.padStart(2, '0')}:${mm.padStart(2, '0')}:${ss.padStart(2, '0')}`
+    const date = new Date(isoStr)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
+  // 3. DD/MM/YYYY HH:mm:ss or DD-MM-YYYY HH:mm:ss (common VN CSV formats)
+  const vnDateMatch = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:[\sT]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
+  if (vnDateMatch) {
+    const [, day, month, year, hh = '00', mm = '00', ss = '00'] = vnDateMatch
+    const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hh.padStart(2, '0')}:${mm.padStart(2, '0')}:${ss.padStart(2, '0')}`
+    const date = new Date(isoStr)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
+  // 4. Standard Date fallback
   const date = new Date(text)
   return Number.isNaN(date.getTime()) ? null : date
 }
@@ -401,10 +437,9 @@ const runBackgroundSyncProcess = async (dates: string[], cookie: string) => {
 
           if (!orderId) continue
 
-          const formatDateStr = (ts: number | null | undefined) => {
-            if (!ts) return null
-            const date = new Date(ts * 1000)
-            return Number.isNaN(date.getTime()) ? null : date.toISOString()
+          const formatDateStr = (ts: unknown) => {
+            const date = asDate(ts)
+            return date ? date.toISOString() : null
           }
 
           orderData.push({
