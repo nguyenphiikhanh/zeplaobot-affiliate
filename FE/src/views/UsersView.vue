@@ -51,6 +51,7 @@ const columns = [
   { title: "Đang chờ rút", key: "pending", align: "right", width: 150 },
   { title: "Đơn hoàn thành", key: "orders", align: "center", width: 140 },
   { title: "Ngày tham gia", key: "created", align: "right", width: 150 },
+  { title: "", key: "action", width: 100, align: "center" },
 ];
 
 const money = (value: number) =>
@@ -401,6 +402,16 @@ watch(searchInput, (newVal) => {
                 date(record.created_at)
               }}</span></template
             >
+            <template v-else-if="column.key === 'action'">
+              <button
+                type="button"
+                class="btn-action-primary !h-7 !px-2.5 text-[11px] whitespace-nowrap shrink-0"
+                @click.stop="selectedUser = record"
+              >
+                <span>Chi tiết</span>
+                <RightOutlined class="text-[10px]" />
+              </button>
+            </template>
           </template>
         </a-table>
       </div>

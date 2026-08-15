@@ -368,6 +368,25 @@ const getStatusLabel = (status?: string | null) => {
 const formatMoney = (value?: number | null) =>
   `${Math.round(Number(value) || 0).toLocaleString("vi-VN")}đ`;
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "—";
+  const str = String(value).trim();
+  const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (match) {
+    const [, y, m, d, hh, mm, ss] = match;
+    const dateFormatted = `${d}/${m}/${y}`;
+    const timeFormatted = hh ? (ss ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`) : "";
+    return timeFormatted ? `${dateFormatted} ${timeFormatted}` : dateFormatted;
+  }
+  try {
+    const dateObj = new Date(str);
+    if (!isNaN(dateObj.getTime())) {
+      return dateObj.toLocaleString("vi-VN");
+    }
+  } catch {}
+  return str;
+};
+
 const getAdminOrderCalc = (order: OrderItem) => {
   const actualComm = Number(order.actual_commission) || 0;
   const userComm = Number(order.user_commission) || 0;
@@ -848,11 +867,7 @@ const confirmUpload = async () => {
             <div class="flex items-center justify-between">
               <span class="text-slate-500 font-medium">Ngày đặt:</span>
               <span class="font-semibold text-slate-700">
-                {{
-                  record.order_time
-                    ? new Date(record.order_time).toLocaleDateString("vi-VN")
-                    : "—"
-                }}
+                {{ formatDateTime(record.order_time) }}
               </span>
             </div>
 
@@ -958,9 +973,7 @@ const confirmUpload = async () => {
             </template>
             <template v-else-if="column.key === 'order_time'"
               ><span class="text-xs text-slate-500">{{
-                record.order_time
-                  ? new Date(record.order_time).toLocaleDateString("vi-VN")
-                  : "—"
+                formatDateTime(record.order_time)
               }}</span></template
             >
             <template v-else-if="column.key === 'actual_commission'"
@@ -1142,7 +1155,7 @@ const confirmUpload = async () => {
               class="text-xs text-slate-400 font-medium"
               v-if="selectedOrder.order_time"
             >
-              {{ new Date(selectedOrder.order_time).toLocaleString("vi-VN") }}
+              {{ formatDateTime(selectedOrder.order_time) }}
             </span>
           </div>
 

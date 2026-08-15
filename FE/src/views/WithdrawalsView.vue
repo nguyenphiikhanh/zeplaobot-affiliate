@@ -146,7 +146,27 @@ const columns = [
   { title: "Thời gian", key: "time", width: 160 },
   { title: "Số tiền", key: "amount", width: 150 },
   { title: "Trạng thái", key: "status", width: 130 },
+  { title: "", key: "action", width: 100, align: "center" },
 ];
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "—";
+  const str = String(value).trim();
+  const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (match) {
+    const [, y, m, d, hh, mm, ss] = match;
+    const dateFormatted = `${d}/${m}/${y}`;
+    const timeFormatted = hh ? (ss ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`) : "";
+    return timeFormatted ? `${dateFormatted} ${timeFormatted}` : dateFormatted;
+  }
+  try {
+    const dateObj = new Date(str);
+    if (!isNaN(dateObj.getTime())) {
+      return dateObj.toLocaleString("vi-VN");
+    }
+  } catch {}
+  return str;
+};
 </script>
 <template>
   <div class="flex flex-col gap-6 pb-12">
@@ -363,7 +383,7 @@ const columns = [
           <!-- Bottom Row: Date & Action Button -->
           <div class="flex items-center justify-between pt-1 border-t border-slate-100/80 text-xs">
             <span class="text-[11px] text-slate-400 font-medium">
-              {{ new Date(record.created_at).toLocaleString("vi-VN") }}
+              {{ formatDateTime(record.created_at) }}
             </span>
             <button
               type="button"
@@ -392,7 +412,7 @@ const columns = [
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'ref'">
-              <b class="text-xs text-[#ee4d2d]">{{
+              <b class="text-[#ee4d2d] text-xs">{{
                 record.reference_id || "#" + record.id
               }}</b>
             </template>
@@ -406,7 +426,7 @@ const columns = [
             </template>
             <template v-else-if="column.key === 'time'">
               <div class="text-xs">
-                {{ new Date(record.created_at).toLocaleString("vi-VN") }}
+                {{ formatDateTime(record.created_at) }}
               </div>
             </template>
             <template v-else-if="column.key === 'amount'">
@@ -425,6 +445,16 @@ const columns = [
               >
                 {{ labels[record.status] }}
               </span>
+            </template>
+            <template v-else-if="column.key === 'action'">
+              <button
+                type="button"
+                class="btn-action-primary !h-7 !px-2.5 text-[11px] whitespace-nowrap shrink-0"
+                @click.stop="selected = record"
+              >
+                <span>Chi tiết</span>
+                <RightOutlined class="text-[10px]" />
+              </button>
             </template>
           </template>
         </a-table>

@@ -97,7 +97,7 @@ const columns = [
     width: 260,
   },
   { title: "Sản phẩm", key: "product", width: 300 },
-  { title: "", key: "details", width: 50 },
+  { title: "", key: "details", width: 100, align: "center" },
 ];
 
 const fetchHistory = async () => {
@@ -231,6 +231,41 @@ const copyText = async (value: string, label = "Nội dung") => {
   } catch {
     message.error("Không thể sao chép nội dung.");
   }
+};
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return { date: "—", time: "", full: "—" };
+  const str = String(value).trim();
+  
+  // Extract YYYY-MM-DD and HH:mm:ss directly from DB string to preserve exact values without browser timezone shift
+  const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (match) {
+    const [, y, m, d, hh, mm, ss] = match;
+    const dateFormatted = `${d}/${m}/${y}`;
+    const timeFormatted = hh ? (ss ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`) : "";
+    const full = timeFormatted ? `${dateFormatted} ${timeFormatted}` : dateFormatted;
+    return { date: dateFormatted, time: timeFormatted, full };
+  }
+
+  try {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const date = d.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const time = d.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      });
+      return { date, time, full: `${date} ${time}` };
+    }
+  } catch {}
+
+  return { date: str, time: "", full: str };
 };
 </script>
 
@@ -401,7 +436,7 @@ const copyText = async (value: string, label = "Nội dung") => {
               </span>
             </div>
             <span class="text-[11px] text-slate-400 font-medium shrink-0">
-              {{ new Date(record.created_at).toLocaleDateString("vi-VN") }}
+              {{ formatDateTime(record.created_at).full }}
             </span>
           </div>
 
@@ -481,10 +516,10 @@ const copyText = async (value: string, label = "Nội dung") => {
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'created_at'"
               ><div class="text-xs font-bold text-slate-700">
-                {{ new Date(record.created_at).toLocaleDateString("vi-VN") }}
+                {{ formatDateTime(record.created_at).date }}
               </div>
-              <div class="text-[10px] text-slate-400 mt-0.5">
-                {{ new Date(record.created_at).toLocaleTimeString("vi-VN") }}
+              <div class="text-[10px] font-mono text-slate-400 mt-0.5">
+                {{ formatDateTime(record.created_at).time }}
               </div></template
             >
             <template v-else-if="column.key === 'user'"
@@ -539,7 +574,7 @@ const copyText = async (value: string, label = "Nội dung") => {
             <template v-else-if="column.key === 'details'"
               ><button
                 type="button"
-                class="btn-action-primary !h-7 !px-2.5 text-[11px]"
+                class="btn-action-primary !h-7 !px-2.5 text-[11px] whitespace-nowrap shrink-0"
                 @click.stop="selectedItem = record"
               >
                 <span>Chi tiết</span
@@ -597,6 +632,7 @@ const copyText = async (value: string, label = "Nội dung") => {
       <div v-if="selectedItem" class="flex flex-col gap-4">
         <div
           v-for="item in [
+            { label: 'Thời gian tạo', value: formatDateTime(selectedItem.created_at).full },
             { label: 'Sub ID', value: selectedItem.sub_id },
             { label: 'Link gốc', value: selectedItem.origin_link },
             { label: 'Affiliate Link', value: selectedItem.affiliate_link },
