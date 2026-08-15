@@ -409,54 +409,62 @@ const getOrderCalc = (item: Order) => {
           </span>
         </div>
 
-        <!-- Bottom 4 Columns Grid (HH ĐƠN, SAU THUẾ, % NHẬN, NHẬN VỀ) -->
+        <!-- Financial Metric Grid (2 cols on mobile, 4 cols on sm+) -->
         <div
-          class="grid grid-cols-4 bg-[#f8fbfb] border-t border-slate-100 divide-x divide-slate-100 text-center py-2.5 px-1"
+          class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-0 bg-[#f8fbfb] border-t border-slate-100 sm:divide-x sm:divide-slate-200/80 text-center p-2 sm:py-2.5 sm:px-1"
         >
           <!-- Col 1: HH ĐƠN -->
-          <div class="space-y-0.5 px-1">
+          <div
+            class="flex flex-col justify-between items-center rounded-xl bg-white sm:bg-transparent p-2 sm:p-0 border border-slate-100 sm:border-0 space-y-0.5"
+          >
             <div
-              class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
             >
               HH ĐƠN
             </div>
-            <div class="text-xs sm:text-sm font-extrabold text-slate-900">
+            <div class="text-xs sm:text-sm font-extrabold text-slate-900 truncate w-full">
               {{ getOrderCalc(item).gross }}
             </div>
           </div>
 
           <!-- Col 2: SAU THUẾ -->
-          <div class="space-y-0.5 px-1">
+          <div
+            class="flex flex-col justify-between items-center rounded-xl bg-white sm:bg-transparent p-2 sm:p-0 border border-slate-100 sm:border-0 space-y-0.5"
+          >
             <div
-              class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
             >
               SAU THUẾ
             </div>
-            <div class="text-xs sm:text-sm font-extrabold text-slate-900">
+            <div class="text-xs sm:text-sm font-extrabold text-slate-900 truncate w-full">
               {{ getOrderCalc(item).afterTax }}
             </div>
           </div>
 
           <!-- Col 3: % NHẬN -->
-          <div class="space-y-0.5 px-1">
+          <div
+            class="flex flex-col justify-between items-center rounded-xl bg-white sm:bg-transparent p-2 sm:p-0 border border-slate-100 sm:border-0 space-y-0.5"
+          >
             <div
-              class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
             >
               % NHẬN
             </div>
-            <div class="text-xs sm:text-sm font-extrabold text-slate-900">
+            <div class="text-xs sm:text-sm font-extrabold text-slate-900 truncate w-full">
               {{ getOrderCalc(item).shareRate }}
             </div>
           </div>
 
           <!-- Col 4: NHẬN VỀ -->
-          <div class="space-y-0.5 px-1">
+          <div
+            class="flex flex-col justify-between items-center rounded-xl bg-white sm:bg-transparent p-2 sm:p-0 border border-slate-100 sm:border-0 space-y-0.5"
+          >
             <div
-              class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
             >
               NHẬN VỀ
             </div>
-            <div class="text-xs sm:text-sm font-black text-[#00b087]">
+            <div class="text-xs sm:text-sm font-black text-[#00b087] truncate w-full">
               {{ getOrderCalc(item).userComm }}
             </div>
           </div>

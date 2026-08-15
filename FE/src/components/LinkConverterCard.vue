@@ -304,61 +304,69 @@ function openAffiliateLink() {
               </div>
             </div>
           </div>
-          <!-- 4-Column Financial Metric Grid (HH ĐƠN, SAU THUẾ, % NHẬN, NHẬN VỀ) -->
+          <!-- Financial Metric Grid (2 cols on mobile, 4 cols on sm+) -->
           <div
-            class="mt-4 grid grid-cols-4 bg-[#f8fbfb] border border-slate-200/80 rounded-2xl divide-x divide-slate-100 text-center py-3 px-1"
+            class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-0 bg-[#f8fbfb] border border-slate-200/80 rounded-2xl sm:divide-x sm:divide-slate-200/80 text-center p-2 sm:py-3 sm:px-1"
           >
             <!-- Col 1: HH ĐƠN -->
-            <div class="space-y-1 px-1">
+            <div
+              class="flex flex-col justify-between items-center rounded-xl bg-white sm:bg-transparent p-2 sm:p-0 border border-slate-100 sm:border-0 space-y-0.5"
+            >
               <div
-                class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+                class="text-xs font-bold text-slate-400 uppercase tracking-wider"
               >
                 HH ĐƠN
               </div>
               <div
-                class="text-xs sm:text-base font-extrabold text-slate-900 truncate"
+                class="text-sm sm:text-base font-extrabold text-slate-900 truncate w-full"
               >
                 {{ grossCommissionText }}
               </div>
             </div>
 
             <!-- Col 2: SAU THUẾ -->
-            <div class="space-y-1 px-1">
+            <div
+              class="flex flex-col justify-between items-center rounded-xl bg-white sm:bg-transparent p-2 sm:p-0 border border-slate-100 sm:border-0 space-y-0.5"
+            >
               <div
-                class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+                class="text-xs font-bold text-slate-400 uppercase tracking-wider"
               >
                 SAU THUẾ
               </div>
               <div
-                class="text-xs sm:text-base font-extrabold text-slate-900 truncate"
+                class="text-sm sm:text-base font-extrabold text-slate-900 truncate w-full"
               >
                 {{ afterTaxText }}
               </div>
             </div>
 
             <!-- Col 3: % NHẬN -->
-            <div class="space-y-1 px-1">
+            <div
+              class="flex flex-col justify-between items-center rounded-xl bg-white sm:bg-transparent p-2 sm:p-0 border border-slate-100 sm:border-0 space-y-0.5"
+            >
               <div
-                class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+                class="text-xs font-bold text-slate-400 uppercase tracking-wider"
               >
                 % NHẬN
               </div>
               <div
-                class="text-xs sm:text-base font-extrabold text-slate-900 truncate"
+                class="text-sm sm:text-base font-extrabold text-slate-900 truncate w-full"
               >
                 {{ shareRateText }}
               </div>
             </div>
 
             <!-- Col 4: NHẬN VỀ -->
-            <div class="space-y-1 px-1">
+            <div
+              class="flex flex-col justify-between items-center rounded-xl bg-white sm:bg-transparent p-2 sm:p-0 border border-slate-100 sm:border-0 space-y-0.5"
+            >
               <div
-                class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider"
+                class="text-xs font-bold text-slate-400 uppercase tracking-wider"
               >
                 NHẬN VỀ
               </div>
               <div
-                class="text-xs sm:text-base font-black text-[#00b087] truncate"
+                class="text-sm sm:text-base font-black text-[#00b087] truncate w-full"
               >
                 {{ userNetText }}
               </div>
