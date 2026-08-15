@@ -35,6 +35,8 @@ interface OrderItem {
   type?: number | null;
   img_code?: string | null;
   imgCode?: string | null;
+  user_share_percentage?: number | null;
+  userSharePercentage?: number | null;
 }
 
 type CsvRow = Record<string, string | null>;
@@ -284,6 +286,26 @@ const drawerWidth = computed(() =>
   windowWidth.value < 640 ? "100%" : "460px"
 );
 
+interface ShopeeSettings {
+  service_fee_rate?: number;
+  tax_rate?: number;
+  user_share_percentage?: number;
+}
+const shopeeSettings = ref<ShopeeSettings | null>(null);
+
+const fetchShopeeConfig = async () => {
+  try {
+    const res = await api.get<ApiResponse<{ settings: ShopeeSettings }>>(
+      "/api/admin/shopee-config"
+    );
+    if (res.data?.data?.settings) {
+      shopeeSettings.value = res.data.data.settings;
+    }
+  } catch {
+    // Ignore error if config loading fails
+  }
+};
+
 watch([selectedStatus, limit], () => {
   currentPage.value = 1;
   fetchOrders();
@@ -291,6 +313,7 @@ watch([selectedStatus, limit], () => {
 onMounted(() => {
   fetchOrders();
   checkSyncStatus();
+  fetchShopeeConfig();
   window.addEventListener("resize", handleResize);
 });
 onUnmounted(() => {
@@ -348,20 +371,46 @@ const formatMoney = (value?: number | null) =>
 const getAdminOrderCalc = (order: OrderItem) => {
   const actualComm = Number(order.actual_commission) || 0;
   const userComm = Number(order.user_commission) || 0;
-  const afterTax = Math.round(actualComm * 0.89);
+
+  // Dynamic tax & fee percentages from DB settings (fallback: 10% tax + 1% fee = 11%)
+  const taxRateVal = shopeeSettings.value?.tax_rate ?? 10;
+  const feeRateVal = shopeeSettings.value?.service_fee_rate ?? 1;
+  const taxFeePercent = taxRateVal + feeRateVal;
+  const afterTaxPercent = 100 - taxFeePercent;
+
+  const afterTax = Math.round(actualComm * (afterTaxPercent / 100));
+  const taxFee = actualComm - afterTax;
 
   const grossProfit = actualComm - userComm;
   const netProfit = afterTax - userComm;
   const marginPercent =
     actualComm > 0 ? Math.round((netProfit / actualComm) * 100) : 0;
 
+  const explicitPercent =
+    order.user_share_percentage ??
+    order.userSharePercentage ??
+    shopeeSettings.value?.user_share_percentage;
+
+  let userPercent = 0;
+  if (explicitPercent != null && explicitPercent > 0) {
+    userPercent = Number(explicitPercent);
+  } else if (afterTax > 0 && userComm > 0) {
+    userPercent = Math.round((userComm / afterTax) * 100);
+  } else if (actualComm > 0 && userComm > 0) {
+    userPercent = Math.round((userComm / actualComm) * 100);
+  }
+
   return {
     actualComm,
     afterTax,
+    taxFee,
+    taxFeePercent,
+    afterTaxPercent,
     userComm,
     grossProfit,
     netProfit,
     marginPercent,
+    userPercent,
   };
 };
 
@@ -1208,7 +1257,7 @@ const confirmUpload = async () => {
 
             <div class="p-3 flex items-center justify-between">
               <span class="text-slate-500 font-medium"
-                >2. Hoa hồng Sau Thuế (89%):</span
+                >2. Hoa hồng Sau Thuế ({{ getAdminOrderCalc(selectedOrder).afterTaxPercent }}%):</span
               >
               <strong class="text-slate-800 font-bold">{{
                 formatMoney(getAdminOrderCalc(selectedOrder).afterTax)
@@ -1217,7 +1266,16 @@ const confirmUpload = async () => {
 
             <div class="p-3 flex items-center justify-between">
               <span class="text-slate-500 font-medium"
-                >3. Hoa hồng trả User:</span
+                >3. Thuế + phí ({{ getAdminOrderCalc(selectedOrder).taxFeePercent }}%):</span
+              >
+              <strong class="text-slate-600 font-bold">{{
+                formatMoney(getAdminOrderCalc(selectedOrder).taxFee)
+              }}</strong>
+            </div>
+
+            <div class="p-3 flex items-center justify-between">
+              <span class="text-slate-500 font-medium"
+                >4. Hoa hồng trả User<template v-if="getAdminOrderCalc(selectedOrder).userPercent"> ({{ getAdminOrderCalc(selectedOrder).userPercent }}%)</template>:</span
               >
               <strong class="text-rose-500 font-extrabold">{{
                 formatMoney(getAdminOrderCalc(selectedOrder).userComm)

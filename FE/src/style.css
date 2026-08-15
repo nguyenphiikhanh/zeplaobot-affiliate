@@ -98,19 +98,19 @@ button.text-white *,
 
 /* Soft-Badge Action Buttons System */
 .btn-action-success {
-  @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:scale-95 transition-all duration-150 cursor-pointer shadow-2xs;
+  @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-200/60 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:scale-95 transition-all duration-150 cursor-pointer shadow-2xs;
 }
 
 .btn-action-danger {
-  @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/60 hover:bg-rose-600 hover:text-white hover:border-rose-600 active:scale-95 transition-all duration-150 cursor-pointer shadow-2xs;
+  @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap bg-rose-50 text-rose-700 border border-rose-200/60 hover:bg-rose-600 hover:text-white hover:border-rose-600 active:scale-95 transition-all duration-150 cursor-pointer shadow-2xs;
 }
 
 .btn-action-primary {
-  @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold bg-orange-50 text-[#ee4d2d] border border-orange-200/60 hover:bg-[#ee4d2d] hover:text-white hover:border-[#ee4d2d] active:scale-95 transition-all duration-150 cursor-pointer shadow-2xs;
+  @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap bg-orange-50 text-[#ee4d2d] border border-orange-200/60 hover:bg-[#ee4d2d] hover:text-white hover:border-[#ee4d2d] active:scale-95 transition-all duration-150 cursor-pointer shadow-2xs;
 }
 
 .btn-action-secondary {
-  @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80 hover:bg-slate-200 hover:text-slate-900 active:scale-95 transition-all duration-150 cursor-pointer shadow-2xs;
+  @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap bg-slate-100 text-slate-700 border border-slate-200/80 hover:bg-slate-200 hover:text-slate-900 active:scale-95 transition-all duration-150 cursor-pointer shadow-2xs;
 }
 
 /* Custom smooth animations */
