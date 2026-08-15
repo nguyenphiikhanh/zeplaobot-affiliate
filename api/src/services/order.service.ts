@@ -81,6 +81,7 @@ interface ShopeeOrderImport {
   orderId?: unknown
   orderStatus?: unknown
   orderTime?: unknown
+  purchaseTime?: unknown
   completeTime?: unknown
   clickTime?: unknown
   shopName?: unknown
@@ -98,80 +99,49 @@ const asNumber = (value: unknown) => {
   const number = Number(value)
   return Number.isFinite(number) ? number : 0
 }
-const toVietnamTimeDate = (date: Date): Date => {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).formatToParts(date)
-
-  const p: Record<string, string> = {}
-  for (const part of parts) {
-    if (part.type !== 'literal') p[part.type] = part.value
-  }
-  const h = p.hour === '24' ? '00' : p.hour
-  return new Date(
-    Number(p.year),
-    Number(p.month) - 1,
-    Number(p.day),
-    Number(h),
-    Number(p.minute),
-    Number(p.second)
-  )
-}
-
 const asDate = (value: unknown): Date | null => {
   if (value == null) return null
-  let rawDate: Date | null = null
-
   if (value instanceof Date) {
-    rawDate = Number.isNaN(value.getTime()) ? null : value
-  } else {
-    const text = asText(value)
-    if (!text || text === '0' || text.toLowerCase() === 'null' || text.toLowerCase() === 'undefined') {
-      return null
-    }
+    return Number.isNaN(value.getTime()) ? null : value
+  }
 
-    // 1. Pure numeric Unix timestamp (seconds or milliseconds)
-    if (/^\d+$/.test(text)) {
-      const num = Number(text)
-      if (Number.isFinite(num) && num > 0) {
-        const dateMs = num > 1e11 ? num : num * 1000
-        const date = new Date(dateMs)
-        rawDate = Number.isNaN(date.getTime()) ? null : date
-      }
-    } else {
-      // 2. YYYY-MM-DD HH:mm:ss or YYYY/MM/DD HH:mm:ss (common ISO CSV formats)
-      const isoMatch = text.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:[\sT]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
-      if (isoMatch) {
-        const [, year, month, day, hh = '00', mm = '00', ss = '00'] = isoMatch
-        const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hh.padStart(2, '0')}:${mm.padStart(2, '0')}:${ss.padStart(2, '0')}+07:00`
-        const date = new Date(isoStr)
-        rawDate = Number.isNaN(date.getTime()) ? null : date
-      } else {
-        // 3. DD/MM/YYYY HH:mm:ss or DD-MM-YYYY HH:mm:ss (common VN CSV formats)
-        const vnDateMatch = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:[\sT]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
-        if (vnDateMatch) {
-          const [, day, month, year, hh = '00', mm = '00', ss = '00'] = vnDateMatch
-          const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hh.padStart(2, '0')}:${mm.padStart(2, '0')}:${ss.padStart(2, '0')}+07:00`
-          const date = new Date(isoStr)
-          rawDate = Number.isNaN(date.getTime()) ? null : date
-        } else {
-          // 4. Standard Date fallback
-          const date = new Date(text)
-          rawDate = Number.isNaN(date.getTime()) ? null : date
-        }
-      }
+  const text = asText(value)
+  if (!text || text === '0' || text.toLowerCase() === 'null' || text.toLowerCase() === 'undefined') {
+    return null
+  }
+
+  // 1. Pure numeric Unix timestamp (seconds or milliseconds).
+  // Keep the real UTC instant here. The API process runs in Asia/Ho_Chi_Minh,
+  // and mysql2 serializes Date values using that local timezone when writing.
+  // Adding seven hours manually would therefore apply the Vietnam offset twice.
+  if (/^\d+(?:\.\d+)?$/.test(text)) {
+    const num = Number(text)
+    if (Number.isFinite(num) && num > 0) {
+      const rawMs = num > 1e11 ? num : num * 1000
+      const date = new Date(rawMs)
+      return Number.isNaN(date.getTime()) ? null : date
     }
   }
 
-  if (!rawDate) return null
-  return toVietnamTimeDate(rawDate)
+  // 2. YYYY-MM-DD HH:mm:ss or YYYY/MM/DD HH:mm:ss (common ISO CSV formats)
+  const isoMatch = text.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:[\sT]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
+  if (isoMatch) {
+    const [, year, month, day, hh = '00', mm = '00', ss = '00'] = isoMatch
+    const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hh), Number(mm), Number(ss))
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
+  // 3. DD/MM/YYYY HH:mm:ss or DD-MM-YYYY HH:mm:ss (common VN CSV formats)
+  const vnDateMatch = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:[\sT]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
+  if (vnDateMatch) {
+    const [, day, month, year, hh = '00', mm = '00', ss = '00'] = vnDateMatch
+    const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hh), Number(mm), Number(ss))
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
+  // 4. Standard Date fallback
+  const date = new Date(text)
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
 // Same payload contract and matching rules as the PHP /order/import endpoint.
@@ -232,9 +202,9 @@ export const uploadShopeeCsvService = async (input: unknown[]) => {
           : Math.round((netCommission * effectiveUserSharePercentage) / 100)
 
         const rawRow = row as Record<string, unknown>
-        const rawOrderTime = row.orderTime ?? rawRow.order_time ?? rawRow.purchase_time ?? rawRow['Thời gian mua hàng'] ?? rawRow['Order Time']
-        const rawCompleteTime = row.completeTime ?? rawRow.complete_time ?? rawRow['Thời gian hoàn thành'] ?? rawRow['Complete Time']
-        const rawClickTime = row.clickTime ?? rawRow.click_time ?? rawRow['Thời gian nhấp chuột'] ?? rawRow['Click Time']
+        const rawOrderTime = row.orderTime ?? rawRow.order_time ?? rawRow['Order Time'] ?? row.purchaseTime ?? rawRow.purchase_time ?? rawRow['Purchase Time']
+        const rawCompleteTime = row.completeTime ?? rawRow.complete_time ?? rawRow['Complete Time']
+        const rawClickTime = row.clickTime ?? rawRow.click_time ?? rawRow['Click Time']
 
         const parsedOrderTime = asDate(rawOrderTime)
         const parsedCompleteTime = asDate(rawCompleteTime)
@@ -389,17 +359,17 @@ const getDayTimestamps = (dateStr: string) => {
 export const getTargetSyncDatesService = async (): Promise<string[]> => {
   const yesterdayDate = getVietnamDateStr(new Date(Date.now() - 24 * 3600 * 1000))
 
-  const pendingRecords = await db.select({
+  const recheckableRecords = await db.select({
     orderTime: orders.orderTime,
   })
     .from(orders)
     .where(and(
-      sql`LOWER(${orders.orderStatus}) = 'pending'`,
+      sql`LOWER(${orders.orderStatus}) IN ('pending', 'unpaid')`,
       sql`${orders.orderTime} IS NOT NULL`
     ))
 
   const dateSet = new Set<string>()
-  for (const record of pendingRecords) {
+  for (const record of recheckableRecords) {
     if (record.orderTime) {
       const dStr = getVietnamDateStr(new Date(record.orderTime))
       if (dStr <= yesterdayDate) {

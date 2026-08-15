@@ -498,14 +498,25 @@ const parseNumber = (value: string | null) => {
   const number = Number(value.replace(/[^\d.-]/g, ""));
   return Number.isFinite(number) ? number : null;
 };
+const normalizeCsvHeader = (value: string) =>
+  value.replace(/^\uFEFF/, "").trim().toLowerCase().replace(/[\s_-]+/g, "");
 const mapRow = (row: CsvRow): ImportRow => {
-  const value = (key: string) => row[key] || null;
+  const normalizedRow = new Map(
+    Object.entries(row).map(([key, value]) => [normalizeCsvHeader(key), value])
+  );
+  const value = (...keys: string[]) => {
+    for (const key of keys) {
+      const found = normalizedRow.get(normalizeCsvHeader(key));
+      if (found != null && found !== "") return found;
+    }
+    return null;
+  };
   return {
-    orderId: value("Order id"),
-    orderStatus: value("Order Status"),
-    orderTime: value("Order Time"),
-    completeTime: value("Complete Time"),
-    clickTime: value("Click Time"),
+    orderId: value("Order id", "Order ID", "order_id"),
+    orderStatus: value("Order Status", "order_status"),
+    orderTime: value("Order Time", "order_time", "Purchase Time", "purchase_time"),
+    completeTime: value("Complete Time", "complete_time"),
+    clickTime: value("Click Time", "click_time"),
     shopName: value("Shop Name"),
     itemId: parseNumber(value("Item id")),
     itemName: value("Item Name"),
