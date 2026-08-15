@@ -1,4 +1,4 @@
-import { mysqlTable, bigint, varchar, text, int, json, timestamp } from 'drizzle-orm/mysql-core';
+import { mysqlTable, bigint, varchar, text, int, json, timestamp, datetime } from 'drizzle-orm/mysql-core';
 
 export const linkGenerations = mysqlTable('link_generations', {
   id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
@@ -43,9 +43,11 @@ export const orders = mysqlTable('orders', {
   id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
   orderId: varchar('order_id', { length: 255 }).notNull(),
   orderStatus: varchar('order_status', { length: 64 }),
-  orderTime: timestamp('order_time'),
-  completeTime: timestamp('complete_time'),
-  clickTime: timestamp('click_time'),
+  // Shopee CSV/API values are persisted as Vietnam wall-clock time. DATETIME
+  // avoids MySQL TIMESTAMP converting them again based on the viewer session.
+  orderTime: datetime('order_time', { mode: 'date' }),
+  completeTime: datetime('complete_time', { mode: 'date' }),
+  clickTime: datetime('click_time', { mode: 'date' }),
   shopName: varchar('shop_name', { length: 255 }),
   productId: varchar('product_id', { length: 255 }),
   productName: text('product_name'),
