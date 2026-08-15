@@ -122,7 +122,7 @@ const asDate = (value: unknown): Date | null => {
   const isoMatch = text.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:[\sT]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
   if (isoMatch) {
     const [, year, month, day, hh = '00', mm = '00', ss = '00'] = isoMatch
-    const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hh.padStart(2, '0')}:${mm.padStart(2, '0')}:${ss.padStart(2, '0')}`
+    const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hh.padStart(2, '0')}:${mm.padStart(2, '0')}:${ss.padStart(2, '0')}+07:00`
     const date = new Date(isoStr)
     return Number.isNaN(date.getTime()) ? null : date
   }
@@ -131,7 +131,7 @@ const asDate = (value: unknown): Date | null => {
   const vnDateMatch = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:[\sT]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
   if (vnDateMatch) {
     const [, day, month, year, hh = '00', mm = '00', ss = '00'] = vnDateMatch
-    const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hh.padStart(2, '0')}:${mm.padStart(2, '0')}:${ss.padStart(2, '0')}`
+    const isoStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hh.padStart(2, '0')}:${mm.padStart(2, '0')}:${ss.padStart(2, '0')}+07:00`
     const date = new Date(isoStr)
     return Number.isNaN(date.getTime()) ? null : date
   }
@@ -181,6 +181,9 @@ export const uploadShopeeCsvService = async (input: unknown[]) => {
           serviceFeeRate: orders.serviceFeeRate,
           taxRate: orders.taxRate,
           userSharePercentage: orders.userSharePercentage,
+          orderTime: orders.orderTime,
+          completeTime: orders.completeTime,
+          clickTime: orders.clickTime,
         })
           .from(orders)
           .where(and(eq(orders.orderId, orderId), eq(orders.subId, subId)))
@@ -195,11 +198,20 @@ export const uploadShopeeCsvService = async (input: unknown[]) => {
           ? 0
           : Math.round((netCommission * effectiveUserSharePercentage) / 100)
 
+        const rawRow = row as Record<string, unknown>
+        const rawOrderTime = row.orderTime ?? rawRow.order_time ?? rawRow.purchase_time ?? rawRow['Thời gian mua hàng'] ?? rawRow['Order Time']
+        const rawCompleteTime = row.completeTime ?? rawRow.complete_time ?? rawRow['Thời gian hoàn thành'] ?? rawRow['Complete Time']
+        const rawClickTime = row.clickTime ?? rawRow.click_time ?? rawRow['Thời gian nhấp chuột'] ?? rawRow['Click Time']
+
+        const parsedOrderTime = asDate(rawOrderTime)
+        const parsedCompleteTime = asDate(rawCompleteTime)
+        const parsedClickTime = asDate(rawClickTime)
+
         const valuesToUpdate = {
           orderStatus: status,
-          orderTime: asDate(row.orderTime),
-          completeTime: asDate(row.completeTime),
-          clickTime: asDate(row.clickTime),
+          orderTime: parsedOrderTime ?? existing?.orderTime ?? null,
+          completeTime: parsedCompleteTime ?? existing?.completeTime ?? null,
+          clickTime: parsedClickTime ?? existing?.clickTime ?? null,
           shopName: asText(row.shopName),
           productId: asText(row.itemId),
           productName: asText(row.itemName),
@@ -281,7 +293,7 @@ export const uploadShopeeCsvService = async (input: unknown[]) => {
   return {
     successCount,
     skippedCount,
-    message: `Cập nhật thành công ${successCount} đơn hàng${skippedCount ? `, bỏ qua ${skippedCount} đơn không khớp Sub ID` : ''}`,
+    message: `Cập nhật thành công, bỏ qua ${skippedCount} đơn không khớp Sub ID`,
   }
 }
 
