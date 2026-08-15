@@ -30,8 +30,10 @@ export async function getUserOrders(
     const year = parseInt(yearStr, 10)
     const month = parseInt(monthStr, 10)
     if (!isNaN(year) && !isNaN(month) && month >= 1 && month <= 12) {
-      const startOfMonth = new Date(year, month - 1, 1, 0, 0, 0, 0)
-      const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999)
+      const paddedMonth = String(month).padStart(2, '0')
+      const lastDay = new Date(year, month, 0).getDate()
+      const startOfMonth = `${year}-${paddedMonth}-01 00:00:00`
+      const endOfMonth = `${year}-${paddedMonth}-${String(lastDay).padStart(2, '0')} 23:59:59`
       conditions.push(gte(orders.orderTime, startOfMonth))
       conditions.push(lte(orders.orderTime, endOfMonth))
     }

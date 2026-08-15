@@ -98,11 +98,55 @@ const asNumber = (value: unknown) => {
   const number = Number(value)
   return Number.isFinite(number) ? number : 0
 }
+
+const vietnamDateTimeFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
+const formatVietnamDateTime = (date: Date) => {
+  const parts = Object.fromEntries(
+    vietnamDateTimeFormatter.formatToParts(date)
+      .filter(({ type }) => type !== 'literal')
+      .map(({ type, value }) => [type, value]),
+  )
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`
+}
+
 const asDate = (value: unknown) => {
   const text = asText(value)
-  if (!text) return null
+  if (!text || text === '--') return null
+
+  // Shopee API returns Unix time. This is equivalent to PHP's
+  // Carbon::createFromTimestamp(...)->toDateTimeString() in APP_TIMEZONE.
+  if (/^\d+(?:\.\d+)?$/.test(text)) {
+    const timestamp = Number(text)
+    const date = new Date(timestamp * (timestamp < 1e12 ? 1000 : 1))
+    return Number.isNaN(date.getTime()) ? null : formatVietnamDateTime(date)
+  }
+
+  // CSV Order Time/Complete Time/Click Time already contain Vietnam wall time.
+  // Preserve that wall time instead of interpreting and converting it again.
+  const yearFirst = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/)
+  if (yearFirst) {
+    const [, year, month, day, hour, minute, second = '0'] = yearFirst
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`
+  }
+
+  const dayFirst = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/)
+  if (dayFirst) {
+    const [, day, month, year, hour, minute, second = '0'] = dayFirst
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`
+  }
+
   const date = new Date(text)
-  return Number.isNaN(date.getTime()) ? null : date
+  return Number.isNaN(date.getTime()) ? null : formatVietnamDateTime(date)
 }
 
 // Same payload contract and matching rules as the PHP /order/import endpoint.
@@ -313,14 +357,14 @@ export const getTargetSyncDatesService = async (): Promise<string[]> => {
   })
     .from(orders)
     .where(and(
-      sql`LOWER(${orders.orderStatus}) = 'pending'`,
+      sql`LOWER(${orders.orderStatus}) IN ('pending', 'unpaid')`,
       sql`${orders.orderTime} IS NOT NULL`
     ))
 
   const dateSet = new Set<string>()
   for (const record of pendingRecords) {
     if (record.orderTime) {
-      const dStr = getVietnamDateStr(new Date(record.orderTime))
+      const dStr = record.orderTime.slice(0, 10)
       if (dStr <= yesterdayDate) {
         dateSet.add(dStr)
       }
@@ -401,20 +445,14 @@ const runBackgroundSyncProcess = async (dates: string[], cookie: string) => {
 
           if (!orderId) continue
 
-          const formatDateStr = (ts: number | null | undefined) => {
-            if (!ts) return null
-            const date = new Date(ts * 1000)
-            return Number.isNaN(date.getTime()) ? null : date.toISOString()
-          }
-
           orderData.push({
             subId1,
             orderId,
-            orderTime: formatDateStr(item.purchase_time),
+            orderTime: asDate(item.purchase_time),
             totalOrderCommission: Math.round((Number(item.estimated_total_commission) || 0) / 100000),
             orderStatus,
-            completeTime: formatDateStr(orderInfo.complete_time),
-            clickTime: formatDateStr(item.click_time),
+            completeTime: asDate(orderInfo.complete_time),
+            clickTime: asDate(item.click_time),
             shopName: productInfo.shop_name || null,
             itemId: productInfo.item_id || null,
             itemName: productInfo.item_name || null,
