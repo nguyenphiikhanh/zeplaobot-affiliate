@@ -138,14 +138,23 @@ const formatMoney = (v: number | null) => {
   return new Intl.NumberFormat("vi-VN").format(Math.round(v || 0)) + "đ";
 };
 
-const formatDate = (dStr: string | null) => {
+const formatDate = (dStr?: string | null) => {
   if (!dStr) return "";
-  const d = new Date(dStr);
-  if (isNaN(d.getTime())) return "";
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  const str = String(dStr).trim();
+  const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (match) {
+    const [, y, m, d, hh, mm, ss] = match;
+    const dateFormatted = `${d}/${m}/${y}`;
+    const timeFormatted = hh ? (ss ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`) : "";
+    return timeFormatted ? `${dateFormatted} ${timeFormatted}` : dateFormatted;
+  }
+  try {
+    const dateObj = new Date(str);
+    if (!isNaN(dateObj.getTime())) {
+      return dateObj.toLocaleDateString("vi-VN");
+    }
+  } catch {}
+  return str;
 };
 
 const copyOrderId = (orderId: string) => {

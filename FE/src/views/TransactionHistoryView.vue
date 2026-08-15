@@ -48,6 +48,27 @@ const statusMap: Record<string, string> = {
   success: "Thành công",
   rejected: "Từ chối",
 };
+const formatDateTime = (value?: string | null) => {
+  if (!value) return { date: "—", time: "", full: "—" };
+  const str = String(value).trim();
+  const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (match) {
+    const [, y, m, d, hh, mm, ss] = match;
+    const dateFormatted = `${d}/${m}/${y}`;
+    const timeFormatted = hh ? (ss ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`) : "";
+    const full = timeFormatted ? `${dateFormatted} ${timeFormatted}` : dateFormatted;
+    return { date: dateFormatted, time: timeFormatted, full };
+  }
+  try {
+    const dateObj = new Date(str);
+    if (!isNaN(dateObj.getTime())) {
+      const date = dateObj.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const time = dateObj.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+      return { date, time, full: `${date} ${time}` };
+    }
+  } catch {}
+  return { date: str, time: "", full: str };
+};
 const fetchUsers = async () => {
   loadingUsers.value = true;
   try {
@@ -390,7 +411,7 @@ const openUserModal = async () => {
             <!-- Bottom Row: Date & Status -->
             <div class="flex items-center justify-between pt-1.5 border-t border-slate-100/80 text-[11px]">
               <span class="text-slate-400 font-medium">
-                {{ new Date(record.created_at).toLocaleDateString("vi-VN") }} {{ new Date(record.created_at).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }) }}
+                {{ formatDateTime(record.created_at).full }}
               </span>
               <span
                 :class="[
@@ -423,10 +444,10 @@ const openUserModal = async () => {
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'time'">
                 <b class="text-xs">{{
-                  new Date(record.created_at).toLocaleDateString("vi-VN")
+                  formatDateTime(record.created_at).date
                 }}</b>
-                <div class="text-[10px] text-slate-400">
-                  {{ new Date(record.created_at).toLocaleTimeString("vi-VN") }}
+                <div class="text-[10px] font-mono text-slate-400">
+                  {{ formatDateTime(record.created_at).time }}
                 </div>
               </template>
               <template v-else-if="column.key === 'content'">

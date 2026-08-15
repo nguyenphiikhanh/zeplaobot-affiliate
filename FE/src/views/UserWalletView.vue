@@ -77,6 +77,25 @@ const formatMoney = (v: number) => {
   return new Intl.NumberFormat("vi-VN").format(Math.round(v || 0)) + "đ";
 };
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "—";
+  const str = String(value).trim();
+  const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (match) {
+    const [, y, m, d, hh, mm, ss] = match;
+    const dateFormatted = `${d}/${m}/${y}`;
+    const timeFormatted = hh ? (ss ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`) : "";
+    return timeFormatted ? `${dateFormatted} ${timeFormatted}` : dateFormatted;
+  }
+  try {
+    const dateObj = new Date(str);
+    if (!isNaN(dateObj.getTime())) {
+      return dateObj.toLocaleString("vi-VN");
+    }
+  } catch {}
+  return str;
+};
+
 interface VietQRBank {
   id: number
   name: string
@@ -438,7 +457,7 @@ const getTxStatus = (status: string) => {
               }}
             </div>
             <div class="text-[10px] text-slate-400">
-              {{ new Date(tx.createdAt).toLocaleString("vi-VN") }}
+              {{ formatDateTime(tx.createdAt) }}
             </div>
           </div>
 

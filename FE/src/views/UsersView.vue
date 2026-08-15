@@ -56,9 +56,34 @@ const columns = [
 
 const money = (value: number) =>
   `${new Intl.NumberFormat("vi-VN").format(Number(value) || 0)}đ`;
-const date = (value: string) => new Date(value).toLocaleDateString("vi-VN");
-const isNew = (value: string) =>
-  Date.now() - new Date(value).getTime() <= 30 * 24 * 60 * 60 * 1000;
+const date = (value?: string | null) => {
+  if (!value) return "—";
+  const str = String(value).trim();
+  const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (match) {
+    const [, y, m, d, hh, mm, ss] = match;
+    const dateFormatted = `${d}/${m}/${y}`;
+    const timeFormatted = hh ? (ss ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`) : "";
+    return timeFormatted ? `${dateFormatted} ${timeFormatted}` : dateFormatted;
+  }
+  try {
+    const dateObj = new Date(str);
+    if (!isNaN(dateObj.getTime())) {
+      return dateObj.toLocaleDateString("vi-VN");
+    }
+  } catch {}
+  return str;
+};
+const isNew = (value: string) => {
+  if (!value) return false;
+  try {
+    let str = String(value).trim();
+    if (str.includes(" ") && !str.includes("T")) str = str.replace(" ", "T");
+    return Date.now() - new Date(str).getTime() <= 30 * 24 * 60 * 60 * 1000;
+  } catch {
+    return false;
+  }
+};
 
 const fetchUsers = async () => {
   loading.value = true;
