@@ -119,6 +119,17 @@ const formatVietnamDateTime = (date: Date) => {
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`
 }
 
+const formatShopeeUnixTime = (value: unknown) => {
+  const unixSeconds = Number(value)
+  if (!Number.isFinite(unixSeconds) || unixSeconds <= 0) return null
+
+  // Unix time is always based on UTC (GMT+0000). Build the instant explicitly
+  // in UTC first, then render that same instant in Vietnam time below.
+  const utcDate = new Date(0)
+  utcDate.setUTCSeconds(unixSeconds)
+  return Number.isNaN(utcDate.getTime()) ? null : formatVietnamDateTime(utcDate)
+}
+
 const asDate = (value: unknown) => {
   const text = asText(value)
   if (!text || text === '--') return null
@@ -127,8 +138,9 @@ const asDate = (value: unknown) => {
   // Carbon::createFromTimestamp(...)->toDateTimeString() in APP_TIMEZONE.
   if (/^\d+(?:\.\d+)?$/.test(text)) {
     const timestamp = Number(text)
-    const date = new Date(timestamp * (timestamp < 1e12 ? 1000 : 1))
-    return Number.isNaN(date.getTime()) ? null : formatVietnamDateTime(date)
+    if (timestamp < 1e12) return formatShopeeUnixTime(timestamp)
+    const utcDate = new Date(timestamp)
+    return Number.isNaN(utcDate.getTime()) ? null : formatVietnamDateTime(utcDate)
   }
 
   // CSV Order Time/Complete Time/Click Time already contain Vietnam wall time.
@@ -448,11 +460,11 @@ const runBackgroundSyncProcess = async (dates: string[], cookie: string) => {
           orderData.push({
             subId1,
             orderId,
-            orderTime: asDate(item.purchase_time),
+            orderTime: formatShopeeUnixTime(item.purchase_time),
             totalOrderCommission: Math.round((Number(item.estimated_total_commission) || 0) / 100000),
             orderStatus,
-            completeTime: asDate(orderInfo.complete_time),
-            clickTime: asDate(item.click_time),
+            completeTime: formatShopeeUnixTime(orderInfo.complete_time),
+            clickTime: formatShopeeUnixTime(item.click_time),
             shopName: productInfo.shop_name || null,
             itemId: productInfo.item_id || null,
             itemName: productInfo.item_name || null,

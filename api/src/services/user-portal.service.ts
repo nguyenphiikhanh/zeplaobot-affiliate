@@ -88,9 +88,22 @@ export async function getUserBankAccount(userId: string) {
   return bank || null
 }
 
-export async function saveUserBankAccount(userId: string, input: { bank_id?: unknown; bank_name?: unknown; account_no?: unknown; account_name?: unknown }) {
-  const bankId = String(input.bank_id || '').trim(), bankName = String(input.bank_name || '').trim()
-  const accountNo = String(input.account_no || '').replace(/\s/g, ''), accountName = String(input.account_name || '').trim().toUpperCase()
+type BankAccountInput = {
+  bankId?: unknown
+  bankName?: unknown
+  accountNo?: unknown
+  accountName?: unknown
+  bank_id?: unknown
+  bank_name?: unknown
+  account_no?: unknown
+  account_name?: unknown
+}
+
+export async function saveUserBankAccount(userId: string, input: BankAccountInput) {
+  const bankId = String(input.bankId ?? input.bank_id ?? '').trim()
+  const bankName = String(input.bankName ?? input.bank_name ?? '').trim()
+  const accountNo = String(input.accountNo ?? input.account_no ?? '').replace(/\s/g, '')
+  const accountName = String(input.accountName ?? input.account_name ?? '').trim().toUpperCase()
   if (!bankId || !bankName || !accountNo || !accountName) throw new Error('Vui lòng nhập đầy đủ thông tin tài khoản ngân hàng')
   if (!/^[A-Z]+(?:\s[A-Z]+)*$/.test(accountName) || accountName.length > 35) throw new Error('Tên chủ tài khoản không hợp lệ (viết không dấu, tối đa 35 ký tự)')
   if (!/^\d{5,20}$/.test(accountNo)) throw new Error('Số tài khoản ngân hàng không hợp lệ')
