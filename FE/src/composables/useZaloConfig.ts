@@ -24,9 +24,16 @@ const groupCommands = reactive({
     no_bank_response: '⚠️ Bạn chưa cấu hình tài khoản ngân hàng. Vui lòng truy cập {url} để cập nhật thông tin trước khi rút tiền.'
   },
   orders: {
-    command: 'donhang',
+    command: 'id',
     response: '📦 Theo dõi các đơn hàng của bạn tại đây:\n{url}\n🔐 Mã đăng nhập đã được gửi qua tin nhắn riêng.\nChú ý: Tin nhắn có thể nằm trong phần "Tin nhắn từ người lạ". Nếu tắt nhận tin nhắn từ người lạ, vui lòng nhắn riêng cho bot với cú pháp {get_tracking_code_command}',
     private_response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.'
+  },
+  order_list: {
+    command: 'donhang',
+    response: '📄 Trang {page}/{total_pages}\n🛒 Đơn hàng của bạn:\n{orders}\n\n➡️ {next_page_instruction}',
+    item_response: '{index}. 📦 {product_name}\n🆔 ID: {order_id}\n💰 Hoa hồng: {user_commission}\n📌 Trạng thái: {order_status}',
+    next_page_response: '➡️ Nhắn #{next_command} để xem tiếp các đơn của bạn.',
+    empty_response: '📭 Bạn chưa có đơn hàng nào.\n🔗 Hãy tiếp tục gửi link và 🛍️ mua sắm nhé!'
   },
 });
 
@@ -136,6 +143,7 @@ const configPayload = (): ZaloBotSettings => ({
     wallet: { ...groupCommands.wallet, command: groupCommands.wallet.command.trim().toLowerCase() },
     withdraw: { ...groupCommands.withdraw, command: groupCommands.withdraw.command.trim().toLowerCase() },
     orders: { ...groupCommands.orders, command: groupCommands.orders.command.trim().toLowerCase() },
+    order_list: { ...groupCommands.order_list, command: groupCommands.order_list.command.trim().toLowerCase() },
   },
   private_commands: {
     tracking: { ...privateCommands.tracking, command: privateCommands.tracking.command.trim().toLowerCase() },
@@ -152,6 +160,7 @@ const applyConfig = (config: ZaloBotSettings) => {
   Object.assign(groupCommands.wallet, config.group_commands.wallet);
   Object.assign(groupCommands.withdraw, config.group_commands.withdraw);
   Object.assign(groupCommands.orders, config.group_commands.orders);
+  Object.assign(groupCommands.order_list, config.group_commands.order_list);
   Object.assign(privateCommands.tracking, config.private_commands.tracking);
   Object.assign(privateCommands.reset_tracking, config.private_commands.reset_tracking);
 };
@@ -233,6 +242,14 @@ export function useZaloConfig() {
     '{get_tracking_code_command}': 'Lệnh chat riêng lấy mã theo dõi (mặc định #tracking-code)',
     '{tracking_code}': 'Mã đăng nhập / mã theo dõi cá nhân của người dùng',
     '{new_tracking_code}': 'Lệnh chat riêng tạo mới mã theo dõi (mặc định #new-tracking-code)',
+    '{page}': 'Trang danh sách đơn hàng hiện tại',
+    '{total_pages}': 'Tổng số trang đơn hàng',
+    '{orders}': 'Danh sách tối đa 10 đơn hàng đã được định dạng',
+    '{next_page_instruction}': 'Hướng dẫn xem trang tiếp theo nếu vẫn còn đơn hàng',
+    '{index}': 'Số thứ tự của đơn hàng',
+    '{order_id}': 'Mã đơn hàng đã ẩn 5 ký tự cuối',
+    '{order_status}': 'Trạng thái đơn hàng đã được Việt hóa',
+    '{next_command}': 'Tên lệnh kèm số trang tiếp theo',
   };
 
   const getVarDesc = (varName: string) => varDescriptions[varName] || `Biến thay thế ${varName}`;
@@ -279,13 +296,13 @@ export function useZaloConfig() {
   };
 
   const saveGroupCommands = async () => {
-    const commandValues = [groupCommands.wallet.command, groupCommands.withdraw.command, groupCommands.orders.command].map(value => value.trim().replace(/^#+/, '').toLowerCase());
+    const commandValues = [groupCommands.wallet.command, groupCommands.withdraw.command, groupCommands.orders.command, groupCommands.order_list.command].map(value => value.trim().replace(/^#+/, '').toLowerCase());
     if (commandValues.some(value => !value)) return message.warning('Lệnh chat nhóm không được để trống!');
     if (commandValues.some(value => !/^[a-z0-9_]+$/i.test(value))) return message.warning('Lệnh chỉ được chứa chữ không dấu, số và dấu gạch dưới!');
     if (new Set(commandValues).size !== commandValues.length) return message.warning('Các lệnh chat nhóm không được trùng nhau!');
-    const contents = [groupCommands.wallet.response, groupCommands.withdraw.response, groupCommands.withdraw.insufficient_response, groupCommands.withdraw.no_bank_response, groupCommands.orders.response, groupCommands.orders.private_response];
+    const contents = [groupCommands.wallet.response, groupCommands.withdraw.response, groupCommands.withdraw.insufficient_response, groupCommands.withdraw.no_bank_response, groupCommands.orders.response, groupCommands.orders.private_response, groupCommands.order_list.response, groupCommands.order_list.item_response, groupCommands.order_list.next_page_response, groupCommands.order_list.empty_response];
     if (contents.some(value => !value.trim())) return message.warning('Nội dung phản hồi không được để trống!');
-    [groupCommands.wallet.command, groupCommands.withdraw.command, groupCommands.orders.command] = commandValues;
+    [groupCommands.wallet.command, groupCommands.withdraw.command, groupCommands.orders.command, groupCommands.order_list.command] = commandValues;
     savingGroupCommands.value = true;
     try { await persistConfig(); message.success('Lưu thiết lập lệnh chat nhóm thành công!'); }
     catch (error) { message.error(getErrorMessage(error, 'Không thể lưu thiết lập lệnh chat nhóm.')); }

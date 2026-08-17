@@ -14,6 +14,7 @@ export interface ZaloBotSettings {
     wallet: { command: string; response: string }
     withdraw: { command: string; response: string; insufficient_response: string; no_bank_response: string }
     orders: { command: string; response: string; private_response: string }
+    order_list: { command: string; response: string; item_response: string; next_page_response: string; empty_response: string }
   }
   private_commands: {
     tracking: { command: string; response: string }
@@ -30,7 +31,14 @@ export const defaultZaloBotSettings: ZaloBotSettings = {
   group_commands: {
     wallet: { command: 'vitien', response: '👤 TÀI KHOẢN #{uid}\n───────────────────\n💰 Số dư ví:      {total_balance}\n🔄 Đang xử lý:    {pending_balance}\n💸 Đã thanh toán:  {total_paid}\n───────────────────' },
     withdraw: { command: 'ruttien', response: '✅ Đã tạo yêu cầu rút toàn bộ {total_balance}. Vui lòng chờ quản trị viên xử lý.', insufficient_response: '⚠️ Số dư hiện tại của bạn là {total_balance}. Số tiền rút tối thiểu là 10.000đ.', no_bank_response: '⚠️ Bạn chưa cấu hình tài khoản ngân hàng. Vui lòng truy cập {url} để cập nhật thông tin trước khi rút tiền.' },
-    orders: { command: 'donhang', response: '📦 Theo dõi các đơn hàng của bạn tại đây:\n{url}\n🔐 Mã đăng nhập đã được gửi qua tin nhắn riêng.\nChú ý: Tin nhắn có thể nằm trong phần "Tin nhắn từ người lạ". Nếu tắt nhận tin nhắn từ người lạ, vui lòng nhắn riêng cho bot với cú pháp {get_tracking_code_command}', private_response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
+    orders: { command: 'id', response: '📦 Theo dõi các đơn hàng của bạn tại đây:\n{url}\n🔐 Mã đăng nhập đã được gửi qua tin nhắn riêng.\nChú ý: Tin nhắn có thể nằm trong phần "Tin nhắn từ người lạ". Nếu tắt nhận tin nhắn từ người lạ, vui lòng nhắn riêng cho bot với cú pháp {get_tracking_code_command}', private_response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
+    order_list: {
+      command: 'donhang',
+      response: '📄 Trang {page}/{total_pages}\n🛒 Đơn hàng của bạn:\n{orders}\n\n➡️ {next_page_instruction}',
+      item_response: '{index}. 📦 {product_name}\n🆔 ID: {order_id}\n💰 Hoa hồng: {user_commission}\n📌 Trạng thái: {order_status}',
+      next_page_response: '➡️ Nhắn #{next_command} để xem tiếp các đơn của bạn.',
+      empty_response: '📭 Bạn chưa có đơn hàng nào.\n🔗 Hãy tiếp tục gửi link và 🛍️ mua sắm nhé!',
+    },
   },
   private_commands: {
     tracking: { command: 'tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
@@ -53,6 +61,7 @@ export const getZaloBotSettings = async (): Promise<ZaloBotSettings> => {
         wallet: { ...defaultZaloBotSettings.group_commands.wallet, ...stored.group_commands?.wallet },
         withdraw: { ...defaultZaloBotSettings.group_commands.withdraw, ...stored.group_commands?.withdraw },
         orders: { ...defaultZaloBotSettings.group_commands.orders, ...stored.group_commands?.orders },
+        order_list: { ...defaultZaloBotSettings.group_commands.order_list, ...stored.group_commands?.order_list },
       },
       private_commands: {
         tracking: { ...defaultZaloBotSettings.private_commands.tracking, ...stored.private_commands?.tracking },
@@ -89,6 +98,13 @@ export const saveZaloBotSettings = async (input: Partial<ZaloBotSettings>) => {
         response: String(input.group_commands?.orders?.response ?? current.group_commands.orders.response).trim(),
         private_response: String(input.group_commands?.orders?.private_response ?? current.group_commands.orders.private_response).trim(),
       },
+      order_list: {
+        command: normalizeCommand(input.group_commands?.order_list?.command ?? current.group_commands.order_list.command),
+        response: String(input.group_commands?.order_list?.response ?? current.group_commands.order_list.response).trim(),
+        item_response: String(input.group_commands?.order_list?.item_response ?? current.group_commands.order_list.item_response).trim(),
+        next_page_response: String(input.group_commands?.order_list?.next_page_response ?? current.group_commands.order_list.next_page_response).trim(),
+        empty_response: String(input.group_commands?.order_list?.empty_response ?? current.group_commands.order_list.empty_response).trim(),
+      },
     },
     private_commands: {
       tracking: {
@@ -108,7 +124,7 @@ export const saveZaloBotSettings = async (input: Partial<ZaloBotSettings>) => {
   if (commands.some(command => !command)) throw new Error('Lệnh chat nhóm không được để trống')
   if (commands.some(command => !/^[a-z0-9_]+$/i.test(command))) throw new Error('Lệnh chỉ được chứa chữ không dấu, số và dấu gạch dưới')
   if (new Set(commands).size !== commands.length) throw new Error('Các lệnh chat nhóm không được trùng nhau')
-  if (!settings.group_commands.wallet.response || !settings.group_commands.withdraw.response || !settings.group_commands.withdraw.insufficient_response || !settings.group_commands.withdraw.no_bank_response || !settings.group_commands.orders.response || !settings.group_commands.orders.private_response) throw new Error('Nội dung phản hồi lệnh không được để trống')
+  if (!settings.group_commands.wallet.response || !settings.group_commands.withdraw.response || !settings.group_commands.withdraw.insufficient_response || !settings.group_commands.withdraw.no_bank_response || !settings.group_commands.orders.response || !settings.group_commands.orders.private_response || !settings.group_commands.order_list.response || !settings.group_commands.order_list.item_response || !settings.group_commands.order_list.next_page_response || !settings.group_commands.order_list.empty_response) throw new Error('Nội dung phản hồi lệnh không được để trống')
   const privateCommands = Object.values(settings.private_commands).map(item => item.command)
   if (privateCommands.some(command => !command)) throw new Error('Lệnh chat riêng không được để trống')
   if (privateCommands.some(command => !/^[a-z0-9_-]+$/i.test(command))) throw new Error('Lệnh chat riêng chỉ được chứa chữ không dấu, số, gạch ngang và gạch dưới')

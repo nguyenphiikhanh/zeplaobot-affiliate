@@ -87,10 +87,10 @@ const {
       <a-textarea v-model:value="groupCommands.withdraw.no_bank_response" :rows="3" />
     </div>
 
-    <!-- Đơn hàng -->
+    <!-- Mã theo dõi đơn hàng -->
     <div class="rounded-2xl border border-slate-200 p-4">
       <div class="mb-4">
-        <h5 class="m-0 text-sm font-black text-slate-800">Đơn hàng</h5>
+        <h5 class="m-0 text-sm font-black text-slate-800">Mã theo dõi đơn hàng</h5>
         <p class="mb-0 mt-1 text-xs leading-5 text-slate-500">
           Gửi đường dẫn tra cứu vào nhóm và nhắn riêng mã tracking để người dùng đăng nhập xem đơn hàng.
         </p>
@@ -98,7 +98,7 @@ const {
       <label class="mb-1.5 block text-xs font-bold text-slate-600">Lệnh</label>
       <a-input
         :value="groupCommands.orders.command"
-        placeholder="donhang"
+        placeholder="id"
         @update:value="groupCommands.orders.command = commandText($event)"
       >
         <template #addonBefore><b>#</b></template>
@@ -121,6 +121,56 @@ const {
         </div>
       </div>
       <a-textarea v-model:value="groupCommands.orders.private_response" :rows="3" />
+    </div>
+
+    <!-- Danh sách đơn hàng -->
+    <div class="rounded-2xl border border-slate-200 p-4">
+      <div class="mb-4">
+        <h5 class="m-0 text-sm font-black text-slate-800">Danh sách đơn hàng</h5>
+        <p class="mb-0 mt-1 text-xs leading-5 text-slate-500">
+          Hiển thị tối đa 10 đơn mỗi trang. Người dùng có thể thêm số trang vào cuối lệnh, ví dụ #donhang2.
+        </p>
+      </div>
+      <label class="mb-1.5 block text-xs font-bold text-slate-600">Lệnh</label>
+      <a-input
+        :value="groupCommands.order_list.command"
+        placeholder="donhang"
+        @update:value="groupCommands.order_list.command = commandText($event)"
+      >
+        <template #addonBefore><b>#</b></template>
+      </a-input>
+
+      <div class="mb-1.5 mt-4 flex flex-wrap items-center justify-between gap-2">
+        <label class="text-xs font-bold text-slate-600">Nội dung danh sách</label>
+        <div class="flex flex-wrap gap-1">
+          <VariableTag name="{page}" size="sm" />
+          <VariableTag name="{total_pages}" size="sm" />
+          <VariableTag name="{orders}" size="sm" />
+          <VariableTag name="{next_page_instruction}" size="sm" />
+        </div>
+      </div>
+      <a-textarea v-model:value="groupCommands.order_list.response" :rows="4" />
+
+      <div class="mb-1.5 mt-4 flex flex-wrap items-center justify-between gap-2">
+        <label class="text-xs font-bold text-slate-600">Nội dung mỗi đơn hàng</label>
+        <div class="flex flex-wrap gap-1">
+          <VariableTag name="{index}" size="sm" />
+          <VariableTag name="{product_name}" size="sm" />
+          <VariableTag name="{order_id}" size="sm" />
+          <VariableTag name="{user_commission}" size="sm" />
+          <VariableTag name="{order_status}" size="sm" />
+        </div>
+      </div>
+      <a-textarea v-model:value="groupCommands.order_list.item_response" :rows="6" />
+
+      <div class="mb-1.5 mt-4 flex flex-wrap items-center justify-between gap-2">
+        <label class="text-xs font-bold text-slate-600">Nội dung xem trang tiếp theo</label>
+        <VariableTag name="{next_command}" size="sm" />
+      </div>
+      <a-textarea v-model:value="groupCommands.order_list.next_page_response" :rows="2" />
+
+      <label class="mb-1.5 mt-4 block text-xs font-bold text-slate-600">Nội dung khi chưa có đơn hàng</label>
+      <a-textarea v-model:value="groupCommands.order_list.empty_response" :rows="2" />
     </div>
 
     <!-- Save Button -->

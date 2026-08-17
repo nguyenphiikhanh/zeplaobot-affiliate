@@ -5,9 +5,23 @@ import { getZaloBotSettings, renderZaloTemplate } from './services/zalo-config.s
 import { getShopeeSettings } from './services/shopee-config.service.js'
 import { registerZaloNotificationApi, unregisterZaloNotificationApi } from './services/zalo-notification.service.js'
 import { ensureZaloUser, getZaloUser, regenerateTrackingCode } from './services/user.service.js'
-import { formatWalletBalance, getOrdersUrl, getWalletsUrl, getZaloCommandUser, withdrawAllZaloBalance } from './services/zalo-command.service.js'
+import { formatWalletBalance, getOrdersUrl, getWalletsUrl, getZaloCommandUser, getZaloUserOrders, withdrawAllZaloBalance } from './services/zalo-command.service.js'
 
 type ZaloApi = Awaited<ReturnType<Zalo['loginQR']>>
+
+const truncateProductName = (value: string | null) => {
+    const characters = Array.from(value?.trim() || 'Chưa xác định')
+    return characters.length <= 30 ? characters.join('') : `${characters.slice(0, 27).join('')}...`
+}
+
+const maskOrderId = (value: string) => `${value.slice(0, Math.max(0, value.length - 5))}*****`
+
+const displayOrderStatus = (value: string | null) => {
+    const status = value?.trim().toLowerCase() || ''
+    if (['completed', 'complete', 'đã hoàn thành', 'hoàn thành'].includes(status)) return 'Đã hoàn tiền'
+    if (['cancelled', 'canceled', 'invalid', 'đã hủy', 'đã huỷ'].includes(status)) return 'Đã huỷ'
+    return 'Chờ xử lý'
+}
 
 let api: ZaloApi | null = null
 let listenerConnected = false
@@ -212,6 +226,39 @@ async function handleIncomingMessage(
             url: getOrdersUrl(),
             get_tracking_code_command: `#${botConfig.private_commands.tracking.command}`,
         }))
+        return
+    }
+    const orderListCommand = normalizeChatCommand(commands.order_list.command)
+    const orderListMatch = normalizedMessage.match(new RegExp(`^#${orderListCommand}(\\d+)?$`))
+    if (orderListMatch) {
+        const requestedPage = Number(orderListMatch[1] || 1)
+        const result = await getZaloUserOrders(message.data.uidFrom, requestedPage, 10)
+        if (!result.totalOrders) {
+            await sendTaggedGroupMessage(loggedInApi, message, commands.order_list.empty_response)
+            return
+        }
+        const renderedOrders = result.records.map((order, index) => renderZaloTemplate(commands.order_list.item_response, {
+            index: (result.page - 1) * 10 + index + 1,
+            product_name: truncateProductName(order.productName),
+            order_id: maskOrderId(order.orderId),
+            user_commission: formatWalletBalance(order.userCommission || 0),
+            order_status: displayOrderStatus(order.orderStatus),
+        })).join('\n')
+        const nextPageInstruction = result.hasNextPage
+            ? renderZaloTemplate(commands.order_list.next_page_response, {
+                next_command: `${orderListCommand}${result.page + 1}`,
+            })
+            : ''
+        const responseTemplate = result.hasNextPage
+            ? commands.order_list.response
+            : commands.order_list.response.replace(/^.*\{next_page_instruction\}.*(?:\r?\n)?/gm, '')
+        const response = renderZaloTemplate(responseTemplate, {
+            page: result.page,
+            total_pages: result.totalPages,
+            orders: renderedOrders,
+            next_page_instruction: nextPageInstruction,
+        }).replace(/➡️\s*➡️/g, '➡️').trim()
+        await sendTaggedGroupMessage(loggedInApi, message, response)
         return
     }
 
