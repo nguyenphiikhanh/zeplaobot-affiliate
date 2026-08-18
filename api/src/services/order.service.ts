@@ -110,6 +110,11 @@ const vietnamDateTimeFormatter = new Intl.DateTimeFormat('en-CA', {
   hourCycle: 'h23',
 })
 
+// Shopee sometimes uses a very small positive Unix timestamp (for example
+// 3600) for a date that has not been set yet. Treat those sentinel values as
+// missing instead of writing a 1970 date that MySQL TIMESTAMP may reject.
+const MIN_VALID_SHOPEE_UNIX_SECONDS = Date.UTC(2000, 0, 1) / 1000
+
 const formatVietnamDateTime = (date: Date) => {
   const parts = Object.fromEntries(
     vietnamDateTimeFormatter.formatToParts(date)
@@ -121,7 +126,7 @@ const formatVietnamDateTime = (date: Date) => {
 
 const formatShopeeUnixTime = (value: unknown) => {
   const unixSeconds = Number(value)
-  if (!Number.isFinite(unixSeconds) || unixSeconds <= 0) return null
+  if (!Number.isFinite(unixSeconds) || unixSeconds < MIN_VALID_SHOPEE_UNIX_SECONDS) return null
 
   // Unix time is always based on UTC (GMT+0000). Build the instant explicitly
   // in UTC first, then render that same instant in Vietnam time below.
