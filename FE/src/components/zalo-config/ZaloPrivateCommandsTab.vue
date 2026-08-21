@@ -5,6 +5,7 @@ import VariableTag from "./VariableTag.vue";
 
 const {
   privateCommands,
+  privateCommandNote,
   savingPrivateCommands,
   commandText,
   savePrivateCommands,
@@ -17,7 +18,7 @@ const {
       type="info"
       show-icon
       message="Khi người dùng gửi lệnh riêng, Bot sẽ tự tạo tài khoản và ví nếu chưa tồn tại."
-      class="!rounded-xl"
+      class="!mb-5 !rounded-xl"
     />
 
     <!-- Mã theo dõi -->
@@ -40,7 +41,6 @@ const {
         <label class="text-xs font-bold text-slate-600">Nội dung phản hồi</label>
         <div class="flex gap-1">
           <VariableTag name="{tracking_code}" size="sm" />
-          <VariableTag name="{new_tracking_code}" size="sm" />
         </div>
       </div>
       <a-textarea v-model:value="privateCommands.tracking.response" :rows="3" />
@@ -66,10 +66,30 @@ const {
         <label class="text-xs font-bold text-slate-600">Nội dung phản hồi</label>
         <div class="flex gap-1">
           <VariableTag name="{tracking_code}" size="sm" />
-          <VariableTag name="{new_tracking_code}" size="sm" />
         </div>
       </div>
       <a-textarea v-model:value="privateCommands.reset_tracking.response" :rows="3" />
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 p-4">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h5 class="m-0 text-sm font-black text-slate-800">Gửi thêm chú thích</h5>
+          <p class="mb-0 mt-1 text-xs leading-5 text-slate-500">
+            Gửi thêm một tin nhắn chú thích sau khi Bot gửi mã theo dõi.
+          </p>
+        </div>
+        <a-switch v-model:checked="privateCommandNote.enabled" />
+      </div>
+      <div class="mb-1.5 mt-4 flex flex-wrap items-center justify-between gap-2">
+        <label class="text-xs font-bold text-slate-600">Nội dung chú thích</label>
+        <VariableTag name="{new_tracking_code}" size="sm" />
+      </div>
+      <a-textarea
+        v-model:value="privateCommandNote.response"
+        :rows="3"
+        :disabled="!privateCommandNote.enabled"
+      />
     </div>
 
     <!-- Save Button -->

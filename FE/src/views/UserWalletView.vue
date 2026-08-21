@@ -47,6 +47,7 @@ const savedBank = ref<BankAccount | null>(null);
 const withdrawAmount = ref<number | null>(null);
 const displayAmount = ref<string>("");
 const transactions = ref<Transaction[]>([]);
+const minimumWithdrawalAmount = ref(10000);
 
 const hasBankAccount = computed(() => {
   return !!(
@@ -60,7 +61,7 @@ const canWithdraw = computed(() => {
   const amt = Number(withdrawAmount.value || 0);
   return (
     hasBankAccount.value &&
-    amt >= 10000 &&
+    amt >= minimumWithdrawalAmount.value &&
     amt <= wallet.value.availableBalance &&
     !withdrawing.value
   );
@@ -139,11 +140,14 @@ const displayBankCode = computed(() => {
 const loadWalletData = async () => {
   loading.value = true;
   try {
-    const [wRes, bRes, tRes] = await Promise.all([
+    const [wRes, bRes, tRes, sRes] = await Promise.all([
       api.get<ApiResponse<WalletInfo>>("/api/user/wallet"),
       api.get<ApiResponse<BankAccount>>("/api/user/bank-account"),
       api.get<ApiResponse<{ transactions: Transaction[] }>>(
         "/api/user/wallet/transactions"
+      ),
+      api.get<ApiResponse<{ minimum_withdrawal_amount: number }>>(
+        "/api/user/withdrawal-settings"
       ),
     ]);
 
@@ -152,6 +156,7 @@ const loadWalletData = async () => {
     if (tRes.data.data?.transactions) {
       transactions.value = tRes.data.data.transactions;
     }
+    minimumWithdrawalAmount.value = sRes.data.data?.minimum_withdrawal_amount || 10000;
   } catch (error: any) {
     message.error(
       error.response?.data?.message || "Không thể tải thông tin ví"
@@ -180,7 +185,7 @@ const handleAmountInput = (e: Event) => {
 };
 
 const setWithdrawAll = () => {
-  if (wallet.value.availableBalance >= 10000) {
+  if (wallet.value.availableBalance >= minimumWithdrawalAmount.value) {
     withdrawAmount.value = wallet.value.availableBalance;
     displayAmount.value = new Intl.NumberFormat("vi-VN").format(
       wallet.value.availableBalance
@@ -370,7 +375,7 @@ const getTxStatus = (status: string) => {
           <button
             type="button"
             @click="setWithdrawAll"
-            :disabled="wallet.availableBalance < 10000"
+            :disabled="wallet.availableBalance < minimumWithdrawalAmount"
             style="color: #ee4d2d !important"
             class="text-[11px] font-black !text-[#ee4d2d] hover:!text-[#d73211] active:opacity-80 cursor-pointer disabled:!text-slate-300 transition-colors select-none"
           >
@@ -393,7 +398,7 @@ const getTxStatus = (status: string) => {
           >
         </div>
         <p class="text-[11px] text-slate-400 font-medium pl-0.5">
-          * Tối thiểu 10.000đ · Miễn phí rút tiền
+          * Tối thiểu {{ formatMoney(minimumWithdrawalAmount) }} · Miễn phí rút tiền
         </p>
       </div>
 

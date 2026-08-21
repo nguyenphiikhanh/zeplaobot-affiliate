@@ -11,6 +11,8 @@ import {
   ClockCircleOutlined,
   DollarOutlined,
   WalletOutlined,
+  SettingOutlined,
+  SaveOutlined,
 } from "@ant-design/icons-vue";
 import { api, type ApiResponse } from "../services/api";
 type Item = {
@@ -34,8 +36,17 @@ const rows = ref<Item[]>([]),
   search = ref(""),
   status = ref("");
 const stats = ref({ total: 0, pending_count: 0, pending_amount: 0 });
+const minimumWithdrawalAmount = ref(10000);
+const loadingSettings = ref(false);
+const savingSettings = ref(false);
 const money = (v: number) =>
   new Intl.NumberFormat("vi-VN").format(Math.abs(v || 0)) + "đ";
+const formatMoneyInput = (value?: string | number) => {
+  const amount = Number(String(value ?? "").replace(/\D/g, ""));
+  return amount ? new Intl.NumberFormat("vi-VN").format(amount) : "";
+};
+const parseMoneyInput = (value?: string) =>
+  Number(String(value ?? "").replace(/\D/g, ""));
 const labels: Record<string, string> = {
   pending: "Chờ xử lý",
   success: "Đã duyệt",
@@ -67,6 +78,38 @@ const fetchData = async () => {
     loading.value = false;
   }
 };
+const loadSettings = async () => {
+  loadingSettings.value = true;
+  try {
+    const response = await api.get<ApiResponse<{ minimum_withdrawal_amount: number }>>(
+      "/api/admin/withdrawals/settings"
+    );
+    minimumWithdrawalAmount.value = response.data.data?.minimum_withdrawal_amount || 10000;
+  } catch {
+    message.error("Không thể tải cấu hình rút tiền.");
+  } finally {
+    loadingSettings.value = false;
+  }
+};
+const saveSettings = async () => {
+  const amount = Math.floor(Number(minimumWithdrawalAmount.value));
+  if (!Number.isFinite(amount) || amount < 1000) {
+    return message.warning("Số tiền rút tối thiểu phải từ 1.000đ trở lên.");
+  }
+  savingSettings.value = true;
+  try {
+    const response = await api.put<ApiResponse<{ minimum_withdrawal_amount: number }>>(
+      "/api/admin/withdrawals/settings",
+      { minimum_withdrawal_amount: amount }
+    );
+    minimumWithdrawalAmount.value = response.data.data?.minimum_withdrawal_amount || amount;
+    message.success("Đã lưu số tiền rút tối thiểu.");
+  } catch (error: any) {
+    message.error(error.response?.data?.message || "Không thể lưu cấu hình rút tiền.");
+  } finally {
+    savingSettings.value = false;
+  }
+};
 const windowWidth = ref(typeof window !== "undefined" ? window.innerWidth : 1024);
 const handleResize = () => {
   windowWidth.value = window.innerWidth;
@@ -75,6 +118,7 @@ const drawerWidth = computed(() => (windowWidth.value < 640 ? "100%" : "440px"))
 
 onMounted(() => {
   fetchData();
+  loadSettings();
   window.addEventListener("resize", handleResize);
 });
 onUnmounted(() => {
@@ -183,6 +227,42 @@ const formatDateTime = (value?: string | null) => {
         <p class="text-xs sm:text-sm text-slate-500">
           Kiểm tra và xử lý yêu cầu rút tiền của người dùng.
         </p>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div class="min-w-0 flex-1 text-left">
+          <div class="mb-1 flex items-center gap-2 text-sm font-black text-slate-800">
+            <SettingOutlined class="text-[#ee4d2d]" />
+            <span>Cấu hình rút tiền</span>
+          </div>
+          <p class="mb-3 text-xs text-slate-500">
+            Số dư tối thiểu người dùng cần có để tạo yêu cầu rút tiền.
+          </p>
+          <label class="mb-1.5 block text-xs font-bold text-slate-600">Số tiền rút tối thiểu</label>
+          <a-input-number
+            v-model:value="minimumWithdrawalAmount"
+            :min="1000"
+            :precision="0"
+            :formatter="formatMoneyInput"
+            :parser="parseMoneyInput"
+            :disabled="loadingSettings || savingSettings"
+            class="!w-full sm:!w-80"
+          >
+            <template #addonAfter>VNĐ</template>
+          </a-input-number>
+        </div>
+        <button
+          type="button"
+          :disabled="loadingSettings || savingSettings"
+          class="btn-action-primary h-10 w-full cursor-pointer sm:w-auto"
+          @click="saveSettings"
+        >
+          <ReloadOutlined v-if="savingSettings" spin />
+          <SaveOutlined v-else />
+          <span>{{ savingSettings ? "Đang lưu..." : "Lưu cài đặt" }}</span>
+        </button>
       </div>
     </div>
     <!-- Top Stats Cards -->

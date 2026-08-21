@@ -20,7 +20,7 @@ const groupCommands = reactive({
   withdraw: {
     command: 'ruttien',
     response: '✅ Đã tạo yêu cầu rút toàn bộ {total_balance}. Vui lòng chờ quản trị viên xử lý.',
-    insufficient_response: '⚠️ Số dư hiện tại của bạn là {total_balance}. Số tiền rút tối thiểu là 10.000đ.',
+    insufficient_response: '⚠️ Số dư hiện tại của bạn là {total_balance}. Số tiền rút tối thiểu là {minimum_withdrawal}.',
     no_bank_response: '⚠️ Bạn chưa cấu hình tài khoản ngân hàng. Vui lòng truy cập {url} để cập nhật thông tin trước khi rút tiền.'
   },
   orders: {
@@ -30,6 +30,7 @@ const groupCommands = reactive({
   },
   order_list: {
     command: 'donhang',
+    page_size: 5,
     response: '📄 Trang {page}/{total_pages}\n🛒 Đơn hàng của bạn:\n{orders}\n\n➡️ {next_page_instruction}',
     item_response: '{index}. 📦 {product_name}\n🆔 ID: {order_id}\n💰 Hoa hồng: {user_commission}\n📌 Trạng thái: {order_status}',
     next_page_response: '➡️ Nhắn #{next_command} để xem tiếp các đơn của bạn.',
@@ -38,8 +39,12 @@ const groupCommands = reactive({
 });
 
 const privateCommands = reactive({
-  tracking: { command: 'tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
-  reset_tracking: { command: 'new-tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
+  tracking: { command: 'tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}' },
+  reset_tracking: { command: 'new-tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}' },
+});
+const privateCommandNote = reactive({
+  enabled: true,
+  response: '🔐 Tuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.',
 });
 
 const groupIds = ref<string[]>([]);
@@ -75,6 +80,7 @@ interface ZaloBotSettings {
   welcome_template: string;
   group_commands: typeof groupCommands;
   private_commands: typeof privateCommands;
+  private_command_note: typeof privateCommandNote;
 }
 
 const getErrorMessage = (error: unknown, fallback: string) =>
@@ -149,6 +155,7 @@ const configPayload = (): ZaloBotSettings => ({
     tracking: { ...privateCommands.tracking, command: privateCommands.tracking.command.trim().toLowerCase() },
     reset_tracking: { ...privateCommands.reset_tracking, command: privateCommands.reset_tracking.command.trim().toLowerCase() },
   },
+  private_command_note: { ...privateCommandNote },
 });
 
 const applyConfig = (config: ZaloBotSettings) => {
@@ -163,6 +170,7 @@ const applyConfig = (config: ZaloBotSettings) => {
   Object.assign(groupCommands.order_list, config.group_commands.order_list);
   Object.assign(privateCommands.tracking, config.private_commands.tracking);
   Object.assign(privateCommands.reset_tracking, config.private_commands.reset_tracking);
+  Object.assign(privateCommandNote, config.private_command_note);
 };
 
 const loadConfig = async () => {
@@ -235,6 +243,7 @@ export function useZaloConfig() {
     '{user_name}': 'Tên tài khoản Zalo của thành viên vừa tham gia nhóm',
     '{group_name}': 'Tên nhóm Zalo hiện tại',
     '{total_balance}': 'Số dư ví khả dụng hiện tại của người dùng',
+    '{minimum_withdrawal}': 'Số tiền rút tối thiểu đang được cấu hình',
     '{pending_balance}': 'Số tiền chờ xử lý rút',
     '{total_paid}': 'Tổng số tiền đã thanh toán',
     '{uid}': 'ID tài khoản Zalo (Zalo UID)',
@@ -300,9 +309,12 @@ export function useZaloConfig() {
     if (commandValues.some(value => !value)) return message.warning('Lệnh chat nhóm không được để trống!');
     if (commandValues.some(value => !/^[a-z0-9_]+$/i.test(value))) return message.warning('Lệnh chỉ được chứa chữ không dấu, số và dấu gạch dưới!');
     if (new Set(commandValues).size !== commandValues.length) return message.warning('Các lệnh chat nhóm không được trùng nhau!');
+    const orderPageSize = Math.floor(Number(groupCommands.order_list.page_size));
+    if (!Number.isFinite(orderPageSize) || orderPageSize < 1) return message.warning('Số bản ghi mỗi trang phải từ 1 trở lên!');
     const contents = [groupCommands.wallet.response, groupCommands.withdraw.response, groupCommands.withdraw.insufficient_response, groupCommands.withdraw.no_bank_response, groupCommands.orders.response, groupCommands.orders.private_response, groupCommands.order_list.response, groupCommands.order_list.item_response, groupCommands.order_list.next_page_response, groupCommands.order_list.empty_response];
     if (contents.some(value => !value.trim())) return message.warning('Nội dung phản hồi không được để trống!');
     [groupCommands.wallet.command, groupCommands.withdraw.command, groupCommands.orders.command, groupCommands.order_list.command] = commandValues;
+    groupCommands.order_list.page_size = orderPageSize;
     savingGroupCommands.value = true;
     try { await persistConfig(); message.success('Lưu thiết lập lệnh chat nhóm thành công!'); }
     catch (error) { message.error(getErrorMessage(error, 'Không thể lưu thiết lập lệnh chat nhóm.')); }
@@ -315,6 +327,7 @@ export function useZaloConfig() {
     if (commands.some(command => !/^[a-z0-9_-]+$/i.test(command))) return message.warning('Lệnh chỉ được chứa chữ không dấu, số, gạch ngang và gạch dưới!');
     if (new Set(commands).size !== commands.length) return message.warning('Các lệnh chat riêng không được trùng nhau!');
     if (!privateCommands.tracking.response.trim() || !privateCommands.reset_tracking.response.trim()) return message.warning('Nội dung phản hồi không được để trống!');
+    if (privateCommandNote.enabled && !privateCommandNote.response.trim()) return message.warning('Nội dung chú thích không được để trống khi đang bật!');
     [privateCommands.tracking.command, privateCommands.reset_tracking.command] = commands;
     savingPrivateCommands.value = true;
     try { await persistConfig(); message.success('Lưu lệnh chat riêng thành công!'); }
@@ -341,6 +354,7 @@ export function useZaloConfig() {
     groupCommands,
     savingGroupCommands,
     privateCommands,
+    privateCommandNote,
     savingPrivateCommands,
     commandText,
     addGroupInput,

@@ -167,8 +167,12 @@ async function handleIncomingMessage(
         const responseTemplate = isReset ? botConfig.private_commands.reset_tracking.response : botConfig.private_commands.tracking.response
         await loggedInApi.sendMessage(renderZaloTemplate(responseTemplate, {
             tracking_code: trackingCode,
-            new_tracking_code: `#${resetCommand}`,
         }), message.threadId, ThreadType.User)
+        if (botConfig.private_command_note.enabled) {
+            await loggedInApi.sendMessage(renderZaloTemplate(botConfig.private_command_note.response, {
+                new_tracking_code: `#${resetCommand}`,
+            }), message.threadId, ThreadType.User)
+        }
         return
     }
     if (message.type !== ThreadType.Group) return
@@ -194,6 +198,7 @@ async function handleIncomingMessage(
             const template = result.withdrawn ? commands.withdraw.response : commands.withdraw.insufficient_response
             await sendTaggedGroupMessage(loggedInApi, message, renderZaloTemplate(template, {
                 total_balance: formatWalletBalance(result.user.availableBalance),
+                minimum_withdrawal: formatWalletBalance(result.minimumAmount),
                 url: getWalletsUrl(),
             }))
         } catch (error) {
@@ -232,13 +237,14 @@ async function handleIncomingMessage(
     const orderListMatch = normalizedMessage.match(new RegExp(`^#${orderListCommand}(\\d+)?$`))
     if (orderListMatch) {
         const requestedPage = Number(orderListMatch[1] || 1)
-        const result = await getZaloUserOrders(message.data.uidFrom, requestedPage, 10)
+        const pageSize = Math.max(1, Math.floor(Number(commands.order_list.page_size) || 1))
+        const result = await getZaloUserOrders(message.data.uidFrom, requestedPage, pageSize)
         if (!result.totalOrders) {
             await sendTaggedGroupMessage(loggedInApi, message, commands.order_list.empty_response)
             return
         }
         const renderedOrders = result.records.map((order, index) => renderZaloTemplate(commands.order_list.item_response, {
-            index: (result.page - 1) * 10 + index + 1,
+            index: (result.page - 1) * pageSize + index + 1,
             product_name: truncateProductName(order.productName),
             order_id: maskOrderId(order.orderId),
             user_commission: formatWalletBalance(order.userCommission || 0),

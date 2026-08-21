@@ -2,6 +2,7 @@ import { and, desc, eq, gte, lte, like, or, sql } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import { db } from '../db/index.js'
 import { bankAccounts, orders, users, wallets, walletTransactions } from '../db/schema.js'
+import { getWithdrawalSettings } from './withdrawal-config.service.js'
 
 export async function getUserOrders(
   userId: string,
@@ -114,7 +115,10 @@ export async function saveUserBankAccount(userId: string, input: BankAccountInpu
 
 export async function createUserWithdrawal(userId: string, amountInput: unknown) {
   const amount = Math.round(Number(amountInput))
-  if (!Number.isFinite(amount) || amount < 10000) throw new Error('Số tiền rút tối thiểu là 10.000đ')
+  const { minimum_withdrawal_amount: minimumAmount } = await getWithdrawalSettings()
+  if (!Number.isFinite(amount) || amount < minimumAmount) {
+    throw new Error(`Số tiền rút tối thiểu là ${minimumAmount.toLocaleString('vi-VN')}đ`)
+  }
   return db.transaction(async tx => {
     const [wallet] = await tx.select().from(wallets).where(eq(wallets.userId, userId)).limit(1)
     if (!wallet || wallet.availableBalance < amount) throw new Error('Số dư khả dụng không đủ')

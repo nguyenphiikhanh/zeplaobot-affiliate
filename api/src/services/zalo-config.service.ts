@@ -14,12 +14,13 @@ export interface ZaloBotSettings {
     wallet: { command: string; response: string }
     withdraw: { command: string; response: string; insufficient_response: string; no_bank_response: string }
     orders: { command: string; response: string; private_response: string }
-    order_list: { command: string; response: string; item_response: string; next_page_response: string; empty_response: string }
+    order_list: { command: string; page_size: number; response: string; item_response: string; next_page_response: string; empty_response: string }
   }
   private_commands: {
     tracking: { command: string; response: string }
     reset_tracking: { command: string; response: string }
   }
+  private_command_note: { enabled: boolean; response: string }
 }
 
 export const defaultZaloBotSettings: ZaloBotSettings = {
@@ -30,10 +31,11 @@ export const defaultZaloBotSettings: ZaloBotSettings = {
   welcome_template: '👋 Chào mừng {user_name} đã tham gia nhóm {group_name}!\n\n🤖 Mình là Bot Hoàn Tiền. Hãy dán link Shopee vào nhóm để nhận ngay hoàn tiền tự động nhé! 💸',
   group_commands: {
     wallet: { command: 'vitien', response: '👤 TÀI KHOẢN #{uid}\n───────────────────\n💰 Số dư ví:      {total_balance}\n🔄 Đang xử lý:    {pending_balance}\n💸 Đã thanh toán:  {total_paid}\n───────────────────' },
-    withdraw: { command: 'ruttien', response: '✅ Đã tạo yêu cầu rút toàn bộ {total_balance}. Vui lòng chờ quản trị viên xử lý.', insufficient_response: '⚠️ Số dư hiện tại của bạn là {total_balance}. Số tiền rút tối thiểu là 10.000đ.', no_bank_response: '⚠️ Bạn chưa cấu hình tài khoản ngân hàng. Vui lòng truy cập {url} để cập nhật thông tin trước khi rút tiền.' },
+    withdraw: { command: 'ruttien', response: '✅ Đã tạo yêu cầu rút toàn bộ {total_balance}. Vui lòng chờ quản trị viên xử lý.', insufficient_response: '⚠️ Số dư hiện tại của bạn là {total_balance}. Số tiền rút tối thiểu là {minimum_withdrawal}.', no_bank_response: '⚠️ Bạn chưa cấu hình tài khoản ngân hàng. Vui lòng truy cập {url} để cập nhật thông tin trước khi rút tiền.' },
     orders: { command: 'id', response: '📦 Theo dõi các đơn hàng của bạn tại đây:\n{url}\n🔐 Mã đăng nhập đã được gửi qua tin nhắn riêng.\nChú ý: Tin nhắn có thể nằm trong phần "Tin nhắn từ người lạ". Nếu tắt nhận tin nhắn từ người lạ, vui lòng nhắn riêng cho bot với cú pháp {get_tracking_code_command}', private_response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
     order_list: {
       command: 'donhang',
+      page_size: 5,
       response: '📄 Trang {page}/{total_pages}\n🛒 Đơn hàng của bạn:\n{orders}\n\n➡️ {next_page_instruction}',
       item_response: '{index}. 📦 {product_name}\n🆔 ID: {order_id}\n💰 Hoa hồng: {user_commission}\n📌 Trạng thái: {order_status}',
       next_page_response: '➡️ Nhắn #{next_command} để xem tiếp các đơn của bạn.',
@@ -41,8 +43,12 @@ export const defaultZaloBotSettings: ZaloBotSettings = {
     },
   },
   private_commands: {
-    tracking: { command: 'tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
-    reset_tracking: { command: 'new-tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}\nTuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.' },
+    tracking: { command: 'tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}' },
+    reset_tracking: { command: 'new-tracking-code', response: '🔐 Mã theo dõi của bạn: {tracking_code}' },
+  },
+  private_command_note: {
+    enabled: true,
+    response: '🔐 Tuyệt đối không chia sẻ mã này với bất kỳ ai. Nếu quên mã vui lòng chat {new_tracking_code} vào đoạn chat riêng này.',
   },
 }
 
@@ -67,6 +73,7 @@ export const getZaloBotSettings = async (): Promise<ZaloBotSettings> => {
         tracking: { ...defaultZaloBotSettings.private_commands.tracking, ...stored.private_commands?.tracking },
         reset_tracking: { ...defaultZaloBotSettings.private_commands.reset_tracking, ...stored.private_commands?.reset_tracking },
       },
+      private_command_note: { ...defaultZaloBotSettings.private_command_note, ...stored.private_command_note },
     }
   } catch { return defaultZaloBotSettings }
 }
@@ -100,6 +107,7 @@ export const saveZaloBotSettings = async (input: Partial<ZaloBotSettings>) => {
       },
       order_list: {
         command: normalizeCommand(input.group_commands?.order_list?.command ?? current.group_commands.order_list.command),
+        page_size: Math.max(1, Math.floor(Number(input.group_commands?.order_list?.page_size ?? current.group_commands.order_list.page_size) || 1)),
         response: String(input.group_commands?.order_list?.response ?? current.group_commands.order_list.response).trim(),
         item_response: String(input.group_commands?.order_list?.item_response ?? current.group_commands.order_list.item_response).trim(),
         next_page_response: String(input.group_commands?.order_list?.next_page_response ?? current.group_commands.order_list.next_page_response).trim(),
@@ -116,6 +124,12 @@ export const saveZaloBotSettings = async (input: Partial<ZaloBotSettings>) => {
         response: String(input.private_commands?.reset_tracking?.response ?? current.private_commands.reset_tracking.response).trim(),
       },
     },
+    private_command_note: {
+      enabled: typeof input.private_command_note?.enabled === 'boolean'
+        ? input.private_command_note.enabled
+        : current.private_command_note.enabled,
+      response: String(input.private_command_note?.response ?? current.private_command_note.response).trim(),
+    },
   }
   if (!settings.link_convert_template) throw new Error('Mẫu chuyển đổi link không được để trống')
   if (!settings.link_convert_error_template) throw new Error('Mẫu báo lỗi sản phẩm không được để trống')
@@ -130,6 +144,7 @@ export const saveZaloBotSettings = async (input: Partial<ZaloBotSettings>) => {
   if (privateCommands.some(command => !/^[a-z0-9_-]+$/i.test(command))) throw new Error('Lệnh chat riêng chỉ được chứa chữ không dấu, số, gạch ngang và gạch dưới')
   if (new Set(privateCommands).size !== privateCommands.length) throw new Error('Các lệnh chat riêng không được trùng nhau')
   if (Object.values(settings.private_commands).some(item => !item.response)) throw new Error('Nội dung phản hồi lệnh chat riêng không được để trống')
+  if (settings.private_command_note.enabled && !settings.private_command_note.response) throw new Error('Nội dung chú thích mã theo dõi không được để trống')
 
   const value = JSON.stringify(settings)
   await db.insert(systemConfigs).values({ key: CONFIG_KEY, value, description: 'Cấu hình Bot Zalo' })

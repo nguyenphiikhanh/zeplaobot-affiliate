@@ -11,6 +11,7 @@ import {
 } from '../services/user-portal.service.js'
 import { sendError, sendResponse } from '../utils/response.js'
 import { shopeeService } from '../services/shopee.service.js'
+import { getWithdrawalSettings } from '../services/withdrawal-config.service.js'
 
 export const userPortalRoutes = new Hono<{ Variables: { userId: string } }>()
 userPortalRoutes.use('/user/*', async (c, next) => {
@@ -70,6 +71,10 @@ userPortalRoutes.post('/user/convert-link', async (c) => {
 
 userPortalRoutes.get('/user/wallet', async (c) =>
   c.json(sendResponse(await getUserWallet(c.get('userId')), 'Đã tải ví')),
+)
+
+userPortalRoutes.get('/user/withdrawal-settings', async (c) =>
+  c.json(sendResponse(await getWithdrawalSettings(), 'Đã tải cấu hình rút tiền')),
 )
 
 userPortalRoutes.get('/user/wallet/transactions', async (c) =>

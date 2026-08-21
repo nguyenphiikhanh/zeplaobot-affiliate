@@ -3,6 +3,7 @@ import { config } from '../config.js'
 import { db } from '../db/index.js'
 import { orders, users, wallets } from '../db/schema.js'
 import { createUserWithdrawal } from './user-portal.service.js'
+import { getWithdrawalSettings } from './withdrawal-config.service.js'
 
 export async function getZaloCommandUser(userId: string) {
   const [record] = await db.select({
@@ -20,8 +21,9 @@ export const formatWalletBalance = (amount: number) => `${Number(amount || 0).to
 export const getOrdersUrl = () => `${config.appUrl}/orders`
 export const getWalletsUrl = () => `${config.appUrl}/wallets`
 
-export async function getZaloUserOrders(userId: string, requestedPage: number, limit = 10) {
+export async function getZaloUserOrders(userId: string, requestedPage: number, limit = 5) {
   await getZaloCommandUser(userId)
+  limit = Math.max(1, Math.floor(limit) || 1)
   const [{ total }] = await db.select({ total: sql<number>`count(*)` })
     .from(orders).where(eq(orders.userId, userId))
   const totalOrders = Number(total || 0)
@@ -44,7 +46,8 @@ export async function getZaloUserOrders(userId: string, requestedPage: number, l
 
 export async function withdrawAllZaloBalance(userId: string) {
   const user = await getZaloCommandUser(userId)
-  if (user.availableBalance < 10000) return { withdrawn: false as const, user }
+  const { minimum_withdrawal_amount: minimumAmount } = await getWithdrawalSettings()
+  if (user.availableBalance < minimumAmount) return { withdrawn: false as const, user, minimumAmount }
   await createUserWithdrawal(userId, user.availableBalance)
-  return { withdrawn: true as const, user }
+  return { withdrawn: true as const, user, minimumAmount }
 }

@@ -6,6 +6,7 @@ import { systemConfigs } from './schema.js'
 import { defaultShopeeSettings } from '../services/shopee-config.service.js'
 import { defaultZaloBotSettings } from '../services/zalo-config.service.js'
 import { defaultSiteSettings } from '../services/site-config.service.js'
+import { defaultWithdrawalSettings } from '../services/withdrawal-config.service.js'
 
 async function seedDefaultConfigs() {
   const defaultAdminPassHash = await bcrypt.hash('KhanhNT', 10)
@@ -32,6 +33,12 @@ async function seedDefaultConfigs() {
       defaultValue: defaultSiteSettings,
       isJson: true,
       description: 'Cấu hình hệ thống website & SEO',
+    },
+    {
+      key: 'withdrawal_settings',
+      defaultValue: defaultWithdrawalSettings,
+      isJson: true,
+      description: 'Cấu hình rút tiền',
     },
     {
       key: 'admin_passcode',

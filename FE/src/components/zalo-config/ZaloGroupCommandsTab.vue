@@ -17,7 +17,7 @@ const {
       type="info"
       show-icon
       message="Bot chỉ nhận các lệnh này trong nhóm đã khai báo. Dấu # luôn được giữ cố định; tên lệnh không được để trống hoặc trùng nhau."
-      class="!rounded-xl"
+      class="!mb-5 !rounded-xl"
     />
 
     <!-- Ví tiền -->
@@ -53,7 +53,7 @@ const {
       <div class="mb-4">
         <h5 class="m-0 text-sm font-black text-slate-800">Rút tiền</h5>
         <p class="mb-0 mt-1 text-xs leading-5 text-slate-500">
-          Rút toàn bộ số dư khả dụng. Bot từ chối nếu số dư dưới 10.000đ và tạo yêu cầu rút tiền nếu đủ điều kiện.
+          Rút toàn bộ số dư khả dụng. Bot kiểm tra theo số tiền rút tối thiểu được cấu hình trên trang Rút tiền.
         </p>
       </div>
       <label class="mb-1.5 block text-xs font-bold text-slate-600">Lệnh</label>
@@ -72,8 +72,11 @@ const {
       <a-textarea v-model:value="groupCommands.withdraw.response" :rows="3" />
 
       <div class="mb-1.5 mt-4 flex items-center justify-between">
-        <label class="text-xs font-bold text-slate-600">Nội dung khi chưa đủ 10.000đ</label>
-        <VariableTag name="{total_balance}" size="sm" />
+        <label class="text-xs font-bold text-slate-600">Nội dung khi chưa đủ số tiền tối thiểu</label>
+        <div class="flex gap-1">
+          <VariableTag name="{total_balance}" size="sm" />
+          <VariableTag name="{minimum_withdrawal}" size="sm" />
+        </div>
       </div>
       <a-textarea v-model:value="groupCommands.withdraw.insufficient_response" :rows="3" />
 
@@ -128,7 +131,7 @@ const {
       <div class="mb-4">
         <h5 class="m-0 text-sm font-black text-slate-800">Danh sách đơn hàng</h5>
         <p class="mb-0 mt-1 text-xs leading-5 text-slate-500">
-          Hiển thị tối đa 10 đơn mỗi trang. Người dùng có thể thêm số trang vào cuối lệnh, ví dụ #donhang2.
+          Số đơn mỗi trang được cấu hình bên dưới. Người dùng có thể thêm số trang vào cuối lệnh, ví dụ #donhang2.
         </p>
       </div>
       <label class="mb-1.5 block text-xs font-bold text-slate-600">Lệnh</label>
@@ -139,6 +142,14 @@ const {
       >
         <template #addonBefore><b>#</b></template>
       </a-input>
+
+      <label class="mb-1.5 mt-4 block text-xs font-bold text-slate-600">Số bản ghi mỗi trang</label>
+      <a-input-number
+        v-model:value="groupCommands.order_list.page_size"
+        :min="1"
+        :precision="0"
+        class="!w-full"
+      />
 
       <div class="mb-1.5 mt-4 flex flex-wrap items-center justify-between gap-2">
         <label class="text-xs font-bold text-slate-600">Nội dung danh sách</label>
