@@ -1,0 +1,20 @@
+{
+  "name": "Hoàn Tiền",
+  "short_name": "Hoàn Tiền",
+  "description": "Hoàn tiền khi mua sắm trực tuyến",
+  "lang": "vi",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#ee4d2d",
+  "icons": [
+    {
+      "src": "/logo/logo.png",
+      "sizes": "500x500",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { type GroupEvent, GroupEventType, LoginQRCallbackEventType, type Message, Reactions, ThreadType, Zalo } from 'zca-js'
+import { type GroupEvent, GroupEventType, LoginQRCallbackEventType, type Message, Reactions, TextStyle, ThreadType, Zalo, type Style } from 'zca-js'
 import { config, type TargetThreadType } from './config.js'
 import { shopeeService } from './services/shopee.service.js'
 import { getZaloBotSettings, renderZaloTemplate } from './services/zalo-config.service.js'
@@ -8,6 +8,30 @@ import { ensureZaloUser, getZaloUser, regenerateTrackingCode } from './services/
 import { formatWalletBalance, getOrdersUrl, getWalletsUrl, getZaloCommandUser, getZaloUserOrders, withdrawAllZaloBalance } from './services/zalo-command.service.js'
 
 type ZaloApi = Awaited<ReturnType<Zalo['loginQR']>>
+
+function parseBoldTags(content: string): { msg: string; styles: Style[] } {
+    const styles: Style[] = []
+    const tagPattern = /<b>([\s\S]*?)(?:<\/b>|<b>)/gi
+    let msg = ''
+    let cursor = 0
+    let match: RegExpExecArray | null
+
+    while ((match = tagPattern.exec(content)) !== null) {
+        msg += content.slice(cursor, match.index)
+        const boldText = match[1]
+        const start = msg.length
+        msg += boldText
+        if (boldText.length) styles.push({ start, len: boldText.length, st: TextStyle.Bold })
+        cursor = match.index + match[0].length
+    }
+    msg += content.slice(cursor)
+    return { msg, styles }
+}
+
+const styledMessage = (content: string) => {
+    const parsed = parseBoldTags(content)
+    return parsed.styles.length ? parsed : parsed.msg
+}
 
 const truncateProductName = (value: string | null) => {
     const characters = Array.from(value?.trim() || 'Chưa xác định')
@@ -165,13 +189,13 @@ async function handleIncomingMessage(
         const isReset = incomingCommand === resetCommand
         const trackingCode = isReset ? await regenerateTrackingCode(message.data.uidFrom) : user.trackingCode
         const responseTemplate = isReset ? botConfig.private_commands.reset_tracking.response : botConfig.private_commands.tracking.response
-        await loggedInApi.sendMessage(renderZaloTemplate(responseTemplate, {
+        await loggedInApi.sendMessage(styledMessage(renderZaloTemplate(responseTemplate, {
             tracking_code: trackingCode,
-        }), message.threadId, ThreadType.User)
+        })), message.threadId, ThreadType.User)
         if (botConfig.private_command_note.enabled) {
-            await loggedInApi.sendMessage(renderZaloTemplate(botConfig.private_command_note.response, {
+            await loggedInApi.sendMessage(styledMessage(renderZaloTemplate(botConfig.private_command_note.response, {
                 new_tracking_code: `#${resetCommand}`,
-            }), message.threadId, ThreadType.User)
+            })), message.threadId, ThreadType.User)
         }
         return
     }
@@ -223,10 +247,10 @@ async function handleIncomingMessage(
     }
     if (normalizedMessage === `#${commands.orders.command}`) {
         const user = await getZaloCommandUser(message.data.uidFrom)
-        await loggedInApi.sendMessage(renderZaloTemplate(commands.orders.private_response, {
+        await loggedInApi.sendMessage(styledMessage(renderZaloTemplate(commands.orders.private_response, {
             tracking_code: user.trackingCode,
             new_tracking_code: `#${botConfig.private_commands.reset_tracking.command}`,
-        }), message.data.uidFrom, ThreadType.User)
+        })), message.data.uidFrom, ThreadType.User)
         await sendTaggedGroupMessage(loggedInApi, message, renderZaloTemplate(commands.orders.response, {
             url: getOrdersUrl(),
             get_tracking_code_command: `#${botConfig.private_commands.tracking.command}`,
@@ -429,8 +453,11 @@ async function sendTaggedGroupMessage(
 ): Promise<void> {
     const displayName = originalMessage.data.dName?.trim() || 'Bạn'
     const mentionText = `@${displayName}`
+    const parsed = parseBoldTags(content)
+    const prefix = `${mentionText}\n`
     await loggedInApi.sendMessage({
-        msg: `${mentionText}\n${content}`,
+        msg: `${prefix}${parsed.msg}`,
+        styles: parsed.styles.map(style => ({ ...style, start: style.start + prefix.length })),
         mentions: [{
             pos: 0,
             uid: originalMessage.data.uidFrom,
@@ -454,13 +481,17 @@ async function handleGroupEvent(loggedInApi: ZaloApi, event: GroupEvent): Promis
             user_name: mentionText,
             group_name: event.data.groupName || 'nhóm',
         })
+        const parsed = parseBoldTags(response)
+        response = parsed.msg
         let mentionPosition = response.indexOf(mentionText)
         if (mentionPosition < 0) {
             response = `${mentionText}\n${response}`
             mentionPosition = 0
+            parsed.styles = parsed.styles.map(style => ({ ...style, start: style.start + mentionText.length + 1 }))
         }
         await loggedInApi.sendMessage({
             msg: response,
+            styles: parsed.styles,
             mentions: [{
                 pos: mentionPosition,
                 uid: member.id,

@@ -89,6 +89,16 @@ const {
           <h4 class="m-0 flex items-center gap-2 text-sm font-black text-slate-900"><CodeOutlined class="text-[#ee4d2d]"/> Thiết lập lệnh chat</h4>
           <p class="mb-0 mt-1 text-xs text-slate-500">Quản lý lệnh Bot phản hồi theo từng loại hội thoại Zalo.</p>
         </div>
+        <a-alert type="info" show-icon class="!mb-5 !rounded-xl">
+          <template #message>Định dạng chữ in đậm</template>
+          <template #description>
+            <span class="text-xs leading-5">
+              Bao quanh nội dung bằng <code class="rounded bg-blue-100/70 px-1 py-0.5">&lt;b&gt;nội dung&lt;/b&gt;</code>.
+              Có thể xuống dòng bên trong thẻ để in đậm cả một khối nội dung. Hệ thống cũng nhận dạng dạng đóng thẻ
+              <code class="rounded bg-blue-100/70 px-1 py-0.5">&lt;b&gt;nội dung&lt;b&gt;</code>.
+            </span>
+          </template>
+        </a-alert>
         <a-tabs v-model:activeKey="activeCommandTab" class="zalo-command-tabs">
           <a-tab-pane key="group">
             <template #tab><span class="inline-flex items-center gap-2"><TeamOutlined/> Lệnh chat nhóm</span></template>
