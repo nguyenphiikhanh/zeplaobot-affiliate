@@ -194,6 +194,7 @@ async function handleIncomingMessage(
         })), message.threadId, ThreadType.User)
         if (botConfig.private_command_note.enabled) {
             await loggedInApi.sendMessage(styledMessage(renderZaloTemplate(botConfig.private_command_note.response, {
+                tracking_code: trackingCode,
                 new_tracking_code: `#${resetCommand}`,
             })), message.threadId, ThreadType.User)
         }

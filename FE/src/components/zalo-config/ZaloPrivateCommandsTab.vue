@@ -83,7 +83,10 @@ const {
       </div>
       <div class="mb-1.5 mt-4 flex flex-wrap items-center justify-between gap-2">
         <label class="text-xs font-bold text-slate-600">Nội dung chú thích</label>
-        <VariableTag name="{new_tracking_code}" size="sm" />
+        <div class="flex gap-1">
+          <VariableTag name="{tracking_code}" size="sm" />
+          <VariableTag name="{new_tracking_code}" size="sm" />
+        </div>
       </div>
       <a-textarea
         v-model:value="privateCommandNote.response"
