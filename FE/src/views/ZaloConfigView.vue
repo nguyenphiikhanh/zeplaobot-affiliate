@@ -24,6 +24,7 @@ const {
 
 <template>
   <section class="max-w-4xl mx-auto space-y-6 text-left pb-12">
+    <label class="sr-only">Cấu hình Zalo Bot</label>
     <!-- Page Header -->
     <div
       class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs text-left"

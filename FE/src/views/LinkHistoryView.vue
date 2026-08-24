@@ -721,6 +721,7 @@ const formatDateTime = (value?: string | null) => {
             <img
               v-if="user.image"
               :src="user.image"
+              alt="Avatar"
               referrerpolicy="no-referrer"
               loading="lazy"
               class="h-full w-full object-cover"

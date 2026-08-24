@@ -98,6 +98,7 @@ onMounted(() => {
 
 <template>
   <div class="flex flex-col space-y-2.5 sm:space-y-4 text-left min-h-full">
+    <label class="sr-only">Trang tổng quan</label>
     <!-- Top Greeting Card (Only on Desktop >= md) -->
     <div class="hidden md:block bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs">
       <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">

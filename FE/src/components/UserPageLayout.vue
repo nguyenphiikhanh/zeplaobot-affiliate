@@ -164,10 +164,12 @@ const handleLogout = () => {
   <div
     class="min-h-screen bg-slate-100 flex flex-col justify-between selection:bg-orange-500 selection:text-white"
   >
+    <label class="sr-only">Thanh điều hướng</label>
     <!-- ============================================== -->
     <!-- 1. MOBILE TOP HEADER (< md) - NOT FIXED (SCROLLABLE) -->
     <!-- ============================================== -->
     <header
+      aria-label="Thanh điều hướng người dùng"
       class="md:hidden bg-gradient-to-r from-[#ee4d2d] via-[#f05330] to-[#ff5722] text-white shadow-md relative z-30 pb-5 rounded-b-2xl sm:rounded-b-3xl"
     >
       <div

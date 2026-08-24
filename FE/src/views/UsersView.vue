@@ -282,6 +282,7 @@ watch(searchInput, (newVal) => {
                 <img
                   v-if="record.image"
                   :src="record.image"
+                  :alt="record.name || 'Người dùng Zalo'"
                   referrerpolicy="no-referrer"
                   class="h-full w-full object-cover"
                 />
@@ -377,6 +378,7 @@ watch(searchInput, (newVal) => {
                   <img
                     v-if="record.image"
                     :src="record.image"
+                    :alt="record.name || 'Người dùng Zalo'"
                     referrerpolicy="no-referrer"
                     class="h-full w-full object-cover"
                   />
@@ -473,6 +475,7 @@ watch(searchInput, (newVal) => {
             <img
               v-if="selectedUser.image"
               :src="selectedUser.image"
+              :alt="selectedUser.name || 'Ảnh người dùng'"
               referrerpolicy="no-referrer"
               class="h-full w-full object-cover"
             />

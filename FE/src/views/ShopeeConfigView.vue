@@ -410,7 +410,7 @@ const saveCookie = async () => {
         <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900 space-y-4 shadow-2xs">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold shrink-0">
+              <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0">
                 <KeyOutlined />
               </div>
               <div>

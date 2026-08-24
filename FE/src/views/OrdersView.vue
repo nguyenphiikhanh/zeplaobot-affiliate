@@ -1346,6 +1346,7 @@ const confirmUpload = async () => {
             <img
               v-if="user.image"
               :src="user.image"
+              :alt="user.name || 'Ảnh đại diện người dùng'"
               referrerpolicy="no-referrer"
               loading="lazy"
               class="h-full w-full object-cover"

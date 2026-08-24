@@ -574,6 +574,7 @@ const formatDateTime = (value?: string | null) => {
         <img
           v-if="selected.qr_code_url"
           :src="selected.qr_code_url"
+          :alt="selected.user?.name || 'Mã QR rút tiền'"
           class="mx-auto max-w-full rounded-xl border"
         />
         <div v-if="selected.status === 'pending'" class="flex gap-3">

@@ -194,8 +194,8 @@ const drawerMenuItems = [
     key: "/admin/settings",
     label: "Cấu hình Bot Zalo",
     icon: RobotOutlined,
-    bgColor: "bg-purple-100/80",
-    textColor: "text-purple-600",
+    bgColor: "bg-teal-100/80",
+    textColor: "text-teal-600",
   },
   {
     key: "/admin/general-config",
@@ -226,8 +226,10 @@ const navigate = (path: string) => {
   <div
     class="h-screen flex overflow-hidden bg-slate-100 text-slate-800 font-sans relative"
   >
+    <label class="sr-only">Thanh quản trị</label>
     <!-- Desktop Clean White Sidebar (Hidden on Mobile/Tablet < 1024px) -->
     <aside
+      aria-label="Thanh quản trị"
       :class="[
         'bg-white border-r border-slate-200/80 hidden lg:flex flex-col justify-between transition-all duration-300 z-30 shadow-[4px_0_24px_rgba(15,23,42,0.035)] relative shrink-0',
         isCollapsed ? 'w-[76px]' : 'w-[272px]',

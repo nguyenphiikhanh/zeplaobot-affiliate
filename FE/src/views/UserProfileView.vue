@@ -414,7 +414,7 @@ const handleLogout = () => {
     >
       <div class="flex items-center gap-3">
         <div
-          class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0"
+          class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"
         >
           <SafetyCertificateOutlined class="text-base" />
         </div>

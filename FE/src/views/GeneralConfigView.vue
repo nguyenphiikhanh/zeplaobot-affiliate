@@ -28,6 +28,7 @@ export interface SiteSettings {
   keywords: string;
   logo_url?: string;
   favicon_url?: string;
+  enable_google_login?: boolean;
 }
 
 const form = ref<SiteSettings>({

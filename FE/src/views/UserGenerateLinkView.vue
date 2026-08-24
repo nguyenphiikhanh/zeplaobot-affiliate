@@ -15,6 +15,7 @@ import LinkConverterCard from '../components/LinkConverterCard.vue'
 
 <template>
   <div class="w-full space-y-3 sm:space-y-4 text-left">
+    <label class="sr-only">Tạo link hoàn tiền</label>
     <!-- Header Banner -->
     <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-1">
       <div class="flex items-center gap-2.5 text-slate-900 font-extrabold text-lg sm:text-xl">

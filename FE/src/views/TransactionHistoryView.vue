@@ -189,6 +189,7 @@ const openUserModal = async () => {
               <img
                 v-if="selectedUser.image"
                 :src="selectedUser.image"
+                :alt="selectedUser.name || 'Người dùng Zalo'"
                 referrerpolicy="no-referrer"
                 class="h-full w-full object-cover"
               />
@@ -288,20 +289,20 @@ const openUserModal = async () => {
 
         <!-- Card 4: Đơn hoàn thành -->
         <div
-          class="rounded-2xl bg-gradient-to-br from-purple-50/90 via-white to-purple-50/40 p-4 sm:p-5 border border-purple-100/90 shadow-2xs relative overflow-hidden space-y-2"
+          class="rounded-2xl bg-gradient-to-br from-indigo-50/90 via-white to-indigo-50/40 p-4 sm:p-5 border border-indigo-100/90 shadow-2xs relative overflow-hidden space-y-2"
         >
           <div class="flex items-center justify-between">
-            <span class="text-xs font-extrabold text-purple-600/90 uppercase tracking-wider"
+            <span class="text-xs font-extrabold text-indigo-600/90 uppercase tracking-wider"
               >Đơn hoàn thành</span
             >
             <div
-              class="w-9 h-9 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-xs shrink-0"
+              class="w-9 h-9 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-xs shrink-0"
             >
               <CheckCircleOutlined class="text-base" />
             </div>
           </div>
           <a-skeleton-button v-if="loading && !overview" active block />
-          <div v-else class="text-2xl font-black text-purple-600 tracking-tight">
+          <div v-else class="text-2xl font-black text-indigo-600 tracking-tight">
             {{ overview?.completed_orders || 0 }} đơn
           </div>
         </div>
@@ -538,6 +539,7 @@ const openUserModal = async () => {
             <img
               v-if="user.image"
               :src="user.image"
+              :alt="user.name || 'Ảnh đại diện người dùng'"
               referrerpolicy="no-referrer"
               loading="lazy"
               class="h-full w-full object-cover"
