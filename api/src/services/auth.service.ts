@@ -1,8 +1,9 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import bcrypt from 'bcryptjs'
-import { eq } from 'drizzle-orm'
+import { eq, or } from 'drizzle-orm'
+import { config } from '../config.js'
 import { db } from '../db/index.js'
-import { systemConfigs, users } from '../db/schema.js'
+import { systemConfigs, users, wallets } from '../db/schema.js'
 
 export const ADMIN_ACCESS_TOKEN_TTL_SECONDS = 15 * 60
 export const ADMIN_REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60
@@ -226,6 +227,151 @@ export const loginUserService = async (trackingCode: string) => {
       image: user.image,
       role,
       tracking_code: user.trackingCode,
+    },
+  }
+}
+
+import { getSiteSettings } from './site-config.service.js'
+
+export interface GoogleLoginInput {
+  idToken?: string
+  code?: string
+  redirectUri?: string
+}
+
+export const loginWithGoogleService = async (input: GoogleLoginInput | string) => {
+  const siteSettings = await getSiteSettings()
+  if (siteSettings.enable_google_login === false) {
+    throw { status: 403, message: 'Phương thức đăng nhập bằng Google hiện đang bị tắt trong hệ thống.' }
+  }
+
+  const payload = typeof input === 'string' ? { idToken: input } : input
+  const code = payload.code?.trim()
+  const idToken = payload.idToken?.trim()
+  const redirectUri = payload.redirectUri?.trim()
+
+  if (!code && !idToken) {
+    throw { status: 400, message: 'Google Token hoặc Code là bắt buộc' }
+  }
+
+  let googleUser: { sub: string; email?: string; name?: string; picture?: string; aud?: string } | null = null
+
+  if (code) {
+    try {
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: config.google.clientId,
+          client_secret: config.google.clientSecret,
+          redirect_uri: redirectUri || `${config.appUrl}/login`,
+          grant_type: 'authorization_code',
+        }),
+      })
+
+      if (!tokenRes.ok) {
+        const errJson = await tokenRes.json().catch(() => ({}))
+        console.error('[Auth] Google Token Exchange Failed:', errJson)
+        throw new Error('Google OAuth token exchange failed')
+      }
+
+      const tokenData = (await tokenRes.json()) as { id_token?: string; access_token?: string }
+      if (tokenData.id_token) {
+        const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(tokenData.id_token)}`)
+        if (verifyRes.ok) {
+          googleUser = (await verifyRes.json()) as any
+        }
+      }
+
+      if (!googleUser && tokenData.access_token) {
+        const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        })
+        if (userinfoRes.ok) {
+          googleUser = (await userinfoRes.json()) as any
+        }
+      }
+    } catch (err) {
+      console.error('[Auth] Google OAuth Code exchange error:', err)
+      throw { status: 401, message: 'Xác thực Google Code thất bại hoặc mã xác thực đã hết hạn.' }
+    }
+  } else if (idToken) {
+    try {
+      const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`)
+      if (res.ok) {
+        googleUser = (await res.json()) as any
+      }
+    } catch (err) {
+      console.error('[Auth] Google ID Token verify error:', err)
+    }
+  }
+
+  if (!googleUser?.sub) {
+    throw { status: 401, message: 'Google Token không hợp lệ hoặc đã hết hạn.' }
+  }
+
+  const userId = `gg_${googleUser.sub}`
+  const userEmail = googleUser.email?.trim() || null
+  const userName = googleUser.name?.trim() || 'Người dùng Google'
+  const userImage = googleUser.picture?.trim() || null
+
+  const conditions = [eq(users.id, userId)]
+  if (userEmail) {
+    conditions.push(eq(users.email, userEmail))
+  }
+
+  const [existingUser] = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      image: users.image,
+      trackingCode: users.trackingCode,
+    })
+    .from(users)
+    .where(or(...conditions))
+    .limit(1)
+
+  let finalUserId = userId
+  let finalTrackingCode: string | null = null
+
+  if (existingUser) {
+    finalUserId = existingUser.id
+    finalTrackingCode = existingUser.trackingCode
+    await db
+      .update(users)
+      .set({
+        name: userName || existingUser.name,
+        email: userEmail || existingUser.email,
+        image: userImage || existingUser.image,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, finalUserId))
+  } else {
+    await db.transaction(async (tx) => {
+      await tx.insert(users).values({
+        id: finalUserId,
+        name: userName,
+        email: userEmail,
+        image: userImage,
+        trackingCode: null,
+      })
+      await tx.insert(wallets).values({ userId: finalUserId }).onDuplicateKeyUpdate({ set: { userId: finalUserId } })
+    })
+  }
+
+  const role: AuthRole = 'user'
+  const tokens = await createAuthTokens(finalUserId, role)
+  return {
+    ...tokens,
+    user: {
+      id: finalUserId,
+      name: userName,
+      email: userEmail,
+      image: userImage,
+      role,
+      tracking_code: finalTrackingCode,
     },
   }
 }

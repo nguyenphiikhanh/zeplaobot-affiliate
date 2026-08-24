@@ -19,6 +19,10 @@ export const config = {
         baseApi: process.env.SHOPEE_BASE_API || 'https://affiliate.shopee.vn/api/v3',
         cookie: process.env.SHOPEE_COOKIE || '',
     },
+    google: {
+        clientId: process.env.GOOGLE_CLIENT_ID || '',
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    },
 }
 
 

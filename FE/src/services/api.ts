@@ -144,6 +144,25 @@ api.interceptors.response.use(
   },
 );
 
+export interface GoogleLoginParams {
+  idToken?: string;
+  code?: string;
+  redirectUri?: string;
+}
+
+export const loginWithGoogle = async (params: GoogleLoginParams | string): Promise<AuthUser> => {
+  const payload = typeof params === "string" ? { id_token: params } : {
+    id_token: params.idToken,
+    code: params.code,
+    redirect_uri: params.redirectUri,
+  };
+  const response = await api.post<ApiResponse<UserLoginData>>("/api/google", payload);
+  const loginData = requireResponseData(response.data);
+  saveAuthTokens(loginData);
+  sessionCache = loginData.user;
+  return loginData.user;
+};
+
 export const loginUser = async (trackingCode: string): Promise<AuthUser> => {
   const response = await api.post<ApiResponse<UserLoginData>>("/api/login", {
     tracking_code: trackingCode,

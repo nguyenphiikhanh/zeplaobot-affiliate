@@ -12,6 +12,7 @@ export interface SiteSettings {
   keywords?: string
   logo_url?: string
   favicon_url?: string
+  enable_google_login?: boolean
 }
 
 export const defaultSiteSettings: SiteSettings = {
@@ -22,6 +23,7 @@ export const defaultSiteSettings: SiteSettings = {
   keywords: 'hoàn tiền shopee, affiliate shopee, nhận hoa hồng shopee, hoàn tiền mua sắm',
   logo_url: '',
   favicon_url: '',
+  enable_google_login: false,
 }
 
 const readJson = async <T>(key: string): Promise<T | null> => {
@@ -52,6 +54,7 @@ export const saveSiteSettings = async (input: Partial<SiteSettings>): Promise<Si
     keywords: String(input.keywords ?? current.keywords ?? '').trim(),
     logo_url: input.logo_url !== undefined ? String(input.logo_url).trim() : (current.logo_url || ''),
     favicon_url: input.favicon_url !== undefined ? String(input.favicon_url).trim() : (current.favicon_url || ''),
+    enable_google_login: input.enable_google_login !== undefined ? Boolean(input.enable_google_login) : (current.enable_google_login ?? false),
   }
 
   await writeJson(SETTINGS_KEY, updated, 'Cấu hình hệ thống website & SEO')

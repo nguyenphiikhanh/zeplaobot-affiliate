@@ -4,6 +4,7 @@ import {
   getSessionUserService,
   loginAdminService,
   loginUserService,
+  loginWithGoogleService,
   refreshAccessTokenService,
 } from '../services/auth.service.js'
 import { sendError, sendResponse } from '../utils/response.js'
@@ -85,6 +86,31 @@ authRoutes.post('/login', async (c) => {
   } catch (err: unknown) {
     const error = err as { status?: number; message?: string }
     return c.json(sendError(error.message || 'Login failed'), (error.status || 500) as any)
+  }
+})
+
+authRoutes.post('/google', async (c) => {
+  let body: { id_token?: unknown; code?: unknown; redirect_uri?: unknown }
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json(sendError('Invalid request body'), 400)
+  }
+
+  const idToken = typeof body.id_token === 'string' ? body.id_token.trim() : undefined
+  const code = typeof body.code === 'string' ? body.code.trim() : undefined
+  const redirectUri = typeof body.redirect_uri === 'string' ? body.redirect_uri.trim() : undefined
+
+  if (!idToken && !code) {
+    return c.json(sendError('Google ID Token hoặc Authorization Code là bắt buộc'), 400)
+  }
+
+  try {
+    const loginData = await loginWithGoogleService({ idToken, code, redirectUri })
+    return c.json(sendResponse(loginData, 'Đăng nhập Google thành công'))
+  } catch (err: unknown) {
+    const error = err as { status?: number; message?: string }
+    return c.json(sendError(error.message || 'Đăng nhập Google thất bại'), (error.status || 500) as any)
   }
 })
 

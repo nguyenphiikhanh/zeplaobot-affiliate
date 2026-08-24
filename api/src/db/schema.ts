@@ -18,8 +18,9 @@ export type NewLinkGeneration = typeof linkGenerations.$inferInsert;
 export const users = mysqlTable('users', {
   id: varchar('id', { length: 64 }).primaryKey(),
   name: varchar('name', { length: 255 }),
+  email: varchar('email', { length: 255 }),
   image: text('image'),
-  trackingCode: varchar('tracking_code', { length: 64 }).notNull().unique(),
+  trackingCode: varchar('tracking_code', { length: 64 }).unique(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
 });

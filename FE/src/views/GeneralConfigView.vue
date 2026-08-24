@@ -41,6 +41,7 @@ const form = ref<SiteSettings>({
     "hoàn tiền shopee, affiliate shopee, nhận hoa hồng shopee, hoàn tiền mua sắm",
   logo_url: "",
   favicon_url: "",
+  enable_google_login: false,
 });
 
 const loading = ref(false);
@@ -670,6 +671,28 @@ onMounted(() => {
             <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed">
               {{ previewDesc }}
             </p>
+          </div>
+        </div>
+
+        <!-- Card: Cấu hình Phương thức Đăng nhập -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-7 space-y-5">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <SafetyCertificateOutlined class="text-[#ee4d2d]" />
+              <span class="text-sm font-extrabold text-slate-900">Phương thức Đăng nhập</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+            <div class="space-y-0.5 text-left">
+              <label class="text-xs sm:text-sm font-bold text-slate-800 block cursor-pointer">
+                Bật/tắt "Đăng nhập bằng Google"
+              </label>
+              <p class="text-[11px] sm:text-xs text-slate-500 m-0">
+                Cho phép người dùng sử dụng tài khoản google làm phương thức đăng nhập
+              </p>
+            </div>
+            <a-switch v-model:checked="form.enable_google_login" />
           </div>
         </div>
 
