@@ -54,6 +54,7 @@ app.route('/api', linkHistoryRoutes)
 app.route('/api', transactionRoutes)
 app.route('/api', userPortalRoutes)
 app.route('/api', siteConfigRoutes)
+app.route('/', siteConfigRoutes)
 app.route('/', redirectRoutes)
 
 // Global Error Handler

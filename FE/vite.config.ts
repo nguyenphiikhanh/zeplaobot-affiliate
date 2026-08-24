@@ -19,6 +19,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '/manifest.webmanifest': {
+          target: backendTarget,
+          changeOrigin: true,
+          secure: false,
+        },
         '^/s/[^/]+$': {
           target: backendTarget,
           changeOrigin: true,
@@ -28,4 +33,3 @@ export default defineConfig(({ mode }) => {
     },
   }
 })
-
