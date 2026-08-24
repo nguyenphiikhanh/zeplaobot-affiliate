@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "ant-design-vue";
 import {
@@ -19,12 +19,15 @@ import {
   type ApiResponse,
   type SessionUser,
 } from "../services/api";
+import { updateSiteFavicon } from "../utils/favicon";
 
 interface SiteConfig {
   site_name: string;
   site_description: string;
   meta_title: string;
   meta_description: string;
+  logo_url?: string;
+  favicon_url?: string;
 }
 
 const route = useRoute();
@@ -32,6 +35,16 @@ const router = useRouter();
 const user = ref<SessionUser | null>(null);
 const siteConfig = ref<SiteConfig | null>(null);
 const avatarFailed = ref(false);
+
+watch(
+  () => siteConfig.value?.favicon_url,
+  (newFavicon) => {
+    if (newFavicon) {
+      updateSiteFavicon(newFavicon);
+    }
+  },
+  { immediate: true }
+);
 
 const navItems = [
   {
@@ -168,7 +181,13 @@ const handleLogout = () => {
           <div
             class="w-9 h-9 rounded-xl bg-white text-[#ee4d2d] font-black text-sm flex items-center justify-center shadow-sm shrink-0 overflow-hidden"
           >
-            <GiftOutlined class="text-lg text-[#ee4d2d]" />
+            <img
+              v-if="siteConfig?.logo_url"
+              :src="siteConfig.logo_url"
+              alt="Logo"
+              class="w-full h-full object-contain p-0.5"
+            />
+            <GiftOutlined v-else class="text-lg text-[#ee4d2d]" />
           </div>
           <div class="flex flex-col min-w-0">
             <span
@@ -241,7 +260,13 @@ const handleLogout = () => {
           <div
             class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#ee4d2d] to-[#ff5722] text-white font-black text-lg flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform overflow-hidden shrink-0"
           >
-            <GiftOutlined class="text-xl text-white" />
+            <img
+              v-if="siteConfig?.logo_url"
+              :src="siteConfig.logo_url"
+              alt="Logo"
+              class="w-full h-full object-contain p-0.5 bg-white"
+            />
+            <GiftOutlined v-else class="text-xl text-white" />
           </div>
           <div class="flex flex-col text-left">
             <span

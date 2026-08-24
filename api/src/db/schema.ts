@@ -1,4 +1,4 @@
-import { mysqlTable, bigint, varchar, text, int, json, timestamp } from 'drizzle-orm/mysql-core';
+import { mysqlTable, bigint, varchar, text, mediumtext, int, json, timestamp } from 'drizzle-orm/mysql-core';
 
 export const linkGenerations = mysqlTable('link_generations', {
   id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
@@ -30,7 +30,7 @@ export type NewUser = typeof users.$inferInsert;
 export const systemConfigs = mysqlTable('system_configs', {
   id: bigint('id', { mode: 'number' }).primaryKey().autoincrement(),
   key: varchar('key', { length: 100 }).notNull().unique(),
-  value: text('value').notNull(),
+  value: mediumtext('value').notNull(),
   description: varchar('description', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),

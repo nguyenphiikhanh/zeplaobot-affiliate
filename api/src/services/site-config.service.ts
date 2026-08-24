@@ -10,6 +10,8 @@ export interface SiteSettings {
   meta_title: string
   meta_description: string
   keywords?: string
+  logo_url?: string
+  favicon_url?: string
 }
 
 export const defaultSiteSettings: SiteSettings = {
@@ -18,6 +20,8 @@ export const defaultSiteSettings: SiteSettings = {
   meta_title: 'Affiliate - Hoàn tiền Mua sắm',
   meta_description: 'Nền tảng hoàn tiền mua sắm tự động hàng đầu Việt Nam. Tối ưu hoa hồng Shopee nhanh chóng và minh bạch.',
   keywords: 'hoàn tiền shopee, affiliate shopee, nhận hoa hồng shopee, hoàn tiền mua sắm',
+  logo_url: '',
+  favicon_url: '',
 }
 
 const readJson = async <T>(key: string): Promise<T | null> => {
@@ -46,6 +50,8 @@ export const saveSiteSettings = async (input: Partial<SiteSettings>): Promise<Si
     meta_title: String(input.meta_title ?? current.meta_title).trim(),
     meta_description: String(input.meta_description ?? current.meta_description).trim(),
     keywords: String(input.keywords ?? current.keywords ?? '').trim(),
+    logo_url: input.logo_url !== undefined ? String(input.logo_url).trim() : (current.logo_url || ''),
+    favicon_url: input.favicon_url !== undefined ? String(input.favicon_url).trim() : (current.favicon_url || ''),
   }
 
   await writeJson(SETTINGS_KEY, updated, 'Cấu hình hệ thống website & SEO')

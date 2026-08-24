@@ -10,8 +10,15 @@ import {
   KeyOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
+  PictureOutlined,
+  UploadOutlined,
+  DeleteOutlined,
+  CompassOutlined,
+  GiftOutlined,
+  GlobalOutlined,
 } from "@ant-design/icons-vue";
 import { api, type ApiResponse } from "../services/api";
+import { updateSiteFavicon } from "../utils/favicon";
 
 export interface SiteSettings {
   site_name: string;
@@ -19,6 +26,8 @@ export interface SiteSettings {
   meta_title: string;
   meta_description: string;
   keywords: string;
+  logo_url?: string;
+  favicon_url?: string;
 }
 
 const form = ref<SiteSettings>({
@@ -30,10 +39,63 @@ const form = ref<SiteSettings>({
     "Nền tảng hoàn tiền mua sắm tự động hàng đầu Việt Nam. Tối ưu hoa hồng Shopee nhanh chóng và minh bạch.",
   keywords:
     "hoàn tiền shopee, affiliate shopee, nhận hoa hồng shopee, hoàn tiền mua sắm",
+  logo_url: "",
+  favicon_url: "",
 });
 
 const loading = ref(false);
 const saving = ref(false);
+
+// File upload refs and handlers
+const logoInputRef = ref<HTMLInputElement | null>(null);
+const faviconInputRef = ref<HTMLInputElement | null>(null);
+
+const handleFileUpload = (
+  event: Event,
+  targetField: "logo_url" | "favicon_url"
+) => {
+  const input = event.target as HTMLInputElement;
+  if (!input.files || input.files.length === 0) return;
+
+  const file = input.files[0];
+  const maxSizeBytes = 1.5 * 1024 * 1024; // 1.5MB
+  if (file.size > maxSizeBytes) {
+    message.error(
+      "Dung lượng ảnh tải lên quá lớn! Vui lòng chọn file dưới 1.5MB."
+    );
+    input.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const result = e.target?.result as string;
+    if (result) {
+      form.value[targetField] = result;
+      message.success(
+        `Đã chọn ảnh ${
+          targetField === "logo_url" ? "Logo" : "Favicon"
+        } thành công!`
+      );
+    }
+  };
+  reader.onerror = () => {
+    message.error("Không thể đọc file ảnh. Vui lòng thử chọn lại!");
+  };
+  reader.readAsDataURL(file);
+  input.value = "";
+};
+
+const triggerLogoSelect = () => logoInputRef.value?.click();
+const triggerFaviconSelect = () => faviconInputRef.value?.click();
+
+const clearLogo = () => {
+  form.value.logo_url = "";
+};
+
+const clearFavicon = () => {
+  form.value.favicon_url = "";
+};
 
 // Password form state
 const passwordForm = ref({
@@ -54,6 +116,9 @@ const loadSettings = async () => {
     );
     if (response.data.data) {
       form.value = { ...form.value, ...response.data.data };
+      if (form.value.favicon_url) {
+        updateSiteFavicon(form.value.favicon_url);
+      }
     }
   } catch (error: any) {
     message.error(
@@ -80,6 +145,9 @@ const handleSave = async () => {
       form.value = { ...form.value, ...response.data.data };
       if (form.value.meta_title) {
         document.title = form.value.meta_title;
+      }
+      if (form.value.favicon_url) {
+        updateSiteFavicon(form.value.favicon_url);
       }
     }
     message.success("Lưu cấu hình hệ thống & SEO thành công!");
@@ -160,10 +228,15 @@ onMounted(() => {
           class="flex items-center gap-2 text-slate-800 font-extrabold text-base sm:text-xl tracking-tight"
         >
           <SettingOutlined class="text-[#ee4d2d]" />
-          <h1 class="text-base sm:text-xl font-bold tracking-tight text-slate-800">Cấu hình hệ thống</h1>
+          <h1
+            class="text-base sm:text-xl font-bold tracking-tight text-slate-800"
+          >
+            Cấu hình hệ thống
+          </h1>
         </div>
         <p class="text-xs sm:text-sm text-slate-500">
-          Quản trị thông tin thương hiệu, tối ưu SEO và bảo mật tài khoản quản trị.
+          Quản trị thông tin thương hiệu, tối ưu SEO và bảo mật tài khoản quản
+          trị.
         </p>
       </div>
 
@@ -234,6 +307,271 @@ onMounted(() => {
               <p class="text-[11px] text-slate-400">
                 Giới thiệu ngắn gọn về dịch vụ trên trang chủ.
               </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Mới: Nhận diện Thương hiệu (Logo & Favicon Base64 + Live Preview) -->
+        <div
+          class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-7 space-y-6"
+        >
+          <div
+            class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100"
+          >
+            <div class="flex items-center gap-2">
+              <PictureOutlined class="text-[#ee4d2d]" />
+              <span class="text-sm font-extrabold text-slate-900"
+                >🎨 Nhận diện Thương hiệu (Logo & Favicon)</span
+              >
+            </div>
+            <span class="text-[11px] text-slate-400 font-medium"
+              >Hỗ trợ Upload File (Base64) hoặc dán URL trực tiếp</span
+            >
+          </div>
+
+          <!-- Upload Controls Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 1. Main Logo Upload Box -->
+            <div class="space-y-3 text-left">
+              <label
+                class="block text-xs font-bold text-slate-700 flex items-center justify-between"
+              >
+                <span>Logo</span>
+                <span class="text-[11px] font-normal text-slate-400"
+                  >Khuyên dùng: PNG, SVG</span
+                >
+              </label>
+
+              <!-- Upload Drag & Drop Area -->
+              <div
+                class="relative border-2 border-dashed border-slate-200 hover:border-[#ee4d2d] rounded-2xl p-4 transition-all bg-slate-50/50 hover:bg-orange-50/30 group"
+              >
+                <input
+                  ref="logoInputRef"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  class="hidden"
+                  @change="(e) => handleFileUpload(e, 'logo_url')"
+                />
+
+                <div
+                  v-if="form.logo_url"
+                  class="flex flex-col items-center justify-center space-y-3 py-2"
+                >
+                  <div
+                    class="w-full h-20 rounded-xl bg-white border border-slate-200 p-2 flex items-center justify-center shadow-xs overflow-hidden"
+                  >
+                    <img
+                      :src="form.logo_url"
+                      alt="Logo preview"
+                      class="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      @click="triggerLogoSelect"
+                      class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <UploadOutlined /> Thay đổi
+                    </button>
+                    <button
+                      type="button"
+                      @click="clearLogo"
+                      class="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <DeleteOutlined /> Xóa
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  v-else
+                  @click="triggerLogoSelect"
+                  class="flex flex-col items-center justify-center space-y-2 py-4 cursor-pointer"
+                >
+                  <div
+                    class="w-10 h-10 rounded-full bg-orange-100 text-[#ee4d2d] flex items-center justify-center group-hover:scale-110 transition-transform"
+                  >
+                    <UploadOutlined class="text-lg" />
+                  </div>
+                  <div class="text-xs font-bold text-slate-700">
+                    Tải lên Logo mới
+                  </div>
+                  <div class="text-[11px] text-slate-400 text-center">
+                    Bấm vào đây để chọn file từ máy (Max 1.5MB)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Favicon Upload Box -->
+            <div class="space-y-3 text-left">
+              <label
+                class="block text-xs font-bold text-slate-700 flex items-center justify-between"
+              >
+                <span>Favicon (Icon trên Tab trình duyệt)</span>
+                <span class="text-[11px] font-normal text-slate-400"
+                  >Tỉ lệ 1:1 (32x32px)</span
+                >
+              </label>
+
+              <!-- Upload Drag & Drop Area -->
+              <div
+                class="relative border-2 border-dashed border-slate-200 hover:border-[#ee4d2d] rounded-2xl p-4 transition-all bg-slate-50/50 hover:bg-orange-50/30 group"
+              >
+                <input
+                  ref="faviconInputRef"
+                  type="file"
+                  accept="image/png,image/x-icon,image/svg+xml,image/jpeg"
+                  class="hidden"
+                  @change="(e) => handleFileUpload(e, 'favicon_url')"
+                />
+
+                <div
+                  v-if="form.favicon_url"
+                  class="flex flex-col items-center justify-center space-y-3 py-2"
+                >
+                  <div
+                    class="w-16 h-16 rounded-xl bg-white border border-slate-200 p-2 flex items-center justify-center shadow-xs overflow-hidden"
+                  >
+                    <img
+                      :src="form.favicon_url"
+                      alt="Favicon preview"
+                      class="w-10 h-10 object-contain"
+                    />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      @click="triggerFaviconSelect"
+                      class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <UploadOutlined /> Thay đổi
+                    </button>
+                    <button
+                      type="button"
+                      @click="clearFavicon"
+                      class="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <DeleteOutlined /> Xóa
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  v-else
+                  @click="triggerFaviconSelect"
+                  class="flex flex-col items-center justify-center space-y-2 py-4 cursor-pointer"
+                >
+                  <div
+                    class="w-10 h-10 rounded-full bg-orange-100 text-[#ee4d2d] flex items-center justify-center group-hover:scale-110 transition-transform"
+                  >
+                    <CompassOutlined class="text-lg" />
+                  </div>
+                  <div class="text-xs font-bold text-slate-700">
+                    Tải lên Favicon
+                  </div>
+                  <div class="text-[11px] text-slate-400 text-center">
+                    Bấm để chọn file Icon (.png, .ico, .svg)
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Mockup Preview Section -->
+          <div class="pt-4 border-t border-slate-100 space-y-4">
+            <div
+              class="flex items-center gap-2 text-xs font-bold text-slate-700 text-left"
+            >
+              <EyeOutlined class="text-[#ee4d2d]" />
+              <span>Live Mockup Preview (Xem trước hiển thị trực quan)</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- 1. Header Navbar Mockup -->
+              <div class="space-y-1.5 text-left">
+                <span class="text-[11px] font-bold text-slate-500"
+                  >1. Hiển thị trên thanh Header Navbar:</span
+                >
+                <div
+                  class="rounded-xl overflow-hidden border border-slate-200 shadow-xs"
+                >
+                  <!-- Light Gradient Header Simulation -->
+                  <div
+                    class="bg-gradient-to-r from-[#ee4d2d] via-[#f05330] to-[#ff5722] p-3 flex items-center justify-between text-white"
+                  >
+                    <div class="flex items-center gap-2.5">
+                      <div
+                        class="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-xs overflow-hidden shrink-0"
+                      >
+                        <img
+                          v-if="form.logo_url"
+                          :src="form.logo_url"
+                          alt="Logo"
+                          class="w-full h-full object-contain p-0.5"
+                        />
+                        <GiftOutlined v-else class="text-base text-[#ee4d2d]" />
+                      </div>
+                      <div class="flex flex-col">
+                        <span
+                          class="font-black text-xs tracking-tight leading-none truncate max-w-[150px]"
+                        >
+                          {{ form.site_name || "Affiliate - Hoàn tiền" }}
+                        </span>
+                        <span class="text-[10px] text-orange-100 font-medium"
+                          >Hoàn tiền Affiliate</span
+                        >
+                      </div>
+                    </div>
+                    <div
+                      class="h-6 px-2.5 rounded-full bg-white/20 text-[10px] font-bold flex items-center"
+                    >
+                      Menu
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Browser Tab Mockup -->
+              <div class="space-y-1.5 text-left">
+                <span class="text-[11px] font-bold text-slate-500"
+                  >2. Hiển thị trên Tab Trình duyệt (Favicon):</span
+                >
+                <div
+                  class="bg-slate-200 rounded-xl p-2.5 border border-slate-300 shadow-xs space-y-2"
+                >
+                  <!-- Chrome Tab Bar simulation -->
+                  <div
+                    class="flex items-center gap-1.5 bg-slate-100 rounded-t-lg p-1.5 max-w-[240px] border border-slate-300/80 shadow-2xs"
+                  >
+                    <div
+                      class="w-4 h-4 rounded-sm flex items-center justify-center overflow-hidden shrink-0"
+                    >
+                      <img
+                        v-if="form.favicon_url"
+                        :src="form.favicon_url"
+                        alt="Favicon"
+                        class="w-full h-full object-contain"
+                      />
+                      <GlobalOutlined v-else class="text-xs text-slate-500" />
+                    </div>
+                    <span
+                      class="text-[11px] font-medium text-slate-700 truncate"
+                    >
+                      {{ previewTitle }}
+                    </span>
+                  </div>
+                  <!-- Address Bar simulation -->
+                  <div
+                    class="bg-white rounded-lg px-3 py-1 text-[11px] font-mono text-slate-500 border border-slate-300 flex items-center gap-1.5"
+                  >
+                    <span class="text-emerald-600 font-bold">🔒 https://</span>
+                    <span class="truncate">your-domain.com</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
