@@ -42,7 +42,7 @@ const maskOrderId = (value: string) => `${value.slice(0, Math.max(0, value.lengt
 
 const displayOrderStatus = (value: string | null) => {
     const status = value?.trim().toLowerCase() || ''
-    if (['completed', 'complete', 'đã hoàn thành', 'hoàn thành'].includes(status)) return 'Đã hoàn tiền'
+    if (['completed', 'complete', 'đã hoàn thành', 'hoàn thành'].includes(status)) return 'Đã hoàn thành'
     if (['cancelled', 'canceled', 'invalid', 'đã hủy', 'đã huỷ'].includes(status)) return 'Đã huỷ'
     return 'Chờ xử lý'
 }
