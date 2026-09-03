@@ -62,8 +62,8 @@ const displayBankCode = computed(() => {
       b.shortName?.toUpperCase() === name.toUpperCase() ||
       b.code?.toUpperCase() === name.toUpperCase()
   );
-  if (found && found.code) {
-    return found.code.toUpperCase();
+  if (found) {
+    return (found.shortName || found.code).toUpperCase();
   }
   return (id || name).toUpperCase();
 });
@@ -93,7 +93,7 @@ const loadBanks = async () => {
 const bankOptions = computed(() => {
   return banksList.value.map((b) => ({
     value: b.code || b.bin,
-    label: `${b.code || b.shortName} - ${b.name}`,
+    label: `${b.shortName || b.code} - ${b.name}`,
     name: b.shortName || b.code || b.name,
     code: b.code || b.shortName,
   }));

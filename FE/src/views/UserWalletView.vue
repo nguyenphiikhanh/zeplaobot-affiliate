@@ -131,8 +131,8 @@ const displayBankCode = computed(() => {
       b.shortName?.toUpperCase() === name.toUpperCase() ||
       b.code?.toUpperCase() === name.toUpperCase()
   )
-  if (found && found.code) {
-    return found.code.toUpperCase()
+  if (found) {
+    return (found.shortName || found.code).toUpperCase()
   }
   return (id || name).toUpperCase()
 })
