@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from "vue";
 import { message } from "ant-design-vue";
 import {
   SettingOutlined,
+  MessageOutlined,
   SaveOutlined,
   ReloadOutlined,
   SearchOutlined,
@@ -29,6 +30,12 @@ export interface SiteSettings {
   logo_url?: string;
   favicon_url?: string;
   enable_google_login?: boolean;
+  zalo_group_enabled?: boolean;
+  zalo_group_title?: string;
+  zalo_group_url?: string;
+  zalo_bot_enabled?: boolean;
+  zalo_bot_title?: string;
+  zalo_bot_url?: string;
 }
 
 const form = ref<SiteSettings>({
@@ -43,6 +50,12 @@ const form = ref<SiteSettings>({
   logo_url: "",
   favicon_url: "",
   enable_google_login: false,
+  zalo_group_enabled: false,
+  zalo_group_title: "",
+  zalo_group_url: "",
+  zalo_bot_enabled: false,
+  zalo_bot_title: "",
+  zalo_bot_url: "",
 });
 
 const loading = ref(false);
@@ -694,6 +707,87 @@ onMounted(() => {
               </p>
             </div>
             <a-switch v-model:checked="form.enable_google_login" />
+          </div>
+        </div>
+
+        <!-- Card: Kênh hỗ trợ & Liên kết Zalo (Trang Đăng nhập) -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-7 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <MessageOutlined class="text-[#0068ff]" />
+              <span class="text-sm font-extrabold text-slate-900">Kênh hỗ trợ Zalo (Trang Đăng nhập)</span>
+            </div>
+            <span class="text-[11px] font-medium text-slate-400">Hiển thị dưới mục hướng dẫn lấy mã theo dõi</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Cấu hình Nhóm Zalo -->
+            <div class="p-4 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full" :class="form.zalo_group_enabled ? 'bg-emerald-500' : 'bg-slate-300'"></span>
+                  <span class="text-xs sm:text-sm font-bold text-slate-800">Nhóm Zalo hỗ trợ</span>
+                </div>
+                <a-switch v-model:checked="form.zalo_group_enabled" />
+              </div>
+              <p class="text-[11px] text-slate-500 m-0">
+                Hiển thị nút dẫn đến nhóm cộng đồng / hỗ trợ Zalo cho người dùng.
+              </p>
+
+              <div class="space-y-1.5 text-left">
+                <label class="block text-[11px] font-bold text-slate-700">Tiêu đề nút hiển thị</label>
+                <input
+                  v-model="form.zalo_group_title"
+                  type="text"
+                  placeholder="VD: Nhóm Zalo hỗ trợ"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800 focus:border-[#0068ff] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all bg-white"
+                />
+              </div>
+
+              <div class="space-y-1.5 text-left">
+                <label class="block text-[11px] font-bold text-slate-700">Đường dẫn nhóm (URL)</label>
+                <input
+                  v-model="form.zalo_group_url"
+                  type="url"
+                  placeholder="https://zalo.me/g/..."
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800 focus:border-[#0068ff] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all bg-white"
+                />
+              </div>
+            </div>
+
+            <!-- Cấu hình Link cá nhân Bot Zalo -->
+            <div class="p-4 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full" :class="form.zalo_bot_enabled ? 'bg-emerald-500' : 'bg-slate-300'"></span>
+                  <span class="text-xs sm:text-sm font-bold text-slate-800">Trang cá nhân / Chat riêng Bot</span>
+                </div>
+                <a-switch v-model:checked="form.zalo_bot_enabled" />
+              </div>
+              <p class="text-[11px] text-slate-500 m-0">
+                Hiển thị nút dẫn trực tiếp tới trang cá nhân hoặc chat riêng với Bot Zalo.
+              </p>
+
+              <div class="space-y-1.5 text-left">
+                <label class="block text-[11px] font-bold text-slate-700">Tiêu đề nút hiển thị</label>
+                <input
+                  v-model="form.zalo_bot_title"
+                  type="text"
+                  placeholder="VD: Chat riêng với Bot Zalo"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800 focus:border-[#0068ff] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all bg-white"
+                />
+              </div>
+
+              <div class="space-y-1.5 text-left">
+                <label class="block text-[11px] font-bold text-slate-700">Đường dẫn trang cá nhân/chat Bot (URL)</label>
+                <input
+                  v-model="form.zalo_bot_url"
+                  type="url"
+                  placeholder="https://zalo.me/..."
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800 focus:border-[#0068ff] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all bg-white"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

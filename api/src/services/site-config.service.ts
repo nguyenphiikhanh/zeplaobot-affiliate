@@ -13,6 +13,12 @@ export interface SiteSettings {
   logo_url?: string
   favicon_url?: string
   enable_google_login?: boolean
+  zalo_group_enabled?: boolean
+  zalo_group_title?: string
+  zalo_group_url?: string
+  zalo_bot_enabled?: boolean
+  zalo_bot_title?: string
+  zalo_bot_url?: string
 }
 
 export const defaultSiteSettings: SiteSettings = {
@@ -24,6 +30,12 @@ export const defaultSiteSettings: SiteSettings = {
   logo_url: '',
   favicon_url: '',
   enable_google_login: false,
+  zalo_group_enabled: false,
+  zalo_group_title: '',
+  zalo_group_url: '',
+  zalo_bot_enabled: false,
+  zalo_bot_title: '',
+  zalo_bot_url: '',
 }
 
 const readJson = async <T>(key: string): Promise<T | null> => {
@@ -55,6 +67,12 @@ export const saveSiteSettings = async (input: Partial<SiteSettings>): Promise<Si
     logo_url: input.logo_url !== undefined ? String(input.logo_url).trim() : (current.logo_url || ''),
     favicon_url: input.favicon_url !== undefined ? String(input.favicon_url).trim() : (current.favicon_url || ''),
     enable_google_login: input.enable_google_login !== undefined ? Boolean(input.enable_google_login) : (current.enable_google_login ?? false),
+    zalo_group_enabled: input.zalo_group_enabled !== undefined ? Boolean(input.zalo_group_enabled) : (current.zalo_group_enabled ?? false),
+    zalo_group_title: input.zalo_group_title !== undefined ? String(input.zalo_group_title).trim() : (current.zalo_group_title || ''),
+    zalo_group_url: input.zalo_group_url !== undefined ? String(input.zalo_group_url).trim() : (current.zalo_group_url || ''),
+    zalo_bot_enabled: input.zalo_bot_enabled !== undefined ? Boolean(input.zalo_bot_enabled) : (current.zalo_bot_enabled ?? false),
+    zalo_bot_title: input.zalo_bot_title !== undefined ? String(input.zalo_bot_title).trim() : (current.zalo_bot_title || ''),
+    zalo_bot_url: input.zalo_bot_url !== undefined ? String(input.zalo_bot_url).trim() : (current.zalo_bot_url || ''),
   }
 
   await writeJson(SETTINGS_KEY, updated, 'Cấu hình hệ thống website & SEO')

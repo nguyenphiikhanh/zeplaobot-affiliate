@@ -18,6 +18,12 @@ const trackingCode = ref("");
 const loading = ref(false);
 const googleLoading = ref(false);
 const enableGoogleLogin = ref(false);
+const zaloGroupEnabled = ref(false);
+const zaloGroupTitle = ref("");
+const zaloGroupUrl = ref("");
+const zaloBotEnabled = ref(false);
+const zaloBotTitle = ref("");
+const zaloBotUrl = ref("");
 const trackingCommand = ref('#tracking-code');
 
 const GOOGLE_CLIENT_ID =
@@ -84,9 +90,26 @@ const handleGoogleLoginRedirect = () => {
 
 onMounted(async () => {
   try {
-    const siteConfigRes = await api.get<ApiResponse<{ enable_google_login?: boolean }>>("/api/site-config");
-    if (siteConfigRes.data.data?.enable_google_login !== undefined) {
-      enableGoogleLogin.value = siteConfigRes.data.data.enable_google_login;
+    const siteConfigRes = await api.get<ApiResponse<{
+      enable_google_login?: boolean;
+      zalo_group_enabled?: boolean;
+      zalo_group_title?: string;
+      zalo_group_url?: string;
+      zalo_bot_enabled?: boolean;
+      zalo_bot_title?: string;
+      zalo_bot_url?: string;
+    }>>("/api/site-config");
+    const siteData = siteConfigRes.data.data;
+    if (siteData) {
+      if (siteData.enable_google_login !== undefined) {
+        enableGoogleLogin.value = siteData.enable_google_login;
+      }
+      zaloGroupEnabled.value = Boolean(siteData.zalo_group_enabled);
+      zaloGroupTitle.value = siteData.zalo_group_title || "Nhóm Zalo hỗ trợ";
+      zaloGroupUrl.value = siteData.zalo_group_url || "";
+      zaloBotEnabled.value = Boolean(siteData.zalo_bot_enabled);
+      zaloBotTitle.value = siteData.zalo_bot_title || "Chat riêng với Bot";
+      zaloBotUrl.value = siteData.zalo_bot_url || "";
     }
   } catch { /* Default to disabled */ }
 
@@ -268,6 +291,71 @@ const copyCommand = () => {
               <CopyOutlined class="text-xs" />
               <span>Sao chép</span>
             </span>
+          </div>
+        </div>
+
+        <!-- Support Channels (Zalo Group & Personal Bot) -->
+        <div
+          v-if="(zaloGroupEnabled && zaloGroupUrl) || (zaloBotEnabled && zaloBotUrl)"
+          class="space-y-2 pt-1 text-left"
+        >
+          <div class="flex items-center justify-between px-0.5">
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              Kênh hỗ trợ & Liên hệ
+            </span>
+          </div>
+
+          <div
+            class="grid gap-2.5"
+            :class="(zaloGroupEnabled && zaloGroupUrl) && (zaloBotEnabled && zaloBotUrl) ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'"
+          >
+            <!-- Nhóm Zalo -->
+            <a
+              v-if="zaloGroupEnabled && zaloGroupUrl"
+              :href="zaloGroupUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group flex items-center gap-2.5 p-3 rounded-2xl border border-blue-200/80 bg-blue-50/70 hover:bg-blue-100/70 hover:border-blue-300 transition-all text-slate-800 hover:text-blue-700 no-underline shadow-2xs cursor-pointer"
+            >
+              <div class="w-8 h-8 rounded-xl bg-[#0068ff] text-white flex items-center justify-center font-black text-[11px] shrink-0 shadow-xs">
+                Zalo
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-xs font-bold truncate group-hover:text-blue-700">
+                  {{ zaloGroupTitle || 'Nhóm Zalo hỗ trợ' }}
+                </div>
+                <div class="text-[10px] font-medium text-slate-500 truncate">
+                  Tham gia nhóm Zalo
+                </div>
+              </div>
+              <svg class="w-4 h-4 text-slate-400 group-hover:text-blue-600 shrink-0 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+
+            <!-- Bot cá nhân -->
+            <a
+              v-if="zaloBotEnabled && zaloBotUrl"
+              :href="zaloBotUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group flex items-center gap-2.5 p-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/70 hover:bg-emerald-100/70 hover:border-emerald-300 transition-all text-slate-800 hover:text-emerald-700 no-underline shadow-2xs cursor-pointer"
+            >
+              <div class="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+                💬
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-xs font-bold truncate group-hover:text-emerald-700">
+                  {{ zaloBotTitle || 'Chat riêng với Bot' }}
+                </div>
+                <div class="text-[10px] font-medium text-slate-500 truncate">
+                  Nhắn tin cho Bot
+                </div>
+              </div>
+              <svg class="w-4 h-4 text-slate-400 group-hover:text-emerald-600 shrink-0 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
           </div>
         </div>
       </div>

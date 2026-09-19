@@ -107,6 +107,7 @@ const requireAdmin = async (c: any, next: () => Promise<void>) => {
 // Public GET for site title & SEO meta
 siteConfigRoutes.get('/site-config', async (c) => {
   try {
+    c.header('Cache-Control', 'no-cache, no-store, must-revalidate')
     return c.json(sendResponse(await getSiteSettings(), 'Đã tải cấu hình trang web'))
   } catch (error) {
     console.error('[Site Config] Load failed:', error)
