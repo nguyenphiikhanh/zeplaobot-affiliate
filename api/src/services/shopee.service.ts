@@ -66,10 +66,11 @@ export class ShopeeService {
    */
   public async getProductInfo(productLink: string): Promise<ProductInfo | null> {
     const fetchApi = config.shopee.fetchProductApi;
+    const apiKey = config.shopee.fetchProductApiKey;
     try {
       const response = await fetch(`${fetchApi}?url=${encodeURIComponent(productLink)}`, {
         method: 'GET',
-        headers: { Accept: 'application/json' },
+        headers: { Accept: 'application/json', 'X-API-Key': apiKey},
       });
 
       if (!response.ok) {
