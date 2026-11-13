@@ -38,6 +38,14 @@ tiktokPostbackRoutes.post('/postback/sync/tiktok', async c => {
   const orderId = String(body.data?.order_id ?? '').trim()
   if (!orderId) return c.json(sendError('order_id is required'), 422)
 
+  // Riohub uses this synthetic order ID to verify the postback URL and
+  // signature. It is not an actual order and therefore must not be fetched
+  // from the /orders API.
+  if (orderId.toUpperCase() === 'TEST_ORDER') {
+    console.info('[TikTok Postback] Verification request accepted.')
+    return c.json(sendResponse({ orderId, verified: true }, 'TikTok postback verified'))
+  }
+
   try {
     const result = await syncTikTokOrderFromPostback(orderId)
     console.info(`[TikTok Postback] Synced order ${result.orderId} (${result.status}).`)
