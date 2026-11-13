@@ -3,6 +3,8 @@ import { config, type TargetThreadType } from './config.js'
 import { shopeeService } from './services/shopee.service.js'
 import { getZaloBotSettings, renderZaloTemplate } from './services/zalo-config.service.js'
 import { getShopeeSettings } from './services/shopee-config.service.js'
+import { tiktokService } from './services/tiktok.service.js'
+import { getTikTokSettings } from './services/tiktok-config.service.js'
 import { registerZaloNotificationApi, unregisterZaloNotificationApi } from './services/zalo-notification.service.js'
 import { ensureZaloUser, getZaloUser, regenerateTrackingCode } from './services/user.service.js'
 import { formatWalletBalance, getOrdersUrl, getWalletsUrl, getZaloCommandUser, getZaloUserOrders, withdrawAllZaloBalance } from './services/zalo-command.service.js'
@@ -340,8 +342,8 @@ async function handleIncomingMessage(
         return
     }
 
-    const shopeeUrl = extractShopeeUrl(text)
-    if (!shopeeUrl) return
+    const affiliateUrl = extractAffiliateUrl(text)
+    if (!affiliateUrl) return
 
     try {
         await loggedInApi.addReaction(Reactions.HEART, {
@@ -354,36 +356,40 @@ async function handleIncomingMessage(
         })
     } catch (error) {
         // Reaction failure must not prevent the affiliate-link response.
-        console.error('[ZALO] Failed to react to Shopee link message:', error)
+        console.error('[ZALO] Failed to react to affiliate link message:', error)
     }
 
     let result
     try {
-        result = await shopeeService.generateShopeeLink(shopeeUrl, message.data.uidFrom)
+        result = affiliateUrl.type === 2
+            ? await tiktokService.generateTikTokLink(affiliateUrl.url, message.data.uidFrom)
+            : await shopeeService.generateShopeeLink(affiliateUrl.url, message.data.uidFrom)
     } catch (error) {
-        console.error(`[ZALO] Failed converting Shopee link from ${message.data.uidFrom}:`, error)
+        console.error(`[ZALO] Failed converting affiliate link from ${message.data.uidFrom}:`, error)
         const errorResponse = renderZaloTemplate(botConfig.link_convert_error_template, {
-            original_link: shopeeUrl,
+            original_link: affiliateUrl.url,
         })
         await sendTaggedGroupMessage(loggedInApi, message, errorResponse)
         return
     }
-    if (!result.productInfo) {
+    if (affiliateUrl.type === 1 && !result.productInfo) {
         const errorResponse = renderZaloTemplate(botConfig.link_convert_error_template, {
-            original_link: shopeeUrl,
+            original_link: affiliateUrl.url,
         })
         await sendTaggedGroupMessage(loggedInApi, message, errorResponse)
         return
     }
-    const shopeeSettings = await getShopeeSettings()
+    const platformSettings = affiliateUrl.type === 1
+        ? await getShopeeSettings()
+        : await getTikTokSettings()
     const rawCommission = result.productInfo?.commission
     let commission = 'Chưa xác định'
     let userCommissionStr = 'Chưa xác định'
     if (typeof rawCommission === 'number' && Number.isFinite(rawCommission)) {
         commission = `${rawCommission.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}đ`
-        const serviceFeeRate = Number(shopeeSettings.service_fee_rate) || 0
-        const taxRate = Number(shopeeSettings.tax_rate) || 0
-        const userSharePercentage = Number(shopeeSettings.user_share_percentage) || 0
+        const serviceFeeRate = Number(platformSettings.service_fee_rate) || 0
+        const taxRate = Number(platformSettings.tax_rate) || 0
+        const userSharePercentage = Number(platformSettings.user_share_percentage) || 0
         const netCommission = rawCommission - (rawCommission * (serviceFeeRate + taxRate)) / 100
         const userCommission = Math.round((netCommission * userSharePercentage) / 100)
         userCommissionStr = `${userCommission.toLocaleString('vi-VN')}đ`
@@ -400,7 +406,7 @@ async function handleIncomingMessage(
         .replace(/\{user_commission\}đ/g, '{user_commission}')
     const response = renderZaloTemplate(template, {
         affiliate_link: result.affiliateLink,
-        product_name: result.productInfo?.productName || 'Sản phẩm Shopee',
+        product_name: result.productInfo?.productName || (affiliateUrl.type === 2 ? 'Sản phẩm TikTok Shop' : 'Sản phẩm Shopee'),
         commission,
         commission_rate: commissionRate,
         user_commission: userCommissionStr,
@@ -449,11 +455,13 @@ function extractChatCommand(text: string): string | null {
     return match?.[1] ? normalizeChatCommand(match[1]) : null
 }
 
-const SHOPEE_URL_PATTERN = /https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|shp\.ee)\/[^\s"'<>]+/i
+const AFFILIATE_URL_PATTERN = /https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|shp\.ee|tiktok\.com)\/[^\s"'<>]+/i
 
-function extractShopeeUrl(text: string): string | null {
-    const match = text.match(SHOPEE_URL_PATTERN)
-    return match?.[0]?.replace(/[),.;!?]+$/, '') || null
+function extractAffiliateUrl(text: string): { url: string; type: 1 | 2 } | null {
+    const match = text.match(AFFILIATE_URL_PATTERN)
+    const url = match?.[0]?.replace(/[),.;!?]+$/, '') || ''
+    if (!url) return null
+    return { url, type: /(?:^|\.)tiktok\.com\//i.test(url.replace(/^https?:\/\//i, '')) ? 2 : 1 }
 }
 
 async function getZaloSenderProfile(

@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { db, poolConnection } from './index.js'
 import { systemConfigs } from './schema.js'
 import { defaultShopeeSettings } from '../services/shopee-config.service.js'
+import { defaultTikTokSettings } from '../services/tiktok-config.service.js'
 import { defaultZaloBotSettings } from '../services/zalo-config.service.js'
 import { defaultSiteSettings } from '../services/site-config.service.js'
 import { defaultWithdrawalSettings } from '../services/withdrawal-config.service.js'
@@ -21,6 +22,12 @@ async function seedDefaultConfigs() {
       },
       isJson: true,
       description: 'Cấu hình vận hành Shopee',
+    },
+    {
+      key: 'tiktok_settings',
+      defaultValue: defaultTikTokSettings,
+      isJson: true,
+      description: 'Cấu hình vận hành TikTok Shop',
     },
     {
       key: 'zalo_bot_settings',

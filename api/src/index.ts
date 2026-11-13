@@ -6,6 +6,8 @@ import { authRoutes } from './routes/auth.routes.js'
 import { orderRoutes } from './routes/order.routes.js'
 import { redirectRoutes } from './routes/redirect.routes.js'
 import { shopeeConfigRoutes } from './routes/shopee-config.routes.js'
+import { tiktokConfigRoutes } from './routes/tiktok-config.routes.js'
+import { tiktokPostbackRoutes } from './routes/tiktok-postback.routes.js'
 import { zaloConfigRoutes } from './routes/zalo-config.routes.js'
 import { linkHistoryRoutes } from './routes/link-history.routes.js'
 import { transactionRoutes } from './routes/transaction.routes.js'
@@ -49,6 +51,8 @@ app.get('/api/zalo/status', (c) => {
 app.route('/api', authRoutes)
 app.route('/api', orderRoutes)
 app.route('/api', shopeeConfigRoutes)
+app.route('/api', tiktokConfigRoutes)
+app.route('/api', tiktokPostbackRoutes)
 app.route('/api', zaloConfigRoutes)
 app.route('/api', linkHistoryRoutes)
 app.route('/api', transactionRoutes)

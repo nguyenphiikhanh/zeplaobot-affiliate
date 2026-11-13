@@ -368,6 +368,14 @@ const getStatusLabel = (status?: string | null) => {
 const formatMoney = (value?: number | null) =>
   `${Math.round(Number(value) || 0).toLocaleString("vi-VN")}đ`;
 
+const platformName = (type?: number | null) =>
+  Number(type) === 2 ? "TIKTOK" : "SHOPEE";
+
+const platformBadgeClass = (type?: number | null) =>
+  Number(type) === 2
+    ? "bg-black text-white border-black"
+    : "bg-[#ee4d2d] text-white border-[#ee4d2d]";
+
 const formatDateTime = (value?: string | null) => {
   if (!value) return "—";
   const str = String(value).trim();
@@ -798,15 +806,18 @@ const confirmUpload = async () => {
           @click="selectedOrder = record"
           class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 space-y-3 cursor-pointer active:scale-[0.99] transition-all"
         >
-          <!-- Top Card Bar: Shopee Tag + Order ID (Left) & Status Tag (Right) -->
+          <!-- Top Card Bar: Platform + Order ID (Left) & Status Tag (Right) -->
           <div
             class="flex items-center justify-between pb-2 border-b border-slate-100/80"
           >
             <div class="flex items-center gap-1.5 min-w-0">
               <span
-                class="px-1.5 py-0.5 rounded-md bg-[#ee4d2d] text-white font-black text-[10px] shrink-0"
+                :class="[
+                  'px-1.5 py-0.5 rounded-md border font-black text-[10px] shrink-0',
+                  platformBadgeClass(record.type),
+                ]"
               >
-                SHOPEE
+                {{ platformName(record.type) }}
               </span>
               <span class="text-xs font-mono font-bold text-slate-700 truncate">
                 #{{ record.order_id }}
@@ -826,7 +837,13 @@ const confirmUpload = async () => {
               class="w-14 h-14 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-0.5"
             >
               <img
-                v-if="record.img_code || record.imgCode"
+                v-if="Number(record.type) === 2"
+                src="/logo/TikTok.svg"
+                alt="TikTok"
+                class="w-full h-full object-contain p-1"
+              />
+              <img
+                v-else-if="record.img_code || record.imgCode"
                 :src="`https://down-tx-vn.img.susercontent.com/${
                   record.img_code || record.imgCode
                 }.webp`"
@@ -923,8 +940,11 @@ const confirmUpload = async () => {
             <template v-if="column.key === 'order_id'"
               ><div class="flex items-center gap-2">
                 <span
-                  class="px-2 py-0.5 rounded-md bg-[#ee4d2d] text-white font-extrabold text-[10px]"
-                  >SHOPEE</span
+                  :class="[
+                    'px-2 py-0.5 rounded-md border text-white font-extrabold text-[10px] shrink-0',
+                    platformBadgeClass(record.type),
+                  ]"
+                  >{{ platformName(record.type) }}</span
                 ><span class="font-bold text-slate-700 text-xs"
                   >#{{ record.order_id }}</span
                 >
@@ -949,7 +969,13 @@ const confirmUpload = async () => {
                   class="w-9 h-9 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-0.5"
                 >
                   <img
-                    v-if="record.img_code || record.imgCode"
+                    v-if="Number(record.type) === 2"
+                    src="/logo/TikTok.svg"
+                    alt="TikTok"
+                    class="w-full h-full object-contain p-1"
+                  />
+                  <img
+                    v-else-if="record.img_code || record.imgCode"
                     :src="`https://down-tx-vn.img.susercontent.com/${
                       record.img_code || record.imgCode
                     }.webp`"
@@ -1147,9 +1173,9 @@ const confirmUpload = async () => {
         <div
           class="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-2xs space-y-2"
         >
-          <div class="flex items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
             <span class="text-[10px] font-bold uppercase text-slate-400"
-              >Mã đơn hàng Shopee</span
+              >Mã đơn hàng</span
             >
             <span
               class="text-xs text-slate-400 font-medium"
@@ -1160,19 +1186,29 @@ const confirmUpload = async () => {
           </div>
 
           <div class="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              @click="copyText(selectedOrder.order_id, 'mã đơn')"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-900 font-mono font-bold text-xs transition-colors cursor-pointer border-0"
-              title="Bấm để sao chép mã đơn"
-            >
-              <span>#{{ selectedOrder.order_id }}</span>
-              <CopyOutlined class="text-xs text-slate-400" />
-            </button>
+            <div class="flex min-w-0 items-center gap-2">
+              <span
+                :class="[
+                  'rounded-md border px-2 py-1 text-[10px] font-black shrink-0',
+                  platformBadgeClass(selectedOrder.type),
+                ]"
+              >
+                {{ platformName(selectedOrder.type) }}
+              </span>
+              <button
+                type="button"
+                @click="copyText(selectedOrder.order_id, 'mã đơn')"
+                class="inline-flex min-w-0 items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-900 font-mono font-bold text-xs transition-colors cursor-pointer border-0"
+                title="Bấm để sao chép mã đơn"
+              >
+                <span class="truncate">#{{ selectedOrder.order_id }}</span>
+                <CopyOutlined class="text-xs text-slate-400 shrink-0" />
+              </button>
+            </div>
 
             <span
               v-if="selectedOrder.sub_id"
-              class="text-[11px] font-mono text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg"
+              class="ml-auto text-[11px] font-mono text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg"
             >
               SubID: {{ selectedOrder.sub_id }}
             </span>
@@ -1219,7 +1255,13 @@ const confirmUpload = async () => {
               class="w-14 h-14 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-1"
             >
               <img
-                v-if="selectedOrder.img_code || selectedOrder.imgCode"
+                v-if="Number(selectedOrder.type) === 2"
+                src="/logo/TikTok.svg"
+                alt="TikTok"
+                class="w-full h-full object-contain p-1"
+              />
+              <img
+                v-else-if="selectedOrder.img_code || selectedOrder.imgCode"
                 :src="`https://down-tx-vn.img.susercontent.com/${
                   selectedOrder.img_code || selectedOrder.imgCode
                 }.webp`"

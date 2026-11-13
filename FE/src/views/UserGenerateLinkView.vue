@@ -30,7 +30,7 @@ import LinkConverterCard from '../components/LinkConverterCard.vue'
         </h2>
       </div>
       <p class="text-sm sm:text-base text-slate-600 font-bold leading-relaxed pt-0.5">
-        Dán link sản phẩm Shopee bất kỳ để tạo link hoàn tiền tự động có gắn mã tracking của bạn.
+        Dán link sản phẩm Shopee hoặc TikTok để tạo link hoàn tiền tự động có gắn mã tracking của bạn.
       </p>
     </div>
 
@@ -104,7 +104,7 @@ import LinkConverterCard from '../components/LinkConverterCard.vue'
               <span>Sao chép link sản phẩm</span>
             </div>
             <p class="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed m-0">
-              Mở Shopee, tìm sản phẩm bạn muốn mua. Nhấn nút chia sẻ hoặc sao chép đường dẫn của sản phẩm đó.
+              Mở Shopee hoặc TikTok Shop, tìm sản phẩm bạn muốn mua. Nhấn nút chia sẻ hoặc sao chép đường dẫn của sản phẩm đó.
             </p>
           </div>
         </div>

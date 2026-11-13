@@ -76,11 +76,15 @@ export async function updateWithdrawalStatus(id: number, status: 'success' | 're
     const amount = Math.abs(item.amount)
     const [wallet] = await tx.select().from(wallets).where(eq(wallets.id, item.walletId)).limit(1)
     if (!wallet) throw new Error('WALLET_NOT_FOUND')
+    const [user] = await tx.select({ id: users.id, name: users.name })
+      .from(users).where(eq(users.id, wallet.userId)).limit(1)
+    if (!user) throw new Error('USER_NOT_FOUND')
     if (status === 'rejected' && !rejectReason?.trim()) throw new Error('REJECT_REASON_REQUIRED')
     await tx.update(wallets).set(status === 'success'
       ? { pendingBalance: Math.max(0, wallet.pendingBalance - amount), totalPaid: wallet.totalPaid + amount }
       : { pendingBalance: Math.max(0, wallet.pendingBalance - amount), availableBalance: wallet.availableBalance + amount })
       .where(eq(wallets.id, wallet.id))
     await tx.update(walletTransactions).set({ status, rejectReason: status === 'rejected' ? rejectReason!.trim() : null, updatedAt: new Date() }).where(eq(walletTransactions.id, id))
+    return { userId: user.id, userName: user.name || 'Người dùng', amount }
   })
 }

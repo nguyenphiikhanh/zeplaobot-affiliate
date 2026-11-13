@@ -4,6 +4,7 @@ import { getAdminUsers, getTransactionHistory, getUserTransactionOverview, getWi
 import { sendError, sendResponse } from '../utils/response.js'
 import { getAdminUserList } from '../services/user.service.js'
 import { getWithdrawalSettings, saveWithdrawalSettings } from '../services/withdrawal-config.service.js'
+import { notifyWithdrawalPaid } from '../services/zalo-notification.service.js'
 
 export const transactionRoutes = new Hono()
 transactionRoutes.use('/admin/*', async (c, next) => {
@@ -33,11 +34,14 @@ transactionRoutes.put('/admin/withdrawals/:id/status', async c => {
   try {
     const body = await c.req.json<{ status?: string; rejectReason?: string }>()
     if (body.status !== 'success' && body.status !== 'rejected') return c.json(sendError('Trạng thái không hợp lệ'), 400)
-    await updateWithdrawalStatus(Number(c.req.param('id')), body.status, body.rejectReason)
+    const result = await updateWithdrawalStatus(Number(c.req.param('id')), body.status, body.rejectReason)
+    if (body.status === 'success') {
+      await notifyWithdrawalPaid(result)
+    }
     return c.json(sendResponse(null, 'Cập nhật trạng thái thành công'))
   } catch (error) {
     const code = error instanceof Error ? error.message : ''
-    const messages: Record<string, string> = { NOT_FOUND: 'Không tìm thấy giao dịch', ALREADY_PROCESSED: 'Yêu cầu này đã được xử lý', WALLET_NOT_FOUND: 'Không tìm thấy ví', REJECT_REASON_REQUIRED: 'Vui lòng nhập lý do từ chối' }
+    const messages: Record<string, string> = { NOT_FOUND: 'Không tìm thấy giao dịch', ALREADY_PROCESSED: 'Yêu cầu này đã được xử lý', WALLET_NOT_FOUND: 'Không tìm thấy ví', USER_NOT_FOUND: 'Không tìm thấy người dùng', REJECT_REASON_REQUIRED: 'Vui lòng nhập lý do từ chối' }
     return c.json(sendError(messages[code] || 'Không thể cập nhật trạng thái'), code === 'NOT_FOUND' ? 404 : 422)
   }
 })

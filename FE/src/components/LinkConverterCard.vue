@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { message } from "ant-design-vue";
 import {
   CheckOutlined,
@@ -7,6 +7,7 @@ import {
   ShoppingCartOutlined,
   WarningOutlined,
   CloseCircleOutlined,
+  VideoCameraOutlined,
 } from "@ant-design/icons-vue";
 import { api, type ApiResponse } from "../services/api";
 
@@ -18,6 +19,8 @@ type ProductInfo = {
   user_commission?: number;
   userCommission?: number;
   userSharePercentage?: number;
+  serviceFeeRate?: number;
+  taxRate?: number;
   totalRatePercent?: number | string;
 };
 type ConvertResult = {
@@ -25,6 +28,7 @@ type ConvertResult = {
   affiliateLink: string;
   productInfo: ProductInfo | null;
   subId: string;
+  type: 1 | 2;
 };
 
 const inputLink = ref("");
@@ -33,8 +37,12 @@ const isConverting = ref(false);
 const copied = ref(false);
 const result = ref<ConvertResult | null>(null);
 const inputRef = ref<HTMLInputElement | null>(null);
+const selectedPlatform = ref<1 | 2>(1);
+const platforms = reactive({ shopee: true, tiktok: false });
 const SHOPEE_LINK_REGEX =
   /(?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)?(shopee\.vn|shp\.ee)\/[^\s]+/i;
+const TIKTOK_LINK_REGEX =
+  /(?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)?tiktok\.com\/[^\s]+/i;
 
 function clearInput() {
   inputLink.value = "";
@@ -43,6 +51,27 @@ function clearInput() {
 }
 
 const product = computed(() => result.value?.productInfo);
+const isTikTokResult = computed(() => result.value?.type === 2);
+const platformName = computed(() => isTikTokResult.value ? "TikTok" : "Shopee");
+
+function selectPlatform(platform: 1 | 2) {
+  selectedPlatform.value = platform;
+  inputLink.value = "";
+  errorMessage.value = "";
+  result.value = null;
+  inputRef.value?.focus();
+}
+
+function detectPlatform(link: string) {
+  if (platforms.tiktok && TIKTOK_LINK_REGEX.test(link)) selectedPlatform.value = 2;
+  else if (platforms.shopee && SHOPEE_LINK_REGEX.test(link)) selectedPlatform.value = 1;
+}
+
+function handleInput() {
+  errorMessage.value = "";
+  result.value = null;
+  detectPlatform(inputLink.value);
+}
 
 const grossCommissionText = computed(() => {
   const value = Number(product.value?.commission);
@@ -53,8 +82,12 @@ const grossCommissionText = computed(() => {
 
 const afterTaxText = computed(() => {
   const value = Number(product.value?.commission);
+  const serviceFeeRate = Number(product.value?.serviceFeeRate ?? 1);
+  const taxRate = Number(product.value?.taxRate ?? 10);
   return Number.isFinite(value) && value > 0
-    ? `${new Intl.NumberFormat("vi-VN").format(Math.round(value * 0.89))}đ`
+    ? `${new Intl.NumberFormat("vi-VN").format(
+        Math.round(value * (1 - (serviceFeeRate + taxRate) / 100))
+      )}đ`
     : "Chưa xác định";
 });
 
@@ -73,6 +106,7 @@ const userNetText = computed(() => {
   if (Number.isFinite(userCommVal) && userCommVal > 0) {
     return `${new Intl.NumberFormat("vi-VN").format(Math.round(userCommVal))}đ`;
   }
+  if (isTikTokResult.value) return "Chưa xác định";
   const commVal = Number(product.value?.commission);
   if (Number.isFinite(commVal) && commVal > 0) {
     const calculated = Math.round(commVal * 0.89 * 0.8);
@@ -84,6 +118,7 @@ const userNetText = computed(() => {
 async function handlePaste() {
   try {
     inputLink.value = (await navigator.clipboard.readText()).trim();
+    detectPlatform(inputLink.value);
     errorMessage.value = "";
     inputRef.value?.focus();
   } catch {
@@ -92,9 +127,12 @@ async function handlePaste() {
 }
 
 function validateLink(link: string) {
-  if (!link) return "Vui lòng dán link sản phẩm Shopee!";
-  if (!SHOPEE_LINK_REGEX.test(link))
-    return "Link không hợp lệ. Vui lòng nhập link sản phẩm Shopee.";
+  const name = selectedPlatform.value === 2 ? "TikTok" : "Shopee";
+  if (!link) return `Vui lòng dán link sản phẩm ${name}!`;
+  const valid = selectedPlatform.value === 2
+    ? TIKTOK_LINK_REGEX.test(link)
+    : SHOPEE_LINK_REGEX.test(link);
+  if (!valid) return `Link không hợp lệ. Vui lòng nhập link sản phẩm ${name}.`;
   return "";
 }
 
@@ -107,7 +145,7 @@ async function handleConvert() {
   try {
     const response = await api.post<ApiResponse<ConvertResult>>(
       "/api/user/convert-link",
-      { link }
+      { link, type: selectedPlatform.value }
     );
     if (!response.data.data) throw new Error(response.data.message);
     result.value = response.data.data;
@@ -135,6 +173,19 @@ function openAffiliateLink() {
   if (result.value?.affiliateLink)
     window.open(result.value.affiliateLink, "_blank", "noopener,noreferrer");
 }
+
+onMounted(async () => {
+  try {
+    const response = await api.get<ApiResponse<{ shopee: boolean; tiktok: boolean }>>(
+      "/api/user/platform-status"
+    );
+    if (response.data.data) Object.assign(platforms, response.data.data);
+    if (!platforms.shopee && platforms.tiktok) selectedPlatform.value = 2;
+    else if (platforms.shopee && !platforms.tiktok) selectedPlatform.value = 1;
+  } catch {
+    // Giữ Shopee là lựa chọn mặc định nếu chưa tải được cấu hình nền tảng.
+  }
+});
 </script>
 
 <template>
@@ -142,15 +193,52 @@ function openAffiliateLink() {
     <div
       class="w-full rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-7 shadow-xs"
     >
-      <div class="mb-6 flex items-center justify-center">
-        <img
-          src="/logo/shopee.png"
-          alt="Shopee"
-          class="h-8 w-auto object-contain"
-        />
+      <div
+        v-if="platforms.shopee || platforms.tiktok"
+        :class="[
+          'mb-5 grid gap-2 rounded-2xl bg-slate-100 p-1.5 sm:mx-auto sm:max-w-sm',
+          platforms.shopee && platforms.tiktok ? 'grid-cols-2' : 'grid-cols-1',
+        ]"
+      >
+        <button
+          v-if="platforms.shopee"
+          type="button"
+          :class="[
+            'flex h-10 items-center justify-center gap-2 rounded-xl text-xs font-black transition cursor-pointer',
+            selectedPlatform === 1
+              ? 'bg-white text-[#ee4d2d] shadow-sm'
+              : 'text-slate-500 hover:text-slate-800',
+          ]"
+          @click="selectPlatform(1)"
+        >
+          <img src="/logo/shopee.png" alt="Shopee" class="h-5 w-5 object-contain" />
+          Shopee
+        </button>
+        <button
+          v-if="platforms.tiktok"
+          type="button"
+          :class="[
+            'flex h-10 items-center justify-center gap-2 rounded-xl text-xs font-black transition cursor-pointer',
+            selectedPlatform === 2
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-800',
+          ]"
+          @click="selectPlatform(2)"
+        >
+          <img src="/logo/TikTok.svg" alt="TikTok" class="h-4 w-auto object-contain" />
+          TikTok
+        </button>
       </div>
 
       <div
+        v-if="!platforms.shopee && !platforms.tiktok"
+        class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-xs font-bold text-amber-700"
+      >
+        Tính năng tạo link hoàn tiền đang tạm tắt.
+      </div>
+
+      <div
+        v-else
         :class="[
           'rounded-2xl border bg-white p-2 transition shadow-xs',
           errorMessage
@@ -168,9 +256,9 @@ function openAffiliateLink() {
               ref="inputRef"
               v-model="inputLink"
               type="text"
-              placeholder="🔗 Dán link sản phẩm Shopee..."
+              :placeholder="`🔗 Dán link sản phẩm ${selectedPlatform === 2 ? 'TikTok' : 'Shopee'}...`"
               class="converter-link-input min-w-0 flex-1 border-0 bg-transparent py-2.5 pr-1 text-xs sm:text-base text-gray-800 placeholder:text-[12.5px] sm:placeholder:text-base focus:outline-none"
-              @input="errorMessage = ''"
+              @input="handleInput"
               @keydown.enter.prevent="handleConvert"
             />
             <button
@@ -270,8 +358,11 @@ function openAffiliateLink() {
             <div
               class="flex items-center gap-2 text-sm font-black text-slate-800"
             >
-              <ShoppingCartOutlined class="!text-[#ee4d2d]" /><span
-                >Shopee</span
+              <component
+                :is="isTikTokResult ? VideoCameraOutlined : ShoppingCartOutlined"
+                :class="isTikTokResult ? '!text-black' : '!text-[#ee4d2d]'"
+              /><span
+                >{{ platformName }}</span
               >
             </div>
             <span
@@ -288,7 +379,14 @@ function openAffiliateLink() {
                 :src="product.imageUrl"
                 :alt="product.productName"
                 class="h-full w-full object-cover"
-              /><img
+              />
+              <div
+                v-else-if="isTikTokResult"
+                class="flex h-10 w-12 items-center justify-center rounded-xl bg-black p-1.5"
+              >
+                <img src="/logo/TikTok.svg" alt="TikTok" class="w-full object-contain" />
+              </div>
+              <img
                 v-else
                 src="/logo/shopee.png"
                 alt="Shopee"
@@ -300,7 +398,7 @@ function openAffiliateLink() {
                 class="line-clamp-2 text-base sm:text-lg font-black leading-snug text-slate-950 tracking-tight"
                 style="font-weight: 900"
               >
-                {{ product?.productName || "Sản phẩm Shopee" }}
+                {{ product?.productName || `Sản phẩm ${isTikTokResult ? 'TikTok Shop' : 'Shopee'}` }}
               </div>
             </div>
           </div>
@@ -394,11 +492,14 @@ function openAffiliateLink() {
             </button>
             <button
               type="button"
-              class="buy-now-button flex h-10 sm:h-11 items-center justify-center gap-1 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-extrabold transition cursor-pointer whitespace-nowrap overflow-hidden"
+              :class="[
+                'buy-now-button flex h-10 sm:h-11 items-center justify-center gap-1 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-extrabold transition cursor-pointer whitespace-nowrap overflow-hidden',
+                { 'buy-now-button--tiktok': isTikTokResult },
+              ]"
               @click="openAffiliateLink"
             >
               <ShoppingCartOutlined class="text-xs shrink-0" />
-              <span class="whitespace-nowrap truncate">Mua với Shopee</span>
+              <span class="whitespace-nowrap truncate">Mua với {{ platformName }}</span>
             </button>
           </div>
         </div>
@@ -430,6 +531,12 @@ function openAffiliateLink() {
   color: #ffffff !important;
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(238, 77, 45, 0.35);
+}
+
+.buy-now-button--tiktok,
+.buy-now-button--tiktok:hover {
+  background: #000000;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
 }
 
 .buy-now-button :deep(.anticon),

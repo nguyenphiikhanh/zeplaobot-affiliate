@@ -12,6 +12,9 @@ import {
 import { sendError, sendResponse } from '../utils/response.js'
 import { shopeeService } from '../services/shopee.service.js'
 import { getWithdrawalSettings } from '../services/withdrawal-config.service.js'
+import { tiktokService } from '../services/tiktok.service.js'
+import { getTikTokSettings } from '../services/tiktok-config.service.js'
+import { getShopeeSettings } from '../services/shopee-config.service.js'
 
 export const userPortalRoutes = new Hono<{ Variables: { userId: string } }>()
 userPortalRoutes.use('/user/*', async (c, next) => {
@@ -34,6 +37,14 @@ userPortalRoutes.get('/user/dashboard-summary', async (c) => {
   }
 })
 
+userPortalRoutes.get('/user/platform-status', async (c) => {
+  const [shopee, tiktok] = await Promise.all([getShopeeSettings(), getTikTokSettings()])
+  return c.json(sendResponse({
+    shopee: shopee.platform_enabled,
+    tiktok: tiktok.platform_enabled,
+  }, 'Đã tải trạng thái nền tảng'))
+})
+
 userPortalRoutes.get('/user/orders', async (c) =>
   c.json(
     sendResponse(
@@ -51,19 +62,23 @@ userPortalRoutes.get('/user/orders', async (c) =>
 
 userPortalRoutes.post('/user/convert-link', async (c) => {
   try {
-    const { link } = await c.req.json<{ link?: string }>()
+    const { link, type } = await c.req.json<{ link?: string; type?: number }>()
     const originalLink = String(link || '').trim()
-    if (!originalLink) return c.json(sendError('Vui lòng nhập link Shopee'), 422)
+    if (!originalLink) return c.json(sendError('Vui lòng nhập link sản phẩm'), 422)
+    const platformType = Number(type) === 2 || /(?:^|\.)tiktok\.com(?:\/|$)/i.test(originalLink.replace(/^https?:\/\//i, '').split(/[?#]/)[0]) ? 2 : 1
+    const result = platformType === 2
+      ? await tiktokService.generateTikTokLink(originalLink, c.get('userId'))
+      : await shopeeService.generateShopeeLink(originalLink, c.get('userId'))
     return c.json(
       sendResponse(
-        await shopeeService.generateShopeeLink(originalLink, c.get('userId')),
+        result,
         'Chuyển đổi link thành công',
       ),
     )
   } catch (error) {
     return c.json(
       sendError(
-        error instanceof Error ? error.message : 'Không thể chuyển đổi link Shopee'),
+        error instanceof Error ? error.message : 'Không thể chuyển đổi link'),
       422,
     )
   }

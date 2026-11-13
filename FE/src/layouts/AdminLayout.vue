@@ -29,11 +29,8 @@ import {
   RobotOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  MenuOutlined,
-  CloseOutlined,
   ShoppingOutlined,
   LogoutOutlined,
-  GlobalOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons-vue";
 
@@ -46,7 +43,9 @@ const apiLoading = ref(false);
 const affiliateConfigRequired = ref(false);
 
 const botStatusLabel = computed(() => {
-  return botStatus.value?.connected ? "Bot đang hoạt động" : "Bot chưa hoạt động";
+  return botStatus.value?.connected
+    ? "Bot đang hoạt động"
+    : "Bot chưa hoạt động";
 });
 
 const botStatusClasses = computed(() => {
@@ -157,6 +156,11 @@ const menuItems = [
     icon: ShoppingOutlined,
   },
   {
+    key: "/admin/tiktok-config",
+    title: "Cấu hình TikTok",
+    icon: ShoppingOutlined,
+  },
+  {
     key: "/admin/settings",
     title: "Cấu hình Bot Zalo",
     icon: RobotOutlined,
@@ -189,6 +193,13 @@ const drawerMenuItems = [
     icon: ShoppingOutlined,
     bgColor: "bg-blue-100/80",
     textColor: "text-blue-600",
+  },
+  {
+    key: "/admin/tiktok-config",
+    label: "Cấu hình TikTok",
+    icon: ShoppingOutlined,
+    bgColor: "bg-slate-100/80",
+    textColor: "text-slate-800",
   },
   {
     key: "/admin/settings",
@@ -540,7 +551,9 @@ const navigate = (path: string) => {
             <span
               :class="[
                 'text-[11px] sm:text-xs font-bold leading-tight text-center tracking-tight line-clamp-2',
-                isActive(item.key) ? 'text-[#ee4d2d] font-black' : 'text-slate-700',
+                isActive(item.key)
+                  ? 'text-[#ee4d2d] font-black'
+                  : 'text-slate-700',
               ]"
             >
               {{ item.label }}
