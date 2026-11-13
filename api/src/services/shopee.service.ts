@@ -20,6 +20,7 @@ export interface ConvertShopeeLinkResult {
   productInfo: ProductInfo | null;
   subId: string;
   userId: string;
+  type: 1;
 }
 
 export interface ShopeeBatchCustomLinkItem {
@@ -239,6 +240,8 @@ export class ShopeeService {
         const netCommission = productData.commission - (productData.commission * (serviceFeeRate + taxRate)) / 100;
         productData.user_commission = Math.round((netCommission * userSharePercentage) / 100);
         productData.userSharePercentage = userSharePercentage;
+        productData.serviceFeeRate = serviceFeeRate;
+        productData.taxRate = taxRate;
       }
     } catch (err) {
       console.warn('[ShopeeService] Product info resolution skipped/failed:', err);
@@ -305,6 +308,7 @@ export class ShopeeService {
       productInfo: productData,
       subId,
       userId,
+      type: 1,
     };
   }
 

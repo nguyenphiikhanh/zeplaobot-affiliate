@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, lte, like, or, sql } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import { db } from '../db/index.js'
-import { bankAccounts, orders, users, wallets, walletTransactions } from '../db/schema.js'
+import { bankAccounts, linkGenerations, orders, users, wallets, walletTransactions } from '../db/schema.js'
 import { getWithdrawalSettings } from './withdrawal-config.service.js'
 
 export async function getUserOrders(
@@ -41,7 +41,23 @@ export async function getUserOrders(
   }
 
   const where = and(...conditions)
-  const records = await db.select().from(orders).where(where).orderBy(desc(orders.orderTime), desc(orders.id)).limit(limit).offset((page - 1) * limit)
+  const records = await db.select({
+    id: orders.id,
+    orderId: orders.orderId,
+    orderStatus: orders.orderStatus,
+    orderTime: orders.orderTime,
+    shopName: orders.shopName,
+    productName: orders.productName,
+    purchaseValue: orders.purchaseValue,
+    actualCommission: orders.actualCommission,
+    userCommission: orders.userCommission,
+    userSharePercentage: orders.userSharePercentage,
+    subId: orders.subId,
+    imgCode: orders.imgCode,
+    type: linkGenerations.type,
+  }).from(orders)
+    .leftJoin(linkGenerations, eq(orders.subId, linkGenerations.subId))
+    .where(where).orderBy(desc(orders.orderTime), desc(orders.id)).limit(limit).offset((page - 1) * limit)
   
   const [stats] = await db
     .select({

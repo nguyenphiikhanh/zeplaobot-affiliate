@@ -88,6 +88,7 @@ const columns = [
     key: "created_at",
     width: 150,
   },
+  { title: "Nền tảng", key: "platform", width: 120 },
   { title: "Tạo bởi", key: "user", width: 210 },
   { title: "Sub ID", dataIndex: "sub_id", key: "sub_id", width: 150 },
   {
@@ -224,6 +225,12 @@ const formatJson = (value: unknown) => {
 const truncate = (value: string, length = 36) =>
   value.length > length ? `${value.slice(0, length)}...` : value;
 
+const platformName = (type: number) => (Number(type) === 2 ? "TikTok" : "Shopee");
+const platformBadgeClass = (type: number) =>
+  Number(type) === 2
+    ? "bg-black text-white border-black"
+    : "bg-[#ee4d2d] text-white border-[#ee4d2d]";
+
 const copyText = async (value: string, label = "Nội dung") => {
   try {
     await navigator.clipboard.writeText(value);
@@ -284,7 +291,7 @@ const formatDateTime = (value?: string | null) => {
           </h2>
         </div>
         <p class="text-xs sm:text-sm text-slate-500">
-          Lưu vết và đối soát lịch sử tạo link Affiliate Shopee của người dùng.
+          Lưu vết và đối soát lịch sử tạo link Affiliate Shopee, TikTok của người dùng.
         </p>
       </div>
     </div>
@@ -421,15 +428,18 @@ const formatDateTime = (value?: string | null) => {
           @click="selectedItem = record"
           class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 space-y-3 cursor-pointer active:scale-[0.99] transition-all"
         >
-          <!-- Top Card Bar: Sub ID (Left) & Date Time (Right) -->
+          <!-- Top Card Bar: Platform + Sub ID (Left) & Date Time (Right) -->
           <div
             class="flex items-center justify-between pb-2 border-b border-slate-100/80"
           >
             <div class="flex items-center gap-1.5 min-w-0">
               <span
-                class="px-1.5 py-0.5 rounded-md bg-orange-50 text-[#ee4d2d] border border-orange-100 text-[10px] font-black shrink-0"
+                :class="[
+                  'px-2 py-0.5 rounded-md border text-[10px] font-black shrink-0',
+                  platformBadgeClass(record.type),
+                ]"
               >
-                SHOPEE LINK
+                {{ platformName(record.type) }}
               </span>
               <span class="text-xs font-mono font-bold text-slate-700 truncate">
                 SubID: {{ record.sub_id }}
@@ -510,7 +520,7 @@ const formatDateTime = (value?: string | null) => {
           :row-key="(record: LinkHistoryItem) => record.id"
           :pagination="false"
           :loading="loading"
-          :scroll="{ x: 1000 }"
+          :scroll="{ x: 1120 }"
           :custom-row="(record: LinkHistoryItem) => ({onClick:()=>selectedItem=record,class:'cursor-pointer'})"
         >
           <template #bodyCell="{ column, record }">
@@ -521,6 +531,15 @@ const formatDateTime = (value?: string | null) => {
               <div class="text-[10px] font-mono text-slate-400 mt-0.5">
                 {{ formatDateTime(record.created_at).time }}
               </div></template
+            >
+            <template v-else-if="column.key === 'platform'"
+              ><span
+                :class="[
+                  'inline-flex min-w-[68px] items-center justify-center rounded-md border px-2.5 py-1 text-[11px] font-black',
+                  platformBadgeClass(record.type),
+                ]"
+                >{{ platformName(record.type) }}</span
+              ></template
             >
             <template v-else-if="column.key === 'user'"
               ><div class="flex items-center gap-3">
@@ -616,8 +635,11 @@ const formatDateTime = (value?: string | null) => {
         ><div class="flex items-center justify-between gap-3">
           <div>
             <span
-              class="inline-flex px-2 py-0.5 rounded-md bg-orange-50 text-[#ee4d2d] border border-orange-100 text-[10px] font-black"
-              >SHOPEE LINK</span
+              :class="[
+                'inline-flex px-2.5 py-0.5 rounded-md border text-[10px] font-black',
+                platformBadgeClass(selectedItem?.type || 1),
+              ]"
+              >{{ platformName(selectedItem?.type || 1) }}</span
             >
             <h3 class="text-base font-bold mt-2">Chi tiết lịch sử tạo link</h3>
           </div>

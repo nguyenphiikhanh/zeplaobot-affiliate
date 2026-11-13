@@ -12,6 +12,7 @@ import ZaloBotStatusHeader from "../components/zalo-config/ZaloBotStatusHeader.v
 import ZaloGroupIdsCard from "../components/zalo-config/ZaloGroupIdsCard.vue";
 import ZaloLinkTemplatesCard from "../components/zalo-config/ZaloLinkTemplatesCard.vue";
 import ZaloWelcomeTemplateCard from "../components/zalo-config/ZaloWelcomeTemplateCard.vue";
+import ZaloWithdrawalNotificationCard from "../components/zalo-config/ZaloWithdrawalNotificationCard.vue";
 import ZaloGroupCommandsTab from "../components/zalo-config/ZaloGroupCommandsTab.vue";
 import ZaloPrivateCommandsTab from "../components/zalo-config/ZaloPrivateCommandsTab.vue";
 
@@ -82,6 +83,7 @@ const {
         <ZaloGroupIdsCard />
         <ZaloLinkTemplatesCard />
         <ZaloWelcomeTemplateCard />
+        <ZaloWithdrawalNotificationCard />
       </div>
 
       <!-- Tab 2: Command Settings -->

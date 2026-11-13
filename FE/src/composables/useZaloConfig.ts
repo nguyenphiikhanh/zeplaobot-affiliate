@@ -63,6 +63,12 @@ const welcomeMessageTemplate = ref(
   `👋 Chào mừng {user_name} đã tham gia nhóm {group_name}!\n\n🤖 Mình là Bot Hoàn Tiền. Hãy dán link Shopee vào nhóm để nhận ngay hoàn tiền tự động nhé! 💸`
 );
 const savingWelcomeTemplate = ref(false);
+const withdrawalNotification = reactive({
+  enabled: false,
+  target: 'private' as 'private' | 'group',
+  template: 'Đã thanh toán tiền cho {user_name}, số tiền {amount}',
+});
+const savingWithdrawalNotification = ref(false);
 const checkingBotStatus = ref(false);
 const startingQrLogin = ref(false);
 const loadingConfig = ref(true);
@@ -78,6 +84,7 @@ interface ZaloBotSettings {
   link_convert_error_template: string;
   welcome_enabled: boolean;
   welcome_template: string;
+  withdrawal_notification: typeof withdrawalNotification;
   group_commands: typeof groupCommands;
   private_commands: typeof privateCommands;
   private_command_note: typeof privateCommandNote;
@@ -145,6 +152,10 @@ const configPayload = (): ZaloBotSettings => ({
   link_convert_error_template: linkConvertErrorTemplate.value.trim(),
   welcome_enabled: enableWelcomeMessage.value,
   welcome_template: welcomeMessageTemplate.value.trim(),
+  withdrawal_notification: {
+    ...withdrawalNotification,
+    template: withdrawalNotification.template.trim(),
+  },
   group_commands: {
     wallet: { ...groupCommands.wallet, command: groupCommands.wallet.command.trim().toLowerCase() },
     withdraw: { ...groupCommands.withdraw, command: groupCommands.withdraw.command.trim().toLowerCase() },
@@ -164,6 +175,11 @@ const applyConfig = (config: ZaloBotSettings) => {
   linkConvertErrorTemplate.value = config.link_convert_error_template;
   enableWelcomeMessage.value = config.welcome_enabled;
   welcomeMessageTemplate.value = config.welcome_template;
+  const notification = config.withdrawal_notification;
+  withdrawalNotification.enabled = notification?.enabled ?? false;
+  withdrawalNotification.target = notification?.target === 'group' ? 'group' : 'private';
+  withdrawalNotification.template = notification?.template
+    || 'Đã thanh toán tiền cho {user_name}, số tiền {amount}';
   Object.assign(groupCommands.wallet, config.group_commands.wallet);
   Object.assign(groupCommands.withdraw, config.group_commands.withdraw);
   Object.assign(groupCommands.orders, config.group_commands.orders);
@@ -234,15 +250,16 @@ export function useZaloConfig() {
   };
 
   const varDescriptions: Record<string, string> = {
-    '{affiliate_link}': 'Link hoàn tiền Shopee đã được chuyển đổi thành link affiliate',
-    '{product_name}': 'Tên sản phẩm Shopee nhận được từ đường dẫn',
+    '{affiliate_link}': 'Link hoàn tiền Shopee/TikTok đã được chuyển đổi thành link affiliate',
+    '{product_name}': 'Tên sản phẩm nhận được từ đường dẫn Shopee/TikTok',
     '{commission}': 'Số tiền hoa hồng dự kiến nhận được (VD: 15.000đ)',
     '{commission_rate}': 'Tỷ lệ phần trăm hoa hồng sản phẩm (VD: 5.5%)',
     '{user_commission}': 'Hoa hồng ước tính thực nhận của người dùng sau khi trừ thuế & phí dịch vụ',
-    '{original_link}': 'Đường dẫn Shopee gốc người dùng gửi vào nhóm',
+    '{original_link}': 'Đường dẫn Shopee/TikTok gốc người dùng gửi vào nhóm',
     '{user_name}': 'Tên tài khoản Zalo của thành viên vừa tham gia nhóm',
     '{group_name}': 'Tên nhóm Zalo hiện tại',
     '{total_balance}': 'Số dư ví khả dụng hiện tại của người dùng',
+    '{amount}': 'Số tiền rút đã thanh toán, định dạng giống biến {total_balance}',
     '{minimum_withdrawal}': 'Số tiền rút tối thiểu đang được cấu hình',
     '{pending_balance}': 'Số tiền chờ xử lý rút',
     '{total_paid}': 'Tổng số tiền đã thanh toán',
@@ -304,6 +321,22 @@ export function useZaloConfig() {
     }
   };
 
+  const saveWithdrawalNotification = async () => {
+    if (withdrawalNotification.enabled && !withdrawalNotification.template.trim()) {
+      message.warning("Nội dung thông báo rút tiền không được để trống!");
+      return;
+    }
+    savingWithdrawalNotification.value = true;
+    try {
+      await persistConfig();
+      message.success("Cập nhật cấu hình thông báo rút tiền thành công!");
+    } catch (error) {
+      message.error(getErrorMessage(error, "Không thể lưu cấu hình thông báo rút tiền."));
+    } finally {
+      savingWithdrawalNotification.value = false;
+    }
+  };
+
   const saveGroupCommands = async () => {
     const commandValues = [groupCommands.wallet.command, groupCommands.withdraw.command, groupCommands.orders.command, groupCommands.order_list.command].map(value => value.trim().replace(/^#+/, '').toLowerCase());
     if (commandValues.some(value => !value)) return message.warning('Lệnh chat nhóm không được để trống!');
@@ -351,6 +384,8 @@ export function useZaloConfig() {
     enableWelcomeMessage,
     welcomeMessageTemplate,
     savingWelcomeTemplate,
+    withdrawalNotification,
+    savingWithdrawalNotification,
     groupCommands,
     savingGroupCommands,
     privateCommands,
@@ -364,6 +399,7 @@ export function useZaloConfig() {
     getVarDesc,
     saveLinkTemplate,
     saveWelcomeTemplate,
+    saveWithdrawalNotification,
     saveGroupCommands,
     savePrivateCommands,
     checkBotStatus,

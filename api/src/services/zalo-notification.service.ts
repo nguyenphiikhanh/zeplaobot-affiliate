@@ -1,9 +1,16 @@
 import { ThreadType } from 'zca-js'
 import { claimShopeeCookieErrorNotification, getShopeeSettings } from './shopee-config.service.js'
+import { getZaloBotSettings, renderZaloTemplate } from './zalo-config.service.js'
+import { formatWalletBalance } from './zalo-command.service.js'
+
+interface ZaloMentionMessage {
+  msg: string
+  mentions: Array<{ pos: number; uid: string; len: number }>
+}
 
 interface ZaloDirectMessageApi {
   findUser(phoneNumber: string): Promise<{ uid: string }>
-  sendMessage(message: string, threadId: string, type?: ThreadType): Promise<unknown>
+  sendMessage(message: string | ZaloMentionMessage, threadId: string, type?: ThreadType): Promise<unknown>
 }
 
 let zaloApi: ZaloDirectMessageApi | null = null
@@ -51,5 +58,57 @@ export const notifyShopeeCookieError = async (source: string) => {
     return false
   } finally {
     notificationInProgress = false
+  }
+}
+
+export const notifyWithdrawalPaid = async (input: { userId: string; userName: string; amount: number }) => {
+  try {
+    const settings = await getZaloBotSettings()
+    const notification = settings.withdrawal_notification
+    if (!notification.enabled) return false
+    if (input.userId.startsWith('gg_')) {
+      console.info(`[WITHDRAWAL] Skip Zalo notification for Google user ${input.userId}.`)
+      return false
+    }
+    if (!zaloApi) {
+      console.warn('[WITHDRAWAL] Notification skipped because Zalo Bot is not logged in.')
+      return false
+    }
+
+    const amount = formatWalletBalance(input.amount)
+    if (notification.target === 'private') {
+      const content = renderZaloTemplate(notification.template, {
+        user_name: input.userName,
+        amount,
+      })
+      await zaloApi.sendMessage(content, input.userId, ThreadType.User)
+      return true
+    }
+
+    if (!settings.group_ids.length) {
+      console.warn('[WITHDRAWAL] Group notification skipped because no Zalo group is configured.')
+      return false
+    }
+    const mentionText = `@${input.userName}`
+    let content = renderZaloTemplate(notification.template, {
+      user_name: mentionText,
+      amount,
+    })
+    let mentionPosition = content.indexOf(mentionText)
+    if (mentionPosition < 0) {
+      content = `${mentionText}\n${content}`
+      mentionPosition = 0
+    }
+    const payload: ZaloMentionMessage = {
+      msg: content,
+      mentions: [{ pos: mentionPosition, uid: input.userId, len: mentionText.length }],
+    }
+    await Promise.all(settings.group_ids.map(groupId =>
+      zaloApi!.sendMessage(payload, groupId, ThreadType.Group),
+    ))
+    return true
+  } catch (error) {
+    console.error('[WITHDRAWAL] Failed sending payment notification:', error)
+    return false
   }
 }

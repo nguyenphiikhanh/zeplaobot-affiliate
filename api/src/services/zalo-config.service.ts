@@ -10,6 +10,11 @@ export interface ZaloBotSettings {
   link_convert_error_template: string
   welcome_enabled: boolean
   welcome_template: string
+  withdrawal_notification: {
+    enabled: boolean
+    target: 'private' | 'group'
+    template: string
+  }
   group_commands: {
     wallet: { command: string; response: string }
     withdraw: { command: string; response: string; insufficient_response: string; no_bank_response: string }
@@ -29,6 +34,11 @@ export const defaultZaloBotSettings: ZaloBotSettings = {
   link_convert_error_template: '⚠️ Không thể lấy thông tin sản phẩm từ link này:\n{original_link}\n\nVui lòng kiểm tra lại link Shopee hoặc thử lại sau.',
   welcome_enabled: true,
   welcome_template: '👋 Chào mừng {user_name} đã tham gia nhóm {group_name}!\n\n🤖 Mình là Bot Hoàn Tiền. Hãy dán link Shopee vào nhóm để nhận ngay hoàn tiền tự động nhé! 💸',
+  withdrawal_notification: {
+    enabled: false,
+    target: 'private',
+    template: 'Đã thanh toán tiền cho {user_name}, số tiền {amount}',
+  },
   group_commands: {
     wallet: { command: 'vitien', response: '👤 TÀI KHOẢN #{uid}\n───────────────────\n💰 Số dư ví:      {total_balance}\n🔄 Đang xử lý:    {pending_balance}\n💸 Đã thanh toán:  {total_paid}\n───────────────────' },
     withdraw: { command: 'ruttien', response: '✅ Đã tạo yêu cầu rút toàn bộ {total_balance}. Vui lòng chờ quản trị viên xử lý.', insufficient_response: '⚠️ Số dư hiện tại của bạn là {total_balance}. Số tiền rút tối thiểu là {minimum_withdrawal}.', no_bank_response: '⚠️ Bạn chưa cấu hình tài khoản ngân hàng. Vui lòng truy cập {url} để cập nhật thông tin trước khi rút tiền.' },
@@ -74,6 +84,10 @@ export const getZaloBotSettings = async (): Promise<ZaloBotSettings> => {
         reset_tracking: { ...defaultZaloBotSettings.private_commands.reset_tracking, ...stored.private_commands?.reset_tracking },
       },
       private_command_note: { ...defaultZaloBotSettings.private_command_note, ...stored.private_command_note },
+      withdrawal_notification: {
+        ...defaultZaloBotSettings.withdrawal_notification,
+        ...stored.withdrawal_notification,
+      },
     }
   } catch { return defaultZaloBotSettings }
 }
@@ -89,6 +103,15 @@ export const saveZaloBotSettings = async (input: Partial<ZaloBotSettings>) => {
     link_convert_error_template: String(input.link_convert_error_template ?? current.link_convert_error_template).trim(),
     welcome_enabled: typeof input.welcome_enabled === 'boolean' ? input.welcome_enabled : current.welcome_enabled,
     welcome_template: String(input.welcome_template ?? current.welcome_template).trim(),
+    withdrawal_notification: {
+      enabled: typeof input.withdrawal_notification?.enabled === 'boolean'
+        ? input.withdrawal_notification.enabled
+        : current.withdrawal_notification.enabled,
+      target: input.withdrawal_notification?.target === 'group' || input.withdrawal_notification?.target === 'private'
+        ? input.withdrawal_notification.target
+        : current.withdrawal_notification.target,
+      template: String(input.withdrawal_notification?.template ?? current.withdrawal_notification.template).trim(),
+    },
     group_commands: {
       wallet: {
         command: normalizeCommand(input.group_commands?.wallet?.command ?? current.group_commands.wallet.command),
@@ -134,6 +157,7 @@ export const saveZaloBotSettings = async (input: Partial<ZaloBotSettings>) => {
   if (!settings.link_convert_template) throw new Error('Mẫu chuyển đổi link không được để trống')
   if (!settings.link_convert_error_template) throw new Error('Mẫu báo lỗi sản phẩm không được để trống')
   if (settings.welcome_enabled && !settings.welcome_template) throw new Error('Mẫu chào mừng không được để trống')
+  if (settings.withdrawal_notification.enabled && !settings.withdrawal_notification.template) throw new Error('Nội dung thông báo rút tiền không được để trống')
   const commands = Object.values(settings.group_commands).map(item => item.command)
   if (commands.some(command => !command)) throw new Error('Lệnh chat nhóm không được để trống')
   if (commands.some(command => !/^[a-z0-9_]+$/i.test(command))) throw new Error('Lệnh chỉ được chứa chữ không dấu, số và dấu gạch dưới')

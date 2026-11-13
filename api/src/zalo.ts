@@ -3,9 +3,12 @@ import { config, type TargetThreadType } from './config.js'
 import { shopeeService } from './services/shopee.service.js'
 import { getZaloBotSettings, renderZaloTemplate } from './services/zalo-config.service.js'
 import { getShopeeSettings } from './services/shopee-config.service.js'
+import { tiktokService } from './services/tiktok.service.js'
+import { getTikTokSettings } from './services/tiktok-config.service.js'
 import { registerZaloNotificationApi, unregisterZaloNotificationApi } from './services/zalo-notification.service.js'
 import { ensureZaloUser, getZaloUser, regenerateTrackingCode } from './services/user.service.js'
 import { formatWalletBalance, getOrdersUrl, getWalletsUrl, getZaloCommandUser, getZaloUserOrders, withdrawAllZaloBalance } from './services/zalo-command.service.js'
+import { loadZaloSession, saveZaloSession, type ZaloCredentials } from './services/zalo-session.service.js'
 
 type ZaloApi = Awaited<ReturnType<Zalo['loginQR']>>
 
@@ -73,7 +76,7 @@ export function getZaloStatus() {
     }
 }
 
-export async function initZalo(): Promise<void> {
+export async function initZalo(options: { restoreOnly?: boolean } = {}): Promise<void> {
     if (api || connecting) return
     connecting = true
     qrState = 'generating'
@@ -82,26 +85,62 @@ export async function initZalo(): Promise<void> {
     lastError = null
 
     try {
-        console.log('[ZALO] Generating QR login...')
-        const zalo = new Zalo();
-        const loggedInApi = await zalo.loginQR({}, (event) => {
-            if (event.type === LoginQRCallbackEventType.QRCodeGenerated) {
-                qrImage = `data:image/png;base64,${event.data.image}`
-                qrState = 'waiting_scan'
-            } else if (event.type === LoginQRCallbackEventType.QRCodeScanned) {
-                qrState = 'scanned'
-                scannedAccount = { displayName: event.data.display_name, avatar: event.data.avatar }
-            } else if (event.type === LoginQRCallbackEventType.QRCodeExpired) {
-                qrState = 'expired'
-                qrImage = null
-            } else if (event.type === LoginQRCallbackEventType.QRCodeDeclined) {
-                qrState = 'declined'
-                qrImage = null
+        const zalo = new Zalo()
+        let loggedInApi: ZaloApi | null = null
+        let credentials: ZaloCredentials | null = null
+        try {
+            credentials = await loadZaloSession()
+            if (credentials) {
+                console.log('[ZALO] Restoring saved session...')
+                loggedInApi = await zalo.login(credentials)
             }
-        })
-        api = loggedInApi
+        } catch {
+            // Network failures must not delete a potentially valid saved session.
+            console.warn('[ZALO] Could not restore session; saved credentials were retained.')
+            if (options.restoreOnly) {
+                throw new Error('Không thể khôi phục phiên Zalo. Kiểm tra kết nối và dữ liệu phiên; có thể đăng nhập lại bằng QR trong trang quản trị.')
+            }
+        }
+        if (!loggedInApi && options.restoreOnly) {
+            qrState = 'idle'
+            return
+        }
+        if (!loggedInApi) {
+            console.log('[ZALO] Generating QR login...')
+            loggedInApi = await zalo.loginQR({}, (event) => {
+                if (event.type === LoginQRCallbackEventType.GotLoginInfo) {
+                    credentials = event.data
+                } else if (event.type === LoginQRCallbackEventType.QRCodeGenerated) {
+                    qrImage = `data:image/png;base64,${event.data.image}`
+                    qrState = 'waiting_scan'
+                } else if (event.type === LoginQRCallbackEventType.QRCodeScanned) {
+                    qrState = 'scanned'
+                    scannedAccount = { displayName: event.data.display_name, avatar: event.data.avatar }
+                } else if (event.type === LoginQRCallbackEventType.QRCodeExpired) {
+                    qrState = 'expired'
+                    qrImage = null
+                } else if (event.type === LoginQRCallbackEventType.QRCodeDeclined) {
+                    qrState = 'declined'
+                    qrImage = null
+                }
+            })
+        }
+        // Use the cookie jar after login, including cookies refreshed by Zalo.
+        if (credentials) {
+            try {
+                const cookieJar = loggedInApi.getCookie().serializeSync()
+                if (!cookieJar?.cookies.length) throw new Error('Empty Zalo cookie jar')
+                await saveZaloSession({ ...credentials, cookie: cookieJar.cookies })
+            } catch {
+                // Keep the bot usable, but clearly report that restart persistence failed.
+                lastError = 'Bot đã đăng nhập nhưng không lưu được phiên. Kiểm tra database.'
+                console.warn('[ZALO] Could not persist session.')
+            }
+        }
+        const activeApi = loggedInApi
+        api = activeApi
         listenerConnected = false
-        registerZaloNotificationApi(loggedInApi)
+        registerZaloNotificationApi(activeApi)
         qrState = 'connected'
         qrImage = null
 
@@ -110,7 +149,7 @@ export async function initZalo(): Promise<void> {
         api.listener.on('message', async (message: Message) => {
             try {
                 await handleIncomingMessage(
-                    loggedInApi,
+                    activeApi,
                     message,
                 )
             } catch (error) {
@@ -120,7 +159,7 @@ export async function initZalo(): Promise<void> {
 
         api.listener.on('group_event', async (event: GroupEvent) => {
             try {
-                await handleGroupEvent(loggedInApi, event)
+                await handleGroupEvent(activeApi, event)
             } catch (error) {
                 console.error('[ZALO] Group event error:', error)
             }
@@ -129,7 +168,6 @@ export async function initZalo(): Promise<void> {
         api.listener.on('connected', () => {
             listenerConnected = true
             startedAt = new Date()
-            lastError = null
             console.log('[ZALO] Listener connected')
         })
         api.listener.on('disconnected', (code, reason) => {
@@ -150,14 +188,25 @@ export async function initZalo(): Promise<void> {
         api.listener.start({ retryOnClose: true })
         console.log('[ZALO] Listener starting')
     } catch (error) {
+        api = null
         listenerConnected = false
         unregisterZaloNotificationApi()
         const callbackState: string = qrState
         if (callbackState !== 'expired' && callbackState !== 'declined') qrState = 'error'
         lastError = error instanceof Error ? error.message : 'Đăng nhập Zalo thất bại'
-        console.error('[ZALO] Login failed:', error)
+        console.error('[ZALO] Login failed; check connection or sign in again.')
     } finally {
         connecting = false
+    }
+}
+
+// Startup never opens a QR flow. A failed restore can be retried without
+// discarding credentials; the admin can explicitly start QR login if needed.
+export async function restoreZaloOnStartup(attempt = 1): Promise<void> {
+    await initZalo({ restoreOnly: true })
+    if (!api && qrState === 'error' && attempt < 3) {
+        console.warn(`[ZALO] Session restore will retry (${attempt}/3).`)
+        setTimeout(() => { void restoreZaloOnStartup(attempt + 1) }, 15_000).unref()
     }
 }
 
@@ -293,8 +342,8 @@ async function handleIncomingMessage(
         return
     }
 
-    const shopeeUrl = extractShopeeUrl(text)
-    if (!shopeeUrl) return
+    const affiliateUrl = extractAffiliateUrl(text)
+    if (!affiliateUrl) return
 
     try {
         await loggedInApi.addReaction(Reactions.HEART, {
@@ -307,36 +356,40 @@ async function handleIncomingMessage(
         })
     } catch (error) {
         // Reaction failure must not prevent the affiliate-link response.
-        console.error('[ZALO] Failed to react to Shopee link message:', error)
+        console.error('[ZALO] Failed to react to affiliate link message:', error)
     }
 
     let result
     try {
-        result = await shopeeService.generateShopeeLink(shopeeUrl, message.data.uidFrom)
+        result = affiliateUrl.type === 2
+            ? await tiktokService.generateTikTokLink(affiliateUrl.url, message.data.uidFrom)
+            : await shopeeService.generateShopeeLink(affiliateUrl.url, message.data.uidFrom)
     } catch (error) {
-        console.error(`[ZALO] Failed converting Shopee link from ${message.data.uidFrom}:`, error)
+        console.error(`[ZALO] Failed converting affiliate link from ${message.data.uidFrom}:`, error)
         const errorResponse = renderZaloTemplate(botConfig.link_convert_error_template, {
-            original_link: shopeeUrl,
+            original_link: affiliateUrl.url,
         })
         await sendTaggedGroupMessage(loggedInApi, message, errorResponse)
         return
     }
-    if (!result.productInfo) {
+    if (affiliateUrl.type === 1 && !result.productInfo) {
         const errorResponse = renderZaloTemplate(botConfig.link_convert_error_template, {
-            original_link: shopeeUrl,
+            original_link: affiliateUrl.url,
         })
         await sendTaggedGroupMessage(loggedInApi, message, errorResponse)
         return
     }
-    const shopeeSettings = await getShopeeSettings()
+    const platformSettings = affiliateUrl.type === 1
+        ? await getShopeeSettings()
+        : await getTikTokSettings()
     const rawCommission = result.productInfo?.commission
     let commission = 'Chưa xác định'
     let userCommissionStr = 'Chưa xác định'
     if (typeof rawCommission === 'number' && Number.isFinite(rawCommission)) {
         commission = `${rawCommission.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}đ`
-        const serviceFeeRate = Number(shopeeSettings.service_fee_rate) || 0
-        const taxRate = Number(shopeeSettings.tax_rate) || 0
-        const userSharePercentage = Number(shopeeSettings.user_share_percentage) || 0
+        const serviceFeeRate = Number(platformSettings.service_fee_rate) || 0
+        const taxRate = Number(platformSettings.tax_rate) || 0
+        const userSharePercentage = Number(platformSettings.user_share_percentage) || 0
         const netCommission = rawCommission - (rawCommission * (serviceFeeRate + taxRate)) / 100
         const userCommission = Math.round((netCommission * userSharePercentage) / 100)
         userCommissionStr = `${userCommission.toLocaleString('vi-VN')}đ`
@@ -353,7 +406,7 @@ async function handleIncomingMessage(
         .replace(/\{user_commission\}đ/g, '{user_commission}')
     const response = renderZaloTemplate(template, {
         affiliate_link: result.affiliateLink,
-        product_name: result.productInfo?.productName || 'Sản phẩm Shopee',
+        product_name: result.productInfo?.productName || (affiliateUrl.type === 2 ? 'Sản phẩm TikTok Shop' : 'Sản phẩm Shopee'),
         commission,
         commission_rate: commissionRate,
         user_commission: userCommissionStr,
@@ -402,11 +455,13 @@ function extractChatCommand(text: string): string | null {
     return match?.[1] ? normalizeChatCommand(match[1]) : null
 }
 
-const SHOPEE_URL_PATTERN = /https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|shp\.ee)\/[^\s"'<>]+/i
+const AFFILIATE_URL_PATTERN = /https?:\/\/(?:[a-zA-Z0-9-]+\.)*(?:shopee\.vn|shp\.ee|tiktok\.com)\/[^\s"'<>]+/i
 
-function extractShopeeUrl(text: string): string | null {
-    const match = text.match(SHOPEE_URL_PATTERN)
-    return match?.[0]?.replace(/[),.;!?]+$/, '') || null
+function extractAffiliateUrl(text: string): { url: string; type: 1 | 2 } | null {
+    const match = text.match(AFFILIATE_URL_PATTERN)
+    const url = match?.[0]?.replace(/[),.;!?]+$/, '') || ''
+    if (!url) return null
+    return { url, type: /(?:^|\.)tiktok\.com\//i.test(url.replace(/^https?:\/\//i, '')) ? 2 : 1 }
 }
 
 async function getZaloSenderProfile(

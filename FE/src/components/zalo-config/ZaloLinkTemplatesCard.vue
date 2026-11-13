@@ -28,7 +28,7 @@ const {
       </h4>
       <p class="mt-1 mb-0 text-xs text-slate-500">
         Mẫu tin nhắn bot sẽ tự động gửi vào nhóm Zalo sau khi quy đổi link
-        Shopee thường thành link hoàn tiền.
+        Shopee hoặc TikTok thường thành link hoàn tiền.
       </p>
     </div>
 
@@ -68,8 +68,8 @@ const {
           Nội dung báo lỗi khi không lấy được dữ liệu sản phẩm
         </h5>
         <p class="mt-1 mb-0 text-[11px] text-slate-500 leading-5">
-          Bot gửi nội dung này khi nhận đúng link Shopee nhưng không lấy
-          được thông tin sản phẩm hoặc link shopee giả.
+          Bot gửi nội dung này khi nhận đúng link Shopee/TikTok nhưng không lấy
+          được thông tin sản phẩm hoặc link không hợp lệ.
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">

@@ -37,7 +37,16 @@ interface Order {
   userSharePercentage?: number | null;
   subId: string | null;
   imgCode?: string | null;
+  type?: number | null;
 }
+
+const platformName = (type?: number | null) =>
+  Number(type) === 2 ? "TikTok" : "Shopee";
+
+const platformBadgeClass = (type?: number | null) =>
+  Number(type) === 2
+    ? "bg-black text-white"
+    : "bg-[#ee4d2d] text-white";
 
 const getCurrentMonthString = () => {
   const now = new Date();
@@ -349,7 +358,13 @@ const getOrderCalc = (item: Order) => {
             class="w-15 h-15 sm:w-16 sm:h-16 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden p-1"
           >
             <img
-              v-if="item.imgCode"
+              v-if="Number(item.type) === 2"
+              src="/logo/TikTok.svg"
+              alt="TikTok"
+              class="w-full h-full object-contain p-1"
+            />
+            <img
+              v-else-if="item.imgCode"
               :src="`https://down-tx-vn.img.susercontent.com/${item.imgCode}.webp`"
               :alt="item.productName || 'Shopee'"
               class="w-full h-full object-cover rounded-lg"
@@ -369,15 +384,18 @@ const getOrderCalc = (item: Order) => {
               class="text-base sm:text-lg font-black text-slate-950 line-clamp-2 leading-snug m-0 tracking-tight"
               style="font-weight: 900;"
             >
-              {{ item.productName || "Sản phẩm Shopee" }}
+              {{ item.productName || `Sản phẩm ${platformName(item.type)}` }}
             </h3>
 
             <!-- Badges Row: Shopee + Status -->
             <div class="flex items-center gap-1.5 pt-0.5 flex-wrap">
               <span
-                class="px-2 py-0.5 rounded-md bg-[#ee4d2d] text-white font-extrabold text-xs leading-tight"
+                :class="[
+                  'px-2 py-0.5 rounded-md font-extrabold text-xs leading-tight',
+                  platformBadgeClass(item.type),
+                ]"
               >
-                Shopee
+                {{ platformName(item.type) }}
               </span>
               <span
                 :class="[
@@ -391,7 +409,7 @@ const getOrderCalc = (item: Order) => {
 
             <!-- Shop name & Price -->
             <div class="text-xs sm:text-sm text-slate-500 font-bold pt-0.5 truncate">
-              {{ item.shopName || "shopee" }} ·
+              {{ item.shopName || platformName(item.type) }} ·
               <span class="text-slate-800 font-extrabold">{{ formatMoney(item.purchaseValue) }}</span>
             </div>
           </div>

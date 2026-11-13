@@ -72,6 +72,11 @@ const routes = [
         component: () => import('../views/ShopeeConfigView.vue'),
       },
       {
+        path: 'tiktok-config',
+        name: 'tiktok-config',
+        component: () => import('../views/TikTokConfigView.vue'),
+      },
+      {
         path: 'settings',
         name: 'settings',
         component: () => import('../views/ZaloConfigView.vue'),
