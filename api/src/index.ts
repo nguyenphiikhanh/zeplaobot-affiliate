@@ -12,7 +12,7 @@ import { transactionRoutes } from './routes/transaction.routes.js'
 import { userPortalRoutes } from './routes/user-portal.routes.js'
 import { siteConfigRoutes } from './routes/site-config.routes.js'
 import { sendError, sendResponse } from './utils/response.js'
-import { getZaloStatus } from './zalo.js'
+import { getZaloStatus, restoreZaloOnStartup } from './zalo.js'
 import { initOrderSyncCron } from './services/cron.service.js'
 
 const app = new Hono()
@@ -67,5 +67,6 @@ app.onError((error, c) => {
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(`[HTTP] Listening on http://localhost:${info.port}`)
   initOrderSyncCron()
+  void restoreZaloOnStartup()
 })
 

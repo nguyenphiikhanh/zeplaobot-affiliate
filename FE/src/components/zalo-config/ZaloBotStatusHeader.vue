@@ -90,6 +90,10 @@ const {
       </div>
     </div>
 
+    <p v-if="botStatus.error" role="alert" class="mt-3 mb-0 text-xs text-amber-600">
+      {{ botStatus.error }}
+    </p>
+
     <!-- QR Modal -->
     <ZaloQrModal />
   </div>

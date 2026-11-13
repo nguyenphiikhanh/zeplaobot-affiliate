@@ -31,6 +31,26 @@ pnpm dev
 
 Quét QR đăng nhập Zalo. Sau khi đăng nhập, listener realtime sẽ tự start.
 
+## Lưu phiên Zalo qua restart
+
+Không cần thêm biến môi trường hoặc tạo khóa. Khởi động API, mở trang quản trị
+cấu hình Zalo và quét QR một lần. Sau khi đăng nhập thành công, cookie, IMEI
+và User-Agent được lưu dưới dạng JSON trong `system_configs`, key
+`zalo_login_session`. Không cần migration mới. Session không được trả qua
+API cấu hình hoặc ghi vào log. Dữ liệu phiên nằm trực tiếp trong database;
+quyền truy cập database và bản sao lưu cần được bảo vệ như thông tin đăng nhập.
+
+Những lần khởi động tiếp theo, server tự khôi phục phiên và chạy listener.
+Nếu khôi phục thất bại, server giữ nguyên dữ liệu và thử lại tối đa 3 lần,
+cách nhau 15 giây. Server không tự mở luồng QR khi khởi động.
+Nếu phiên bị thu hồi/hết hạn, vào trang quản trị và bấm đăng nhập để quét
+QR lại; phiên mới sẽ thay thế phiên cũ sau khi đăng nhập thành công.
+
+Nếu database không lưu được phiên sau đăng nhập, bot vẫn chạy nhưng trạng thái
+admin sẽ có thông báo lỗi; cần xử lý trước khi restart.
+Chỉ chạy một tiến trình bot cho một tài khoản Zalo, không chạy PM2 cluster
+hoặc nhiều replica cùng khôi phục một phiên.
+
 
 ## Auto forward Box A -> Box B
 
