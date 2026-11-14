@@ -68,6 +68,14 @@ const maxCommission = (value: unknown) => {
   return values.length ? Math.round(Math.max(...values)) : 0
 }
 
+const normalizeCommissionRate = (value: unknown) => {
+  if (value === undefined || value === null || value === '') return undefined
+  const numericValue = typeof value === 'number'
+    ? value
+    : Number(String(value).trim().replace(/%$/, ''))
+  return Number.isFinite(numericValue) ? numericValue / 100 : undefined
+}
+
 const normalizeTikTokUrl = (value: string) => {
   const candidate = /^https?:\/\//i.test(value) ? value : `https://${value}`
   let parsed: URL
@@ -126,7 +134,7 @@ export class TikTokService {
     const resolvedSubId = text(data.sub_id) || subId
     const product = data.product && typeof data.product === 'object' ? data.product : null
     const commission = maxCommission(product?.commission?.amount)
-    const rate = product?.commission?.rate
+    const rate = normalizeCommissionRate(product?.commission?.rate)
     const productInfo = product ? {
       productLink: text(product.detail_link) || affiliateLink,
       productName: text(product.title) || 'Sản phẩm TikTok Shop',
@@ -139,7 +147,7 @@ export class TikTokService {
         (commission - commission * (settings.service_fee_rate + settings.tax_rate) / 100)
         * settings.user_share_percentage / 100,
       ),
-      ...(rate !== undefined && rate !== null ? { totalRatePercent: rate as number | string } : {}),
+      ...(rate !== undefined ? { totalRatePercent: rate } : {}),
     } : null
 
     await db.insert(linkGenerations).values({
